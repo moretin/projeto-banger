@@ -1,0 +1,120 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/meteor/MeteorOverlay.gd" id="1_meteor"]
+
+[node name="MeteorOverlay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_meteor")
+
+[node name="MeteorSkyCanvas" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 74.0
+offset_bottom = 334.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="ImpactFlash" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0.95, 0.85, 0)
+
+[node name="ModalBackdrop" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.04, 0.04, 0.78)
+
+[node name="CenterPanel" type="PanelContainer" parent="ModalBackdrop"]
+custom_minimum_size = Vector2(760, 560)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -380.0
+offset_top = -280.0
+offset_right = 380.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="ModalBackdrop/CenterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="ModalBackdrop/CenterPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HeaderHBox" type="HBoxContainer" parent="ModalBackdrop/CenterPanel/Margin/VBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="ModalBackdrop/CenterPanel/Margin/VBox/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.76, 0.28, 1)
+theme_override_font_sizes/font_size = 22
+text = "🟠 Árvore de Âmbar & Projeto Arca (Prestígio)"
+
+[node name="CloseButton" type="Button" parent="ModalBackdrop/CenterPanel/Margin/VBox/HeaderHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 34)
+layout_mode = 2
+focus_mode = 0
+text = "Fechar"
+
+[node name="AmberBalanceLabel" type="Label" parent="ModalBackdrop/CenterPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "🟠 Âmbar Disponível: 0"
+
+[node name="RunSummaryLabel" type="Label" parent="ModalBackdrop/CenterPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.82, 0.85, 1)
+theme_override_font_sizes/font_size = 14
+text = "Profundidade atual: 0m · Escudo: 0%"
+
+[node name="EarlyImpactButton" type="Button" parent="ModalBackdrop/CenterPanel/Margin/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 15
+text = "☄️ Antecipar Impacto do Meteoro (+0 🟠)"
+
+[node name="Scroll" type="ScrollContainer" parent="ModalBackdrop/CenterPanel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="AmberUpgradesList" type="VBoxContainer" parent="ModalBackdrop/CenterPanel/Margin/VBox/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
