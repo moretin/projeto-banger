@@ -1,21 +1,23 @@
 [gd_resource type="Resource" script_class="EraData" format=3]
 
-[ext_resource type="Script" path="res://data/DinoData.gd" id="1_ouiuk"]
-[ext_resource type="Script" path="res://data/EraData.gd" id="2_lshcd"]
-[ext_resource type="Resource" path="res://data/dinos/compsognathus.tres" id="2_y1j2a"]
-[ext_resource type="Resource" path="res://data/dinos/trex.tres" id="3_bjbi2"]
+[ext_resource type="Script" path="res://data/DinoData.gd" id="1_h51cv"]
+[ext_resource type="Resource" path="res://data/dinos/compsognathus.tres" id="2_m5u66"]
+[ext_resource type="Resource" path="res://data/dinos/velociraptor.tres" id="3_0jykf"]
+[ext_resource type="Resource" path="res://data/dinos/triceratops.tres" id="4_e47qs"]
+[ext_resource type="Resource" path="res://data/dinos/trex.tres" id="5_k12fp"]
+[ext_resource type="Script" path="res://data/EraData.gd" id="6_bny6d"]
 
 [resource]
-script = ExtResource("2_lshcd")
+script = ExtResource("6_bny6d")
 id = &"cretaceous"
 display_name = "Cretáceo"
-description = "Rocha sedimentar repleta de grandes predadores."
+description = "Camadas calcárias repletas de grandes predadores."
 index = 1
-layers_count = 12
-base_layer_hp = 200.0
-bones_per_damage = 2.0
-mineral_chance = 0.05
-fragment_chance = 0.02
-fragment_pool = Array[ExtResource("1_ouiuk")]([ExtResource("2_y1j2a"), ExtResource("3_bjbi2")])
+base_layer_hp = 160.0
+layer_hp_growth = 1.26
+bones_per_damage = 2.2
+mineral_chance = 0.08
+fragment_chance = 0.1
+fragment_pool = Array[ExtResource("1_h51cv")]([ExtResource("2_m5u66"), ExtResource("3_0jykf"), ExtResource("4_e47qs"), ExtResource("5_k12fp")])
 rock_color_muted = Color(0.4, 0.38, 0.36, 1)
-rock_color_vivid = Color(0.72, 0.52, 0.28, 1)
+rock_color_vivid = Color(0.72, 0.5, 0.28, 1)

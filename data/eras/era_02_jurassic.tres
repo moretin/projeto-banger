@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EraData" format=3]
+
+[ext_resource type="Script" path="res://data/DinoData.gd" id="1_1nc03"]
+[ext_resource type="Resource" path="res://data/dinos/triceratops.tres" id="2_r10se"]
+[ext_resource type="Resource" path="res://data/dinos/trex.tres" id="3_rlwds"]
+[ext_resource type="Resource" path="res://data/dinos/pterodactyl.tres" id="4_o101x"]
+[ext_resource type="Resource" path="res://data/dinos/brachiosaurus.tres" id="5_t846f"]
+[ext_resource type="Script" path="res://data/EraData.gd" id="6_mnk77"]
+
+[resource]
+script = ExtResource("6_mnk77")
+id = &"jurassic"
+display_name = "Jurássico"
+description = "Rocha densa dos gigantes saurópodes e répteis voadores."
+index = 2
+layers_count = 12
+base_layer_hp = 2200.0
+bones_per_damage = 5.0
+mineral_chance = 0.12
+mineral_amount = 2.0
+fragment_chance = 0.09
+fragment_pool = Array[ExtResource("1_1nc03")]([ExtResource("2_r10se"), ExtResource("3_rlwds"), ExtResource("4_o101x"), ExtResource("5_t846f")])
+rock_color_muted = Color(0.36, 0.37, 0.39, 1)
+rock_color_vivid = Color(0.32, 0.58, 0.46, 1)

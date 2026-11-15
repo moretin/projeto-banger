@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1_jdh8n"]
+
+[resource]
+script = ExtResource("1_jdh8n")
+id = &"dinos_primal_fury"
+display_name = "Fúria Primordial"
+description = "Dobra (×1.25 por nível) o dano global dos dinos usando DNA."
+category = 1
+sort_order = 4
+cost_resource = &"dna"
+base_cost = 20.0
+cost_growth = 1.35
+max_level = 20
+stat_id = &"dino_damage"
+effect_type = 2
+effect_value = 1.25

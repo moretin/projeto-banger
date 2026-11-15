@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1_gx4c8"]
+
+[resource]
+script = ExtResource("1_gx4c8")
+id = &"defense_orbital_radar"
+display_name = "Satélite de Desvio"
+description = "+45 segundos no timer do meteoro nesta run."
+category = 3
+sort_order = 1
+cost_resource = &"minerals"
+base_cost = 2.0
+cost_growth = 1.35
+max_level = 10
+stat_id = &"meteor_time"
+effect_value = 45.0

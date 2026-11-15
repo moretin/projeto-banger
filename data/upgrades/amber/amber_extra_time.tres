@@ -6,11 +6,11 @@
 script = ExtResource("1_ndb5a")
 id = &"amber_extra_time"
 display_name = "Alerta Antecipado"
-description = "+60 segundos no timer do meteoro."
+description = "Permanente: +60 segundos no timer do meteoro em todas as runs."
 category = 4
 cost_resource = &"amber"
 base_cost = 1.0
-cost_growth = 2.0
+cost_growth = 1.8
 max_level = 10
 stat_id = &"meteor_time"
 effect_value = 60.0

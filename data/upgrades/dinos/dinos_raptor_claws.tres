@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1_dg256"]
+
+[resource]
+script = ExtResource("1_dg256")
+id = &"dinos_raptor_claws"
+display_name = "Garras Afiadas"
+description = "+35% de dano para Velociraptors."
+category = 1
+sort_order = 1
+base_cost = 400.0
+cost_growth = 1.2
+stat_id = &"dino_damage:velociraptor"
+effect_type = 1
+effect_value = 0.35

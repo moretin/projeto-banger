@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1_bk6hi"]
+
+[resource]
+script = ExtResource("1_bk6hi")
+id = &"machines_dynamite_rig"
+display_name = "Bancada de Dinamite"
+description = "+45 de DPS automático contínuo (usa Minérios)."
+category = 2
+sort_order = 2
+cost_resource = &"minerals"
+base_cost = 3.0
+cost_growth = 1.22
+stat_id = &"auto_dps"
+effect_value = 45.0

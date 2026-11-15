@@ -36,6 +36,7 @@ const STAT_METEOR_TIME: StringName = &"meteor_time"        ## Segundos extras (A
 const STAT_METEOR_SHIELD: StringName = &"meteor_shield"    ## 0..1 de proteção
 const STAT_AMBER_MULT: StringName = &"amber_mult"
 const STAT_OFFLINE_MULT: StringName = &"offline_mult"
+const STAT_AUTO_DPS: StringName = &"auto_dps"              ## DPS passivo de máquinas
 
 ## Valor de "Máx" no multiplicador de compra.
 const BUY_MAX: int = -1
@@ -353,7 +354,17 @@ func get_click_damage() -> float:
 	return get_stat(STAT_CLICK_DAMAGE, 1.0)
 
 
-## Dano final por golpe de uma unidade de `dino_id` (com upgrades e marcos).
+## Multiplicador de aura de todos os dinos SUPPORT vivos (ex.: Braquiossauro).
+func get_support_aura_multiplier() -> float:
+	var bonus: float = 0.0
+	for dino_id: StringName in dino_counts:
+		var data: DinoData = get_dino(dino_id)
+		if data != null and data.aura_bonus > 0.0:
+			bonus += data.aura_bonus * float(get_dino_count(dino_id))
+	return 1.0 + bonus
+
+
+## Dano final por golpe de uma unidade de `dino_id` (com upgrades, marcos e aura de suporte).
 func get_dino_damage(dino_id: StringName) -> float:
 	var data: DinoData = get_dino(dino_id)
 	if data == null:
@@ -361,10 +372,11 @@ func get_dino_damage(dino_id: StringName) -> float:
 	return data.base_damage \
 		* get_multiplier(STAT_DINO_DAMAGE) \
 		* get_multiplier(data.get_damage_stat_id()) \
-		* data.get_milestone_multiplier(get_dino_count(dino_id))
+		* data.get_milestone_multiplier(get_dino_count(dino_id)) \
+		* get_support_aura_multiplier()
 
 
-## DPS total de todos os dinos (usado no progresso offline e na UI de estatísticas).
+## DPS total de todos os dinos.
 func get_total_dino_dps() -> float:
 	var total: float = 0.0
 	for dino_id: StringName in dino_counts:
@@ -377,11 +389,21 @@ func get_total_dino_dps() -> float:
 	return total
 
 
+## DPS automático das máquinas (aba 🏭 Máquinas).
+func get_auto_dps() -> float:
+	return get_stat(STAT_AUTO_DPS, 0.0)
+
+
+## DPS combinado (dinos + máquinas).
+func get_total_dps() -> float:
+	return get_total_dino_dps() + get_auto_dps()
+
+
 func get_bones_per_second() -> float:
 	var era: EraData = get_current_era()
 	if era == null:
 		return 0.0
-	return get_total_dino_dps() * era.bones_per_damage * get_multiplier(STAT_BONES_MULT)
+	return get_total_dps() * era.bones_per_damage * get_multiplier(STAT_BONES_MULT)
 
 
 func get_dna_per_second() -> float:
@@ -397,6 +419,19 @@ func get_dna_per_second() -> float:
 #region Dinos
 func get_dino(dino_id: StringName) -> DinoData:
 	return dinos_db.get(dino_id, null)
+
+
+## Lista todas as espécies ordenadas por era de desbloqueio e custo de montagem.
+func get_dinos_sorted() -> Array[DinoData]:
+	var list: Array[DinoData] = []
+	for data: DinoData in dinos_db.values():
+		list.append(data)
+	list.sort_custom(func(a: DinoData, b: DinoData) -> bool:
+		if a.unlock_era_index != b.unlock_era_index:
+			return a.unlock_era_index < b.unlock_era_index
+		return a.assembly_cost < b.assembly_cost
+	)
+	return list
 
 
 func get_dino_count(dino_id: StringName) -> int:
@@ -596,10 +631,20 @@ func _update_color_progress() -> void:
 
 
 #region Renda passiva / offline
+var _auto_dig_accum: float = 0.0
+
+
 func _tick_passive_income(delta: float) -> void:
 	var dna_rate: float = get_dna_per_second()
 	if dna_rate > 0.0:
 		add_resource(RES_DNA, dna_rate * delta)
+	var auto_dps: float = get_auto_dps()
+	if auto_dps > 0.0:
+		_auto_dig_accum += delta
+		if _auto_dig_accum >= 0.5:
+			var step: float = _auto_dig_accum
+			_auto_dig_accum = 0.0
+			apply_dig_damage(auto_dps * step, Vector2(360.0, 420.0))
 
 
 ## Aplica ganhos offline de forma simplificada (sem simular camadas). Retorna os ganhos.

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1_wjt1d"]
+
+[resource]
+script = ExtResource("1_wjt1d")
+id = &"amber_fossil_mastery"
+display_name = "Mestria Paleontológica"
+description = "Permanente: +50% de ossos ganhos em todas as runs."
+category = 4
+sort_order = 1
+cost_resource = &"amber"
+base_cost = 1.0
+cost_growth = 1.6
+stat_id = &"bones_mult"
+effect_type = 1
+effect_value = 0.5
+is_permanent = true

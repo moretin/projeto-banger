@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1_gt7ws"]
+
+[resource]
+script = ExtResource("1_gt7ws")
+id = &"amber_fragment_magnet"
+display_name = "Ímã de Fósseis"
+description = "Permanente: +35% de chance de fragmentos em todas as runs."
+category = 4
+sort_order = 2
+cost_resource = &"amber"
+base_cost = 2.0
+cost_growth = 1.7
+max_level = 15
+stat_id = &"fragment_chance"
+effect_type = 1
+effect_value = 0.35
+is_permanent = true

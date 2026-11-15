@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EraData" format=3]
+
+[ext_resource type="Script" path="res://data/DinoData.gd" id="1_3vmh2"]
+[ext_resource type="Resource" path="res://data/dinos/trex.tres" id="2_plv52"]
+[ext_resource type="Resource" path="res://data/dinos/brachiosaurus.tres" id="3_hvpas"]
+[ext_resource type="Resource" path="res://data/dinos/ankylosaurus.tres" id="4_beus4"]
+[ext_resource type="Resource" path="res://data/dinos/dilophosaurus.tres" id="5_kqx77"]
+[ext_resource type="Script" path="res://data/EraData.gd" id="6_wgp8p"]
+
+[resource]
+script = ExtResource("6_wgp8p")
+id = &"permian"
+display_name = "Permiano"
+description = "Basalto antigo pré-extinção com cristais pressurizados."
+index = 4
+layers_count = 16
+base_layer_hp = 600000.0
+layer_hp_growth = 1.23
+bones_per_damage = 30.0
+mineral_chance = 0.22
+mineral_amount = 8.0
+fragment_chance = 0.08
+fragment_pool = Array[ExtResource("1_3vmh2")]([ExtResource("2_plv52"), ExtResource("3_hvpas"), ExtResource("4_beus4"), ExtResource("5_kqx77")])
+rock_color_muted = Color(0.32, 0.3, 0.35, 1)
+rock_color_vivid = Color(0.55, 0.35, 0.68, 1)

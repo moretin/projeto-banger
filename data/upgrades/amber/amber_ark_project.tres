@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1_y3u2d"]
+
+[resource]
+script = ExtResource("1_y3u2d")
+id = &"amber_ark_project"
+display_name = "Projeto Arca"
+description = "Permanente: +30% de Âmbar ganho em cada impacto do meteoro."
+category = 4
+sort_order = 4
+cost_resource = &"amber"
+base_cost = 3.0
+cost_growth = 2.0
+max_level = 10
+stat_id = &"amber_mult"
+effect_type = 1
+effect_value = 0.3
+is_permanent = true

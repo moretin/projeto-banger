@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="DinoData" format=3]
+
+[ext_resource type="Script" path="res://data/DinoData.gd" id="1_x55tl"]
+
+[resource]
+script = ExtResource("1_x55tl")
+id = &"velociraptor"
+display_name = "Velociraptor"
+description = "Caçador ágil em matilha. Golpes rápidos com alto crítico."
+role = 3
+accent_color = Color(0.92, 0.62, 0.22, 1)
+fragments_required = 8
+assembly_cost = 250.0
+unit_base_cost = 120.0
+unit_cost_growth = 1.13
+base_damage = 4.0
+attack_interval = 0.45
+crit_chance = 0.15
+crit_multiplier = 2.5
+move_speed = 150.0
+dna_per_second = 0.15

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DinoData" format=3]
+
+[ext_resource type="Script" path="res://data/DinoData.gd" id="1_uxn5q"]
+
+[resource]
+script = ExtResource("1_uxn5q")
+id = &"dilophosaurus"
+display_name = "Dilofossauro"
+description = "Cospe ácido corrosivo que dissolve camadas profundas rapidamente."
+role = 7
+accent_color = Color(0.95, 0.85, 0.25, 1)
+unlock_era_index = 3
+fragments_required = 18
+assembly_cost = 250000.0
+unit_base_cost = 110000.0
+unit_cost_growth = 1.16
+base_damage = 950.0
+attack_interval = 1.1
+crit_chance = 0.18
+crit_multiplier = 3.5
+move_speed = 110.0
+dna_per_second = 12.0

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1_qixu2"]
+
+[resource]
+script = ExtResource("1_qixu2")
+id = &"defense_thermal_dome"
+display_name = "Domo Térmico"
+description = "+10% de escudo térmico contra o impacto (usa Minérios)."
+category = 3
+sort_order = 2
+cost_resource = &"minerals"
+cost_growth = 1.4
+max_level = 8
+stat_id = &"meteor_shield"
+effect_value = 0.1
