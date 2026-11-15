@@ -29,6 +29,12 @@ func _ready() -> void:
 	Events.meteor_impact_started.connect(_on_meteor_impact_started)
 
 
+func _exit_tree() -> void:
+	if _audio_player != null:
+		_audio_player.stop()
+	_playback = null
+
+
 func _process(delta: float) -> void:
 	_sfx_cooldown = maxf(_sfx_cooldown - delta, 0.0)
 	_fill_audio_buffer()
