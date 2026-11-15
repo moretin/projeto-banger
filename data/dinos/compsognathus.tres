@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="DinoData" format=3]
+
+[ext_resource type="Script" path="res://data/DinoData.gd" id="1_ll71i"]
+
+[resource]
+script = ExtResource("1_ll71i")
+id = &"compsognathus"
+display_name = "Compsognato"
+description = "Pequeno e rápido. Corre em bando recolhendo ossos do chão."
+role = 0
+accent_color = Color(0.55, 0.8, 0.35, 1)
+fragments_required = 5
+base_damage = 0.5
+attack_interval = 0.8
+move_speed = 120.0
+carry_capacity = 5.0
+dna_per_second = 0.05

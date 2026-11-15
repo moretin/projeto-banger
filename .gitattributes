@@ -1,0 +1,22 @@
+# Normaliza finais de linha (evita conflitos falsos entre Windows/Linux/Mac)
+* text=auto eol=lf
+
+# Arquivos de texto da Godot — merge como texto
+*.gd      text eol=lf
+*.tscn    text eol=lf
+*.tres    text eol=lf
+*.godot   text eol=lf
+*.cfg     text eol=lf
+*.uid     text eol=lf
+*.import  text eol=lf
+
+# Binários
+*.png     binary
+*.jpg     binary
+*.webp    binary
+*.svg     text
+*.wav     binary
+*.ogg     binary
+*.mp3     binary
+*.ttf     binary
+*.otf     binary

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1_iqrhl"]
+
+[resource]
+script = ExtResource("1_iqrhl")
+id = &"tools_sharp_pickaxe"
+display_name = "Picareta Afiada"
+description = "+1 de dano por clique."
+stat_id = &"click_damage"

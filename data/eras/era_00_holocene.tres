@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EraData" format=3]
+
+[ext_resource type="Script" path="res://data/DinoData.gd" id="1_cdfhq"]
+[ext_resource type="Script" path="res://data/EraData.gd" id="2_lkncw"]
+[ext_resource type="Resource" path="res://data/dinos/compsognathus.tres" id="2_oju6h"]
+
+[resource]
+script = ExtResource("2_lkncw")
+id = &"holocene"
+display_name = "Holoceno"
+description = "A superfície. Terra fofa, ossos soltos e os primeiros fragmentos."
+layers_count = 8
+layer_hp_growth = 1.3
+fragment_chance = 0.05
+fragment_pool = Array[ExtResource("1_cdfhq")]([ExtResource("2_oju6h")])
+rock_color_vivid = Color(0.6, 0.45, 0.3, 1)
