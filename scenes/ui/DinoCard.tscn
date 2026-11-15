@@ -1,0 +1,92 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/DinoCard.gd" id="1_dcard"]
+
+[node name="DinoCard" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 108)
+size_flags_horizontal = 3
+script = ExtResource("1_dcard")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="HBox" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ColorPip" type="ColorRect" parent="Margin/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 0)
+layout_mode = 2
+color = Color(0.55, 0.82, 0.35, 1)
+
+[node name="InfoVBox" type="VBoxContainer" parent="Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="HeaderHBox" type="HBoxContainer" parent="Margin/HBox/InfoVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NameLabel" type="Label" parent="Margin/HBox/InfoVBox/HeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "Compsognato [Coletor]"
+
+[node name="CountLabel" type="Label" parent="Margin/HBox/InfoVBox/HeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.9, 0.55, 1)
+theme_override_font_sizes/font_size = 16
+text = "×0"
+
+[node name="DescLabel" type="Label" parent="Margin/HBox/InfoVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.75, 0.78, 1)
+theme_override_font_sizes/font_size = 12
+text = "Descrição da espécie."
+autowrap_mode = 2
+
+[node name="StatsLabel" type="Label" parent="Margin/HBox/InfoVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.84, 0.58, 1)
+theme_override_font_sizes/font_size = 13
+text = "🧩 Fragmentos: 0 / 5"
+
+[node name="MilestoneBar" type="ProgressBar" parent="Margin/HBox/InfoVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+max_value = 25.0
+show_percentage = false
+
+[node name="MilestoneLabel" type="Label" parent="Margin/HBox/InfoVBox/MilestoneBar"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 11
+text = "Próximo marco (×2): 0 / 25"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AssembleButton" type="Button" parent="Margin/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 56)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_override_font_sizes/font_size = 14
+text = "Reviver"

@@ -35,6 +35,10 @@ signal upgrade_purchased(upgrade_id: StringName, new_level: int)
 signal buy_multiplier_changed(multiplier: int)
 ## Emissor: qualquer área. Pede um toast/notificação na tela.
 signal notification_requested(text: String, icon: Texture2D)
+## Emissor: HUD. Abre o modal da árvore de Âmbar / Prestígio.
+signal prestige_modal_requested()
+## Emissor: HUD. Abre o modal de Save / Configurações.
+signal settings_modal_requested()
 #endregion
 
 
