@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/dinos/DinoSwarm.gd" id="1_dswarm"]
+
+[node name="DinoSwarm" type="Node2D"]
+script = ExtResource("1_dswarm")
+
+[node name="MultiMeshInstance2D" type="MultiMeshInstance2D" parent="."]
+unique_name_in_owner = true
