@@ -1,0 +1,164 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/dig_site/DigSite.gd" id="1_digsite"]
+
+[node name="DigSite" type="Control"]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_digsite")
+
+[node name="SkyRect" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 260.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.24, 0.24, 0.26, 1)
+
+[node name="SurfaceGrass" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 248.0
+offset_bottom = 266.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.36, 0.35, 0.3, 1)
+
+[node name="DinoStage" type="Node2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(0, 248)
+
+[node name="RockHitArea" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 266.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_default_cursor_shape = 2
+
+[node name="RockBg" type="ColorRect" parent="RockHitArea"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 280.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.45, 0.42, 0.38, 1)
+
+[node name="ClickPrompt" type="Label" parent="RockHitArea/RockBg"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -24.0
+offset_right = 180.0
+offset_bottom = 24.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.55)
+theme_override_font_sizes/font_size = 20
+text = "⛏️ CLIQUE NA ROCHA PARA ESCAVAR"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SubLayer1" type="ColorRect" parent="RockHitArea"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 280.0
+offset_bottom = 440.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.35, 0.32, 0.28, 1)
+
+[node name="SubLayer2" type="ColorRect" parent="RockHitArea"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 440.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.25, 0.22, 0.2, 1)
+
+[node name="LayerOverlay" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 12.0
+offset_bottom = 120.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_right = 20
+
+[node name="VBox" type="VBoxContainer" parent="LayerOverlay"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="EraTitleLabel" type="Label" parent="LayerOverlay/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Holoceno — Camada 1 / 6"
+
+[node name="EraDescLabel" type="Label" parent="LayerOverlay/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.82, 0.85, 1)
+theme_override_font_sizes/font_size = 14
+text = "Superfície recente: terra macia e fósseis rasos."
+
+[node name="LayerHpBar" type="ProgressBar" parent="LayerOverlay/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+mouse_filter = 2
+max_value = 15.0
+value = 15.0
+show_percentage = false
+
+[node name="LayerHpLabel" type="Label" parent="LayerOverlay/VBox/LayerHpBar"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 14
+text = "🪨 Rocha: 15 / 15 HP"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="FloatingContainer" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
