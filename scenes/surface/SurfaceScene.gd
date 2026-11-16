@@ -101,7 +101,8 @@ func _animate_hero_dino(delta: float) -> void:
 
 	var hop: float = absf(sin(_hero_phase)) * 10.0
 	_hero_sprite.position = Vector2(_hero_x, 24.0 - hop)
-	_hero_sprite.flip_h = (_hero_dir < 0.0)
+	# O PNG do Compsognato olha para a esquerda: inverte quando anda para a direita.
+	_hero_sprite.flip_h = (_hero_dir > 0.0)
 
 
 func _refresh_all() -> void:
@@ -292,3 +293,35 @@ func _on_danger_level_changed(_level: float) -> void:
 
 func _on_run_started(_run: int) -> void:
 	_refresh_all()
+
+
+## Textura do Dinossauro Principal: usa o sprite do Compsognato (DinoData) e,
+## se ele não existir, recai na versão 16×16 procedural em Pixel Art.
+func _get_hero_texture() -> Texture2D:
+	var data: DinoData = GameState.get_dino(&"compsognathus")
+	if data != null and data.sprite != null:
+		return data.sprite
+	return _create_pixel_dino_texture()
+
+
+## Cria a textura 16×16 em Pixel Art do Dinossauro Principal (fallback).
+static func _create_pixel_dino_texture() -> ImageTexture:
+	var img: Image = Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	var body_col := Color(0.32, 0.82, 0.36, 1.0)
+	var belly_col := Color(0.78, 0.95, 0.58, 1.0)
+	var eye_col := Color(0.98, 0.98, 0.98, 1.0)
+
+	for y: int in range(PIXEL_DINO_ROWS.size()):
+		var row: String = PIXEL_DINO_ROWS[y]
+		for x: int in range(mini(row.length(), 16)):
+			var ch: String = row.substr(x, 1)
+			match ch:
+				"G":
+					img.set_pixel(x, y, body_col)
+				"L":
+					img.set_pixel(x, y, belly_col)
+				"W":
+					img.set_pixel(x, y, eye_col)
+				_:
+					img.set_pixel(x, y, Color(0, 0, 0, 0))
+	return ImageTexture.create_from_image(img)
