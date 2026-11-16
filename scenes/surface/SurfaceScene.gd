@@ -46,7 +46,7 @@ var _rock_shake: float = 0.0
 var _hero_x: float = 420.0
 var _hero_dir: float = 1.0
 var _hero_phase: float = 0.0
-var _rubble_cards: Dictionary[StringName, Dictionary] = {}
+var _rubble_cards: Dictionary = {}
 
 
 func _ready() -> void:

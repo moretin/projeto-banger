@@ -104,19 +104,19 @@ const ERAS_DIR: String = "res://data/eras"
 
 
 #region Bancos de dados (somente leitura após _ready)
-var dinos_db: Dictionary[StringName, DinoData] = {}
-var upgrades_db: Dictionary[StringName, UpgradeData] = {}
+var dinos_db: Dictionary = {}
+var upgrades_db: Dictionary = {}
 ## Ordenado por EraData.index.
 var eras: Array[EraData] = []
 #endregion
 
 
 #region Estado da run (reseta no meteoro)
-var resources: Dictionary[StringName, float] = {}
-var fragments: Dictionary[StringName, int] = {}
-var dino_counts: Dictionary[StringName, int] = {}
-var upgrade_levels: Dictionary[StringName, int] = {}
-var rubble_levels: Dictionary[StringName, int] = {}
+var resources: Dictionary = {}
+var fragments: Dictionary = {}
+var dino_counts: Dictionary = {}
+var upgrade_levels: Dictionary = {}
+var rubble_levels: Dictionary = {}
 
 var orange_rock_hp: float = ORANGE_ROCK_MAX_HP
 var orange_rock_broken: bool = false
@@ -138,13 +138,13 @@ var is_impacting: bool = false
 
 
 #region Estado permanente (sobrevive ao prestígio)
-var permanent_upgrade_levels: Dictionary[StringName, int] = {}
+var permanent_upgrade_levels: Dictionary = {}
 var run_number: int = 1
 var max_depth_ever: int = 0
 var lifetime_bones: float = 0.0
 var total_amber_earned: float = 0.0
 ## Espécies já revividas alguma vez (para bestiário e progressão de cor).
-var discovered_dinos: Dictionary[StringName, bool] = {}
+var discovered_dinos: Dictionary = {}
 #endregion
 
 
@@ -156,8 +156,8 @@ var danger_level: float = 0.0
 
 
 #region Cache de estatísticas
-var _stat_flat: Dictionary[StringName, float] = {}
-var _stat_mult: Dictionary[StringName, float] = {}
+var _stat_flat: Dictionary = {}
+var _stat_mult: Dictionary = {}
 #endregion
 
 
@@ -223,7 +223,7 @@ func _reset_run_state() -> void:
 func _emit_full_refresh() -> void:
 	for res_id: StringName in ALL_RESOURCES:
 		Events.resource_changed.emit(res_id, get_resource(res_id), 0.0)
-	for dino_id: StringName in dinos_db:
+	for dino_id: Variant in dinos_db:
 		Events.dino_count_changed.emit(dino_id, get_dino_count(dino_id))
 		Events.fragments_changed.emit(dino_id, get_fragments(dino_id))
 	Events.orange_rock_hp_changed.emit(orange_rock_hp, ORANGE_ROCK_MAX_HP)
@@ -435,7 +435,7 @@ func get_click_damage() -> float:
 ## Multiplicador de aura de todos os dinos SUPPORT vivos (ex.: Braquiossauro).
 func get_support_aura_multiplier() -> float:
 	var bonus: float = 0.0
-	for dino_id: StringName in dino_counts:
+	for dino_id: Variant in dino_counts:
 		var data: DinoData = get_dino(dino_id)
 		if data != null and data.aura_bonus > 0.0:
 			bonus += data.aura_bonus * float(get_dino_count(dino_id))
@@ -457,7 +457,7 @@ func get_dino_damage(dino_id: StringName) -> float:
 ## DPS total de todos os dinos.
 func get_total_dino_dps() -> float:
 	var total: float = 0.0
-	for dino_id: StringName in dino_counts:
+	for dino_id: Variant in dino_counts:
 		var data: DinoData = get_dino(dino_id)
 		var count: int = get_dino_count(dino_id)
 		if data == null or count <= 0 or data.attack_interval <= 0.0:
@@ -486,7 +486,7 @@ func get_bones_per_second() -> float:
 
 func get_dna_per_second() -> float:
 	var total: float = 0.0
-	for dino_id: StringName in dino_counts:
+	for dino_id: Variant in dino_counts:
 		var data: DinoData = get_dino(dino_id)
 		if data != null:
 			total += data.dna_per_second * float(get_dino_count(dino_id))
@@ -736,7 +736,7 @@ func calculate_amber_reward(shield_ratio: float = -1.0) -> float:
 ## Proteção atual contra o meteoro (upgrades de defesa + dinos DEFENSE).
 func get_shield_ratio() -> float:
 	var shield: float = get_stat(STAT_METEOR_SHIELD, 0.0)
-	for dino_id: StringName in dino_counts:
+	for dino_id: Variant in dino_counts:
 		var data: DinoData = get_dino(dino_id)
 		if data != null:
 			shield += data.meteor_damage_reduction * float(get_dino_count(dino_id))
@@ -797,8 +797,8 @@ func _tick_passive_income(delta: float) -> void:
 
 ## Aplica ganhos offline de forma simplificada (sem simular camadas). Retorna os ganhos.
 ## O timer do meteoro NÃO corre offline.
-func apply_offline_progress(seconds: float) -> Dictionary[StringName, float]:
-	var gains: Dictionary[StringName, float] = {}
+func apply_offline_progress(seconds: float) -> Dictionary:
+	var gains: Dictionary = {}
 	if seconds <= 0.0:
 		return gains
 	var mult: float = get_multiplier(STAT_OFFLINE_MULT)
@@ -844,7 +844,7 @@ func load_save_dict(data: Dictionary) -> void:
 	resources.clear()
 	for res_id: StringName in ALL_RESOURCES:
 		resources[res_id] = 0.0
-	for key: String in data.get("resources", {}):
+	for key: Variant in data.get("resources", {}):
 		resources[StringName(key)] = float(data["resources"][key])
 
 	fragments.clear()

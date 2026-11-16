@@ -149,7 +149,7 @@ func _apply_offline_progress(elapsed: float) -> void:
 	if elapsed < MIN_OFFLINE_SECONDS:
 		return
 	var seconds: float = minf(elapsed, MAX_OFFLINE_SECONDS)
-	var gains: Dictionary[StringName, float] = GameState.apply_offline_progress(seconds)
+	var gains: Dictionary = GameState.apply_offline_progress(seconds)
 	if not gains.is_empty():
 		Events.offline_progress_applied.emit(seconds, gains)
 #endregion

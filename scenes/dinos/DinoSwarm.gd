@@ -26,7 +26,7 @@ class VisualAgent:
 @onready var _multimesh_instance: MultiMeshInstance2D = %MultiMeshInstance2D
 
 var _agents: Array[VisualAgent] = []
-var _attack_timers: Dictionary[StringName, float] = {}
+var _attack_timers: Dictionary = {}
 
 
 func _ready() -> void:
@@ -57,7 +57,7 @@ func _setup_multimesh() -> void:
 
 
 func _simulate_species_attacks(delta: float) -> void:
-	for dino_id: StringName in GameState.dino_counts:
+	for dino_id: Variant in GameState.dino_counts:
 		var count: int = GameState.get_dino_count(dino_id)
 		if count <= 0:
 			continue
