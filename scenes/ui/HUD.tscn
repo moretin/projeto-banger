@@ -1,10 +1,16 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/HUD.gd" id="1_hud"]
+[ext_resource type="Theme" path="res://scenes/ui/ui_theme.tres" id="2_theme"]
 
 [node name="HUD" type="PanelContainer"]
 custom_minimum_size = Vector2(0, 74)
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 74.0
+grow_horizontal = 2
 size_flags_horizontal = 3
+theme = ExtResource("2_theme")
 script = ExtResource("1_hud")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -60,12 +66,14 @@ text = "🟠 0"
 [node name="Spacer" type="Control" parent="Margin/VBox/TopRow"]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 2
 
 [node name="MeteorBar" type="ProgressBar" parent="Margin/VBox/TopRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(240, 26)
 layout_mode = 2
 size_flags_vertical = 4
+mouse_filter = 2
 max_value = 900.0
 value = 900.0
 show_percentage = false
@@ -78,6 +86,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 theme_override_font_sizes/font_size = 13
 text = "☄️ Impacto em 15:00"
 horizontal_alignment = 1
@@ -87,7 +96,8 @@ vertical_alignment = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 32)
 layout_mode = 2
-focus_mode = 0
+focus_neighbor_right = NodePath("../SettingsButton")
+focus_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "🟠 Âmbar / Arca"
 
@@ -95,7 +105,8 @@ text = "🟠 Âmbar / Arca"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(95, 32)
 layout_mode = 2
-focus_mode = 0
+focus_neighbor_left = NodePath("../PrestigeButton")
+focus_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "⚙️ Save"
 
@@ -121,6 +132,7 @@ text = "⚡ Clique: 1 · DPS: 0/s · 🛡️ Escudo: 0%"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.38, 1)
 theme_override_font_sizes/font_size = 14
 text = ""

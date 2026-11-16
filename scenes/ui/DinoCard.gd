@@ -27,6 +27,7 @@ func setup(data: DinoData) -> void:
 
 
 func _ready() -> void:
+	offset_transform_enabled = true
 	_assemble_button.pressed.connect(_on_assemble_pressed)
 	Events.resource_changed.connect(_on_resource_changed)
 	Events.fragments_changed.connect(_on_fragments_changed)
@@ -120,6 +121,14 @@ static func _role_name(role: DinoData.Role) -> String:
 	return "Dino"
 
 
+func _play_assemble_feedback() -> void:
+	if not is_inside_tree():
+		return
+	offset_transform_scale = Vector2(1.02, 1.02)
+	var tw: Tween = create_tween()
+	tw.tween_property(self, "offset_transform_scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
 func _on_assemble_pressed() -> void:
 	if dino_id != &"":
 		Events.dino_assembly_requested.emit(dino_id)
@@ -137,6 +146,7 @@ func _on_fragments_changed(changed_id: StringName, _amount: int) -> void:
 func _on_dino_count_changed(changed_id: StringName, _count: int) -> void:
 	if changed_id == dino_id:
 		refresh()
+		_play_assemble_feedback()
 
 
 func _on_era_changed(_era_idx: int) -> void:

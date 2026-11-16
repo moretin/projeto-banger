@@ -1,10 +1,13 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/DinoCard.gd" id="1_dcard"]
+[ext_resource type="Theme" path="res://scenes/ui/ui_theme.tres" id="2_theme"]
 
 [node name="DinoCard" type="PanelContainer"]
 custom_minimum_size = Vector2(0, 108)
+offset_transform_enabled = true
 size_flags_horizontal = 3
+theme = ExtResource("2_theme")
 script = ExtResource("1_dcard")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -22,6 +25,7 @@ theme_override_constants/separation = 10
 unique_name_in_owner = true
 custom_minimum_size = Vector2(8, 0)
 layout_mode = 2
+mouse_filter = 2
 color = Color(0.55, 0.82, 0.35, 1)
 
 [node name="InfoVBox" type="VBoxContainer" parent="Margin/HBox"]
@@ -66,6 +70,7 @@ text = "🧩 Fragmentos: 0 / 5"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
+mouse_filter = 2
 max_value = 25.0
 show_percentage = false
 
@@ -77,6 +82,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 theme_override_font_sizes/font_size = 11
 text = "Próximo marco (×2): 0 / 25"
 horizontal_alignment = 1
@@ -87,6 +93,6 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 56)
 layout_mode = 2
 size_flags_vertical = 4
-focus_mode = 0
+focus_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Reviver"
