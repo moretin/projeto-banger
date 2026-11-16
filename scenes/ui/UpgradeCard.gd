@@ -20,6 +20,7 @@ func setup(data: UpgradeData) -> void:
 
 
 func _ready() -> void:
+	offset_transform_enabled = true
 	_buy_button.pressed.connect(_on_buy_pressed)
 	Events.resource_changed.connect(_on_state_changed_res)
 	Events.upgrade_purchased.connect(_on_upgrade_purchased)
@@ -84,6 +85,14 @@ static func _get_resource_icon(res_id: StringName) -> String:
 	return "•"
 
 
+func _play_purchase_feedback() -> void:
+	if not is_inside_tree():
+		return
+	offset_transform_scale = Vector2(1.02, 1.02)
+	var tw: Tween = create_tween()
+	tw.tween_property(self, "offset_transform_scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
 func _on_buy_pressed() -> void:
 	if upgrade_id != &"":
 		Events.upgrade_purchase_requested.emit(upgrade_id, GameState.buy_multiplier)
@@ -93,8 +102,10 @@ func _on_state_changed_res(_res_id: StringName, _amount: float, _delta: float) -
 	refresh()
 
 
-func _on_upgrade_purchased(_upg_id: StringName, _new_level: int) -> void:
+func _on_upgrade_purchased(upg_id: StringName, _new_level: int) -> void:
 	refresh()
+	if upg_id == upgrade_id:
+		_play_purchase_feedback()
 
 
 func _on_multiplier_changed(_mult: int) -> void:

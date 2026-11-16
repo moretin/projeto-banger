@@ -1,10 +1,19 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/UpgradePanel.gd" id="1_upanel"]
+[ext_resource type="Theme" path="res://scenes/ui/ui_theme.tres" id="2_theme"]
 
 [node name="UpgradePanel" type="PanelContainer"]
 custom_minimum_size = Vector2(540, 0)
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -540.0
+grow_horizontal = 0
+grow_vertical = 2
 size_flags_vertical = 3
+theme = ExtResource("2_theme")
 script = ExtResource("1_upanel")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -32,7 +41,8 @@ text = "Compra Rápida:"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(58, 32)
 layout_mode = 2
-focus_mode = 0
+focus_neighbor_right = NodePath("../Btn10x")
+focus_mode = 2
 toggle_mode = true
 button_pressed = true
 text = "1x"
@@ -41,7 +51,9 @@ text = "1x"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(58, 32)
 layout_mode = 2
-focus_mode = 0
+focus_neighbor_left = NodePath("../Btn1x")
+focus_neighbor_right = NodePath("../Btn100x")
+focus_mode = 2
 toggle_mode = true
 text = "10x"
 
@@ -49,7 +61,9 @@ text = "10x"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(58, 32)
 layout_mode = 2
-focus_mode = 0
+focus_neighbor_left = NodePath("../Btn10x")
+focus_neighbor_right = NodePath("../BtnMax")
+focus_mode = 2
 toggle_mode = true
 text = "100x"
 
@@ -57,7 +71,8 @@ text = "100x"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 32)
 layout_mode = 2
-focus_mode = 0
+focus_neighbor_left = NodePath("../Btn100x")
+focus_mode = 2
 toggle_mode = true
 text = "Máx"
 
@@ -66,9 +81,11 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 current_tab = 0
+tab_focus_mode = 2
 
 [node name="Ferramentas" type="ScrollContainer" parent="Margin/VBox/TabContainer"]
 layout_mode = 2
+follow_focus = true
 horizontal_scroll_mode = 0
 metadata/_tab_index = 0
 
@@ -81,6 +98,7 @@ theme_override_constants/separation = 8
 [node name="Dinos" type="ScrollContainer" parent="Margin/VBox/TabContainer"]
 visible = false
 layout_mode = 2
+follow_focus = true
 horizontal_scroll_mode = 0
 metadata/_tab_index = 1
 
@@ -116,6 +134,7 @@ theme_override_constants/separation = 8
 [node name="Maquinas" type="ScrollContainer" parent="Margin/VBox/TabContainer"]
 visible = false
 layout_mode = 2
+follow_focus = true
 horizontal_scroll_mode = 0
 metadata/_tab_index = 2
 
@@ -128,6 +147,7 @@ theme_override_constants/separation = 8
 [node name="Defesa" type="ScrollContainer" parent="Margin/VBox/TabContainer"]
 visible = false
 layout_mode = 2
+follow_focus = true
 horizontal_scroll_mode = 0
 metadata/_tab_index = 3
 

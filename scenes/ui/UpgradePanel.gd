@@ -33,10 +33,18 @@ func _ready() -> void:
 	_btn_10x.pressed.connect(func() -> void: GameState.set_buy_multiplier(10))
 	_btn_100x.pressed.connect(func() -> void: GameState.set_buy_multiplier(100))
 	_btn_max.pressed.connect(func() -> void: GameState.set_buy_multiplier(GameState.BUY_MAX))
+	_tab_container.tab_changed.connect(_on_tab_changed)
 
 	Events.buy_multiplier_changed.connect(_update_multiplier_buttons)
 	_populate_all()
 	_update_multiplier_buttons(GameState.buy_multiplier)
+	grab_initial_focus()
+
+
+## Garante foco inicial para navegação por teclado/gamepad (godot-ui-control).
+func grab_initial_focus() -> void:
+	if _btn_1x != null and _btn_1x.is_visible_in_tree():
+		_btn_1x.grab_focus()
 
 
 func _populate_all() -> void:
@@ -70,3 +78,9 @@ func _update_multiplier_buttons(mult: int) -> void:
 	_btn_10x.button_pressed = (mult == 10)
 	_btn_100x.button_pressed = (mult == 100)
 	_btn_max.button_pressed = (mult == GameState.BUY_MAX)
+
+
+func _on_tab_changed(_tab: int) -> void:
+	var vp: Viewport = get_viewport()
+	if vp != null and vp.gui_get_focus_owner() == null:
+		grab_initial_focus()

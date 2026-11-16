@@ -1,10 +1,13 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/UpgradeCard.gd" id="1_ucard"]
+[ext_resource type="Theme" path="res://scenes/ui/ui_theme.tres" id="2_theme"]
 
 [node name="UpgradeCard" type="PanelContainer"]
 custom_minimum_size = Vector2(0, 76)
+offset_transform_enabled = true
 size_flags_horizontal = 3
+theme = ExtResource("2_theme")
 script = ExtResource("1_ucard")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -54,6 +57,6 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(135, 48)
 layout_mode = 2
 size_flags_vertical = 4
-focus_mode = 0
+focus_mode = 2
 theme_override_font_sizes/font_size = 15
 text = "🦴 10"
