@@ -23,6 +23,7 @@ const MAX_FLOATING_LABELS: int = 32
 @onready var _hp_label: Label = %LayerHpLabel
 @onready var _floating_container: Control = %FloatingContainer
 @onready var _dino_stage: Node2D = %DinoStage
+@onready var _to_surface_button: Button = %ToSurfaceButton
 
 var _shake_strength: float = 0.0
 var _active_Preset_labels: int = 0
@@ -31,6 +32,9 @@ var _active_Preset_labels: int = 0
 func _ready() -> void:
 	_rock_button.gui_input.connect(_on_rock_gui_input)
 	_rock_bg.draw.connect(_on_rock_draw)
+	_to_surface_button.pressed.connect(func() -> void:
+		Events.scenario_transition_requested.emit(&"surface")
+	)
 
 	Events.layer_hp_changed.connect(_on_layer_hp_changed)
 	Events.layer_broken.connect(_on_layer_broken)
@@ -158,8 +162,14 @@ func _on_rock_draw() -> void:
 func _on_loot_dropped(res_id: StringName, amount: float, world_pos: Vector2) -> void:
 	if _active_Preset_labels >= MAX_FLOATING_LABELS:
 		return
-	var icon: String = "🦴" if res_id == GameState.RES_BONES else "💎"
-	var col: Color = Color(0.98, 0.94, 0.82) if res_id == GameState.RES_BONES else Color(0.45, 0.88, 1.0)
+	var icon: String = "🦴"
+	var col: Color = Color(0.98, 0.94, 0.82)
+	if res_id == GameState.RES_ROCKS:
+		icon = "🪨"
+		col = Color(0.92, 0.76, 0.56)
+	elif res_id == GameState.RES_MINERALS:
+		icon = "💎"
+		col = Color(0.45, 0.88, 1.0)
 	_spawn_floating_text("+%s %s" % [GameState.format_number(amount), icon], world_pos, col)
 
 

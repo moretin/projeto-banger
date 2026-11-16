@@ -16,12 +16,62 @@ extends Node
 #region Constantes
 ## IDs de recursos.
 const RES_BONES: StringName = &"bones"
+const RES_ROCKS: StringName = &"rocks"
 const RES_MINERALS: StringName = &"minerals"
 const RES_DNA: StringName = &"dna"
 const RES_AMBER: StringName = &"amber"
 ## Recursos zerados a cada run (âmbar é permanente).
-const RUN_RESOURCES: Array[StringName] = [RES_BONES, RES_MINERALS, RES_DNA]
-const ALL_RESOURCES: Array[StringName] = [RES_BONES, RES_MINERALS, RES_DNA, RES_AMBER]
+const RUN_RESOURCES: Array[StringName] = [RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA]
+const ALL_RESOURCES: Array[StringName] = [RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA, RES_AMBER]
+
+## Vida inicial da Rocha Laranja na Superfície.
+const ORANGE_ROCK_MAX_HP: float = 10.0
+
+## Escombros de pedra reconstruíveis na Superfície (custam RES_ROCKS).
+const RUBBLE_ORDER: Array[StringName] = [
+	&"rubble_forge",
+	&"rubble_nest",
+	&"rubble_silo",
+	&"rubble_bunker",
+]
+const RUBBLE_DEFS: Dictionary = {
+	&"rubble_forge": {
+		"title": "Forja de Pedra",
+		"desc": "+50% de Dano de Clique por nível",
+		"base_cost": 15.0,
+		"cost_growth": 2.1,
+		"stat_id": &"click_damage",
+		"mult_per_level": 0.50,
+		"color": Color(0.92, 0.52, 0.24),
+	},
+	&"rubble_nest": {
+		"title": "Ninho Aquecido",
+		"desc": "+50% de Dano dos Dinos por nível",
+		"base_cost": 30.0,
+		"cost_growth": 2.2,
+		"stat_id": &"dino_damage",
+		"mult_per_level": 0.50,
+		"color": Color(0.52, 0.85, 0.38),
+	},
+	&"rubble_silo": {
+		"title": "Silo Geológico",
+		"desc": "+45% de Ossos e Rochas por nível",
+		"base_cost": 60.0,
+		"cost_growth": 2.3,
+		"stat_id": &"bones_mult",
+		"mult_per_level": 0.45,
+		"color": Color(0.42, 0.75, 0.92),
+	},
+	&"rubble_bunker": {
+		"title": "Bastião de Rocha",
+		"desc": "+8% de Escudo Anti-Meteoro por nível",
+		"base_cost": 100.0,
+		"cost_growth": 2.4,
+		"stat_id": &"meteor_shield",
+		"add_per_level": 0.08,
+		"color": Color(0.75, 0.65, 0.88),
+	},
+}
 
 ## IDs de estatísticas afetadas por upgrades (UpgradeData.stat_id).
 ## Para dano de uma espécie use DinoData.get_damage_stat_id() → &"dino_damage:<id>".
@@ -66,6 +116,10 @@ var resources: Dictionary[StringName, float] = {}
 var fragments: Dictionary[StringName, int] = {}
 var dino_counts: Dictionary[StringName, int] = {}
 var upgrade_levels: Dictionary[StringName, int] = {}
+var rubble_levels: Dictionary[StringName, int] = {}
+
+var orange_rock_hp: float = ORANGE_ROCK_MAX_HP
+var orange_rock_broken: bool = false
 
 var current_era_index: int = 0
 ## Camada dentro da era atual.
@@ -122,6 +176,8 @@ func _process(delta: float) -> void:
 
 func _connect_events() -> void:
 	Events.dig_hit.connect(_on_dig_hit)
+	Events.orange_rock_hit.connect(_on_orange_rock_hit)
+	Events.rubble_rebuild_requested.connect(_on_rubble_rebuild_requested)
 	Events.upgrade_purchase_requested.connect(_on_upgrade_purchase_requested)
 	Events.dino_assembly_requested.connect(_on_dino_assembly_requested)
 	Events.meteor_early_impact_requested.connect(trigger_meteor_impact)
@@ -148,6 +204,9 @@ func _reset_run_state() -> void:
 	fragments.clear()
 	dino_counts.clear()
 	upgrade_levels.clear()
+	rubble_levels.clear()
+	orange_rock_hp = ORANGE_ROCK_MAX_HP
+	orange_rock_broken = false
 	current_era_index = 0
 	current_layer_index = 0
 	depth = 0
@@ -167,6 +226,11 @@ func _emit_full_refresh() -> void:
 	for dino_id: StringName in dinos_db:
 		Events.dino_count_changed.emit(dino_id, get_dino_count(dino_id))
 		Events.fragments_changed.emit(dino_id, get_fragments(dino_id))
+	Events.orange_rock_hp_changed.emit(orange_rock_hp, ORANGE_ROCK_MAX_HP)
+	if orange_rock_broken:
+		Events.orange_rock_broken.emit()
+	for rubble_id: StringName in RUBBLE_ORDER:
+		Events.rubble_rebuilt.emit(rubble_id, get_rubble_level(rubble_id))
 	Events.era_changed.emit(current_era_index)
 	Events.layer_hp_changed.emit(layer_hp, layer_max_hp)
 	Events.meteor_timer_changed.emit(meteor_time_left, meteor_total_time)
@@ -337,6 +401,20 @@ func recalculate_stats() -> void:
 			_stat_flat[data.stat_id] = _stat_flat.get(data.stat_id, 0.0) + effect
 		else:
 			_stat_mult[data.stat_id] = _stat_mult.get(data.stat_id, 1.0) * effect
+
+	# Bônus dos escombros reconstruídos na Superfície.
+	for rubble_id: StringName in RUBBLE_ORDER:
+		var r_lvl: int = get_rubble_level(rubble_id)
+		if r_lvl <= 0:
+			continue
+		var def: Dictionary = RUBBLE_DEFS[rubble_id]
+		var st_id: StringName = def.get("stat_id", &"")
+		if def.has("add_per_level"):
+			_stat_flat[st_id] = _stat_flat.get(st_id, 0.0) + float(def["add_per_level"]) * float(r_lvl)
+		elif def.has("mult_per_level"):
+			var factor: float = 1.0 + float(def["mult_per_level"]) * float(r_lvl)
+			_stat_mult[st_id] = _stat_mult.get(st_id, 1.0) * factor
+
 	Events.stats_recalculated.emit()
 
 
@@ -506,6 +584,11 @@ func apply_dig_damage(damage: float, world_position: Vector2 = Vector2.ZERO) -> 
 	add_resource(RES_BONES, bones)
 	Events.loot_dropped.emit(RES_BONES, bones, world_position)
 
+	# Rochas (usadas na Superfície para reconstruir escombros).
+	var rocks: float = maxf(1.0, effective * 0.45 * get_multiplier(STAT_BONES_MULT))
+	add_resource(RES_ROCKS, rocks)
+	Events.loot_dropped.emit(RES_ROCKS, rocks, world_position)
+
 	# Minério (chance por golpe).
 	if randf() < era.mineral_chance * get_multiplier(STAT_MINERAL_CHANCE):
 		add_resource(RES_MINERALS, era.mineral_amount)
@@ -527,6 +610,9 @@ func apply_dig_damage(damage: float, world_position: Vector2 = Vector2.ZERO) -> 
 func _break_layer() -> void:
 	depth += 1
 	max_depth_ever = maxi(max_depth_ever, depth)
+	# Bônus de rochas ao quebrar uma camada inteira!
+	var bonus_rocks: float = roundf((5.0 + float(depth) * 3.0) * get_multiplier(STAT_BONES_MULT))
+	add_resource(RES_ROCKS, bonus_rocks)
 	Events.layer_broken.emit(current_era_index, current_layer_index, depth)
 
 	var era: EraData = get_current_era()
@@ -542,6 +628,68 @@ func _break_layer() -> void:
 
 func _on_dig_hit(damage: float, world_position: Vector2, _is_crit: bool) -> void:
 	apply_dig_damage(damage, world_position)
+
+
+#region Superfície: Rocha Laranja & Escombros
+func _on_orange_rock_hit(damage: float, world_position: Vector2) -> void:
+	if orange_rock_broken or damage <= 0.0:
+		return
+	var effective: float = minf(damage, orange_rock_hp)
+	orange_rock_hp = maxf(orange_rock_hp - effective, 0.0)
+	add_resource(RES_ROCKS, 1.0)
+	Events.loot_dropped.emit(RES_ROCKS, 1.0, world_position)
+	Events.orange_rock_hp_changed.emit(orange_rock_hp, ORANGE_ROCK_MAX_HP)
+
+	if orange_rock_hp <= 0.0:
+		orange_rock_broken = true
+		# Ao quebrar a Rocha Laranja, nasce o 1º Dinossauro (protagonista)!
+		if get_dino_count(&"compsognathus") == 0:
+			dino_counts[&"compsognathus"] = 1
+			discovered_dinos[&"compsognathus"] = true
+			Events.dino_unlocked.emit(&"compsognathus")
+			Events.dino_count_changed.emit(&"compsognathus", 1)
+			_update_color_progress()
+		Events.orange_rock_broken.emit()
+		Events.notification_requested.emit("🦖 A Rocha Laranja se partiu! Seu Dinossauro despertou!", null)
+
+
+func get_rubble_level(rubble_id: StringName) -> int:
+	return rubble_levels.get(rubble_id, 0)
+
+
+func get_rubble_cost(rubble_id: StringName) -> float:
+	if not RUBBLE_DEFS.has(rubble_id):
+		return 0.0
+	var def: Dictionary = RUBBLE_DEFS[rubble_id]
+	var lvl: int = get_rubble_level(rubble_id)
+	return roundf(float(def["base_cost"]) * pow(float(def["cost_growth"]), float(lvl)))
+
+
+func can_rebuild_rubble(rubble_id: StringName) -> bool:
+	if not RUBBLE_DEFS.has(rubble_id):
+		return false
+	return can_afford(RES_ROCKS, get_rubble_cost(rubble_id))
+
+
+func rebuild_rubble(rubble_id: StringName) -> bool:
+	if not can_rebuild_rubble(rubble_id):
+		return false
+	var cost: float = get_rubble_cost(rubble_id)
+	if not spend(RES_ROCKS, cost):
+		return false
+	var new_lvl: int = get_rubble_level(rubble_id) + 1
+	rubble_levels[rubble_id] = new_lvl
+	recalculate_stats()
+	_update_color_progress()
+	Events.rubble_rebuilt.emit(rubble_id, new_lvl)
+	var def: Dictionary = RUBBLE_DEFS[rubble_id]
+	Events.notification_requested.emit("🏗️ %s reconstruída (Nv. %d)!" % [String(def["title"]), new_lvl], null)
+	return true
+
+
+func _on_rubble_rebuild_requested(rubble_id: StringName) -> void:
+	rebuild_rubble(rubble_id)
+#endregion
 #endregion
 
 
@@ -673,6 +821,9 @@ func to_save_dict() -> Dictionary:
 		"fragments": _sn_dict_to_json(fragments),
 		"dino_counts": _sn_dict_to_json(dino_counts),
 		"upgrade_levels": _sn_dict_to_json(upgrade_levels),
+		"rubble_levels": _sn_dict_to_json(rubble_levels),
+		"orange_rock_hp": orange_rock_hp,
+		"orange_rock_broken": orange_rock_broken,
 		"permanent_upgrade_levels": _sn_dict_to_json(permanent_upgrade_levels),
 		"discovered_dinos": discovered_dinos.keys().map(func(k: StringName) -> String: return String(k)),
 		"current_era_index": current_era_index,
@@ -702,6 +853,10 @@ func load_save_dict(data: Dictionary) -> void:
 	_json_to_int_dict(data.get("dino_counts", {}), dino_counts)
 	upgrade_levels.clear()
 	_json_to_int_dict(data.get("upgrade_levels", {}), upgrade_levels)
+	rubble_levels.clear()
+	_json_to_int_dict(data.get("rubble_levels", {}), rubble_levels)
+	orange_rock_broken = bool(data.get("orange_rock_broken", false))
+	orange_rock_hp = 0.0 if orange_rock_broken else clampf(float(data.get("orange_rock_hp", ORANGE_ROCK_MAX_HP)), 0.01, ORANGE_ROCK_MAX_HP)
 	permanent_upgrade_levels.clear()
 	_json_to_int_dict(data.get("permanent_upgrade_levels", {}), permanent_upgrade_levels)
 

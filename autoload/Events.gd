@@ -55,6 +55,20 @@ signal era_changed(era_index: int)
 signal loot_dropped(resource_id: StringName, amount: float, world_position: Vector2)
 ## Emissor: GameState. Um fragmento de fóssil caiu.
 signal fragment_dropped(dino_id: StringName, world_position: Vector2)
+## Emissor: Superfície ou Escavação. Pede transição suave entre &"surface" e &"dig_site".
+signal scenario_transition_requested(target_scenario: StringName)
+## Emissor: Main. Transição de cenário iniciada/concluída.
+signal scenario_changed(current_scenario: StringName)
+## Emissor: Superfície. Jogador clicou na Rocha Laranja inicial.
+signal orange_rock_hit(damage: float, world_position: Vector2)
+## Emissor: GameState. Vida da Rocha Laranja inicial mudou.
+signal orange_rock_hp_changed(current_hp: float, max_hp: float)
+## Emissor: GameState. Rocha Laranja quebrada → spawna o Dinossauro Principal em Pixel Art!
+signal orange_rock_broken()
+## Emissor: Superfície. Jogador clicou para reconstruir/melhorar um escombro de pedra.
+signal rubble_rebuild_requested(rubble_id: StringName)
+## Emissor: GameState. Escombro de pedra reconstruído/melhorado.
+signal rubble_rebuilt(rubble_id: StringName, new_level: int)
 #endregion
 
 

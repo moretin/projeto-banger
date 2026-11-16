@@ -3,6 +3,7 @@ extends PanelContainer
 ## Barra superior de recursos, estatísticas da escavação, timer do meteoro e atalhos de modais.
 
 @onready var _bones_label: Label = %BonesLabel
+@onready var _rocks_label: Label = %RocksLabel
 @onready var _minerals_label: Label = %MineralsLabel
 @onready var _dna_label: Label = %DnaLabel
 @onready var _amber_label: Label = %AmberLabel
@@ -44,6 +45,7 @@ func _refresh_all() -> void:
 	var bones: float = GameState.get_resource(GameState.RES_BONES)
 	var bps: float = GameState.get_bones_per_second()
 	_bones_label.text = "🦴 %s  (+%s/s)" % [GameState.format_number(bones), GameState.format_number(bps)]
+	_rocks_label.text = "🪨 %s" % GameState.format_number(GameState.get_resource(GameState.RES_ROCKS))
 	_minerals_label.text = "💎 %s" % GameState.format_number(GameState.get_resource(GameState.RES_MINERALS))
 	var dna: float = GameState.get_resource(GameState.RES_DNA)
 	var dps_dna: float = GameState.get_dna_per_second()

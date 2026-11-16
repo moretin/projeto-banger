@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/Main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="2_hud"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/meteor/MeteorOverlay.tscn" id="5_meteor"]
 [ext_resource type="PackedScene" path="res://scenes/ui/SaveModals.tscn" id="6_smodals"]
 [ext_resource type="PackedScene" path="res://scenes/dig_site/VfxAudioManager.tscn" id="7_vfx"]
+[ext_resource type="PackedScene" path="res://scenes/surface/SurfaceScene.tscn" id="8_surface"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -34,9 +35,31 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 0
 
-[node name="DigSite" parent="RootVBox/BodySplit" instance=ExtResource("3_digsite")]
+[node name="ScenarioViewport" type="Control" parent="RootVBox/BodySplit"]
 unique_name_in_owner = true
+clip_contents = true
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="SurfaceScene" parent="RootVBox/BodySplit/ScenarioViewport" instance=ExtResource("8_surface")]
+unique_name_in_owner = true
+layout_mode = 0
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_right = 1360.0
+offset_bottom = 1000.0
+
+[node name="DigSite" parent="RootVBox/BodySplit/ScenarioViewport" instance=ExtResource("3_digsite")]
+unique_name_in_owner = true
+layout_mode = 0
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_top = 1000.0
+offset_right = 1360.0
+offset_bottom = 2000.0
 
 [node name="UpgradePanel" parent="RootVBox/BodySplit" instance=ExtResource("4_upanel")]
 layout_mode = 2

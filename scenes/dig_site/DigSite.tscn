@@ -106,8 +106,8 @@ color = Color(0.25, 0.22, 0.2, 1)
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 12.0
-offset_bottom = 120.0
+offset_top = 10.0
+offset_bottom = 165.0
 grow_horizontal = 2
 mouse_filter = 2
 theme_override_constants/margin_left = 20
@@ -117,6 +117,20 @@ theme_override_constants/margin_right = 20
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 6
+
+[node name="TopNavHBox" type="HBoxContainer" parent="LayerOverlay/VBox"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+
+[node name="ToSurfaceButton" type="Button" parent="LayerOverlay/VBox/TopNavHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 40)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.75, 0.96, 0.68, 1)
+theme_override_font_sizes/font_size = 16
+text = "🏕️ ▲ VOLTAR PARA A SUPERFÍCIE ▲"
 
 [node name="EraTitleLabel" type="Label" parent="LayerOverlay/VBox"]
 unique_name_in_owner = true

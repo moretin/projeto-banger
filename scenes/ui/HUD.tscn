@@ -29,6 +29,13 @@ theme_override_colors/font_color = Color(0.96, 0.93, 0.84, 1)
 theme_override_font_sizes/font_size = 18
 text = "🦴 0  (+0/s)"
 
+[node name="RocksLabel" type="Label" parent="Margin/VBox/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.76, 0.56, 1)
+theme_override_font_sizes/font_size = 18
+text = "🪨 0"
+
 [node name="MineralsLabel" type="Label" parent="Margin/VBox/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2

@@ -1,0 +1,194 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/surface/SurfaceScene.gd" id="1_surface"]
+
+[node name="SurfaceScene" type="Control"]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_surface")
+
+[node name="SurfaceSky" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.28, 0.3, 0.35, 1)
+
+[node name="SurfaceGround" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -620.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.35, 0.33, 0.28, 1)
+
+[node name="SubSoilStrip" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -590.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.24, 0.21, 0.18, 1)
+
+[node name="MainMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="MainMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="HeaderLabel" type="Label" parent="MainMargin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "🏕️ SUPERFÍCIE — Acampamento Primordial"
+horizontal_alignment = 1
+
+[node name="CenterStage" type="Control" parent="MainMargin/VBox"]
+custom_minimum_size = Vector2(0, 260)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="OrangeRockBox" type="Control" parent="MainMargin/VBox/CenterStage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_default_cursor_shape = 2
+
+[node name="OrangeRockCanvas" type="Control" parent="MainMargin/VBox/CenterStage/OrangeRockBox"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -44.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="OrangeRockHpBar" type="ProgressBar" parent="MainMargin/VBox/CenterStage/OrangeRockBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 28)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -210.0
+offset_top = -36.0
+offset_right = 210.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+max_value = 10.0
+value = 10.0
+show_percentage = false
+
+[node name="OrangeRockHpLabel" type="Label" parent="MainMargin/VBox/CenterStage/OrangeRockBox/OrangeRockHpBar"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 14
+text = "🟠 Rocha Laranja: 10 / 10 (Clique para quebrar!)"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HeroDinoStage" type="Control" parent="MainMargin/VBox/CenterStage"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HeroDinoSprite" type="TextureRect" parent="MainMargin/VBox/CenterStage/HeroDinoStage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 0
+offset_left = 420.0
+offset_top = 24.0
+offset_right = 516.0
+offset_bottom = 120.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HeroSpeechLabel" type="Label" parent="MainMargin/VBox/CenterStage/HeroDinoStage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -42.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.95, 0.92, 0.72, 1)
+theme_override_font_sizes/font_size = 16
+text = "🦖 Seu Dinossauro Principal guarda o acampamento! Use Rochas (🪨) para reconstruir os escombros abaixo."
+horizontal_alignment = 1
+
+[node name="RubbleSectionLabel" type="Label" parent="MainMargin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.84, 0.62, 1)
+theme_override_font_sizes/font_size = 16
+text = "🪨 Escombros de Pedra da Superfície (Reconstrua usando Rochas da Escavação):"
+
+[node name="RubbleRow" type="HBoxContainer" parent="MainMargin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BottomNavHBox" type="HBoxContainer" parent="MainMargin/VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="ToDigSiteButton" type="Button" parent="MainMargin/VBox/BottomNavHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 48)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(1, 0.88, 0.45, 1)
+theme_override_font_sizes/font_size = 18
+text = "⛏️ ▼ ESCAVAÇÃO ▼"
