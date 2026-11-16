@@ -3,7 +3,7 @@ extends PanelContainer
 ## Card de uma espécie na aba 🦖 Dinos.
 ##
 ## Exibe:
-##   • Nome, papel, cor de destaque e quantidade de unidades vivas.
+##   • Nome, papel, cor de destaque, ícone/sprite e quantidade de unidades vivas.
 ##   • Progresso de fragmentos (🧩 X / Y) para reviver o 1º esqueleto.
 ##   • DPS atual da espécie e barra de progresso rumo ao próximo marco (25, 50, 100...).
 ##   • Botão de Montar Esqueleto (1ª vez) / Clonar Unidade (+1).
@@ -11,6 +11,7 @@ extends PanelContainer
 var dino_id: StringName = &""
 
 @onready var _color_Pip: ColorRect = %ColorPip
+@onready var _sprite_icon: TextureRect = %SpriteIcon
 @onready var _name_label: Label = %NameLabel
 @onready var _count_label: Label = %CountLabel
 @onready var _desc_label: Label = %DescLabel
@@ -53,6 +54,10 @@ func refresh() -> void:
 		return
 
 	_color_Pip.color = data.accent_color
+	var tex: Texture2D = data.icon if data.icon != null else data.sprite
+	_sprite_icon.texture = tex
+	_sprite_icon.visible = (tex != null)
+
 	_name_label.text = "%s  [%s]" % [data.display_name, _role_name(data.role)]
 	_count_label.text = "×%d" % count
 	_desc_label.text = data.description
