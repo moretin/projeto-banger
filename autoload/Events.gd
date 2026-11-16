@@ -23,6 +23,12 @@ signal resource_changed(resource_id: StringName, new_amount: float, delta: float
 signal fragments_changed(dino_id: StringName, new_amount: int)
 ## Emissor: GameState. Multiplicadores/estatísticas foram recalculados (após compra de upgrade, marco etc.).
 signal stats_recalculated()
+## Emissor: GameState. Recursos estruturais provenientes de uma camada da Terra foram extraídos ao quebrá-la.
+signal layer_resources_extracted(era_index: int, bones_bonus: float, minerals_bonus: float)
+## Emissor: GameState. A primeira camada da Terra (Crosta) resistiu à quebra por estar nas primeiras runs.
+signal layer_break_blocked_by_crust(era_index: int, required_run: int)
+## Emissor: GameState. Quantidade X do fóssil específico de um dinossauro foi completada na escavação.
+signal dino_fossil_completed(dino_id: StringName, current_fragments: int, required_fragments: int)
 #endregion
 
 

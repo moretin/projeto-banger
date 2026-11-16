@@ -134,6 +134,10 @@ var meteor_active: bool = false
 var meteor_time_left: float = 0.0
 var meteor_total_time: float = 0.0
 var is_impacting: bool = false
+## Dano acumulado na camada para rolagens de extração de fósseis e minérios.
+var _dig_cycle_damage: float = 0.0
+## Evita repetir notificação de bloqueio tectônico da Crosta na mesma camada.
+var _crust_block_notified: bool = false
 #endregion
 
 
@@ -212,6 +216,8 @@ func _reset_run_state() -> void:
 	depth = 0
 	run_total_bones = 0.0
 	is_impacting = false
+	_dig_cycle_damage = 0.0
+	_crust_block_notified = false
 	recalculate_stats()
 	_setup_layer()
 	_setup_meteor()
@@ -523,13 +529,25 @@ func is_dino_unlocked(dino_id: StringName) -> bool:
 	return get_dino_count(dino_id) > 0
 
 
-## Pode montar o 1º esqueleto ou comprar mais uma unidade?
+## Quantidade X do fóssil específico necessária para reviver o próximo exemplar de `dino_id`.
+func get_required_fragments_for_dino(dino_id: StringName) -> int:
+	var data: DinoData = get_dino(dino_id)
+	if data == null:
+		return 0
+	return data.get_fragments_required(get_dino_count(dino_id))
+
+
+## Pode reviver um exemplar de `dino_id`?
+## Exige SEMPRE encontrar a quantidade X do fóssil específico da espécie escavando, além dos recursos.
 func can_assemble_dino(dino_id: StringName) -> bool:
 	var data: DinoData = get_dino(dino_id)
 	if data == null:
 		return false
 	var count: int = get_dino_count(dino_id)
-	if count == 0 and get_fragments(dino_id) < data.fragments_required:
+	if not data.can_spawn_more(count):
+		return false
+	var required_fossils: int = data.get_fragments_required(count)
+	if get_fragments(dino_id) < required_fossils:
 		return false
 	return can_afford(RES_BONES, data.get_unit_cost(count))
 
@@ -539,9 +557,10 @@ func assemble_dino(dino_id: StringName) -> bool:
 		return false
 	var data: DinoData = get_dino(dino_id)
 	var old_count: int = get_dino_count(dino_id)
-	spend(RES_BONES, data.get_unit_cost(old_count))
-	if old_count == 0:
-		add_fragments(dino_id, -data.fragments_required)
+	var required_fossils: int = data.get_fragments_required(old_count)
+	if not spend(RES_BONES, data.get_unit_cost(old_count)):
+		return false
+	add_fragments(dino_id, -required_fossils)
 	var new_count: int = old_count + 1
 	dino_counts[dino_id] = new_count
 
@@ -568,49 +587,97 @@ func get_current_era() -> EraData:
 	return eras[clampi(current_era_index, 0, eras.size() - 1)]
 
 
+## Verifica se a camada atual pode ser quebrada nesta run (nas primeiras runs a Crosta não pode ser quebrada).
+func can_break_current_layer() -> bool:
+	var era: EraData = get_current_era()
+	if era == null:
+		return false
+	return run_number >= era.min_run_to_break
+
+
 func _setup_layer() -> void:
 	var era: EraData = get_current_era()
-	layer_max_hp = era.get_layer_hp(current_layer_index) if era != null else 10.0
+	layer_max_hp = era.get_layer_hp(current_layer_index) if era != null else 120000.0
 	layer_hp = layer_max_hp
+	_dig_cycle_damage = 0.0
+	_crust_block_notified = false
 	Events.layer_hp_changed.emit(layer_hp, layer_max_hp)
 
 
-## Aplica dano na camada atual e gera loot. Chamado via Events.dig_hit.
+## Aplica dano na camada atual e gera recursos provenientes da camada e fósseis incrustados.
 func apply_dig_damage(damage: float, world_position: Vector2 = Vector2.ZERO) -> void:
 	var era: EraData = get_current_era()
 	if era == null or damage <= 0.0 or is_impacting:
 		return
-	var effective: float = minf(damage, layer_hp)
 
-	# Ossos proporcionais ao dano causado.
-	var bones: float = effective * era.bones_per_damage * get_multiplier(STAT_BONES_MULT)
-	add_resource(RES_BONES, bones)
-	Events.loot_dropped.emit(RES_BONES, bones, world_position)
+	var blocked_by_early_run: bool = not can_break_current_layer()
+	var effective: float = minf(damage, layer_hp)
+	if blocked_by_early_run:
+		var removable: float = maxf(layer_hp - 1.0, 0.0)
+		effective = minf(damage, removable)
+
+	# Recursos provenientes da camada atual (mesmo se a Crosta estiver no limite da run, lascas superficiais rendem 35%).
+	var harvest_damage: float = effective if effective > 0.0 else (damage * 0.35)
+	var bones: float = harvest_damage * era.bones_per_damage * get_multiplier(STAT_BONES_MULT)
+	if bones > 0.0:
+		add_resource(RES_BONES, bones)
+		Events.loot_dropped.emit(RES_BONES, bones, world_position)
 
 	# Rochas (usadas na Superfície para reconstruir escombros).
-	var rocks: float = maxf(1.0, effective * 0.45 * get_multiplier(STAT_BONES_MULT))
+	var rocks: float = maxf(1.0, harvest_damage * 0.45 * get_multiplier(STAT_BONES_MULT))
 	add_resource(RES_ROCKS, rocks)
 	Events.loot_dropped.emit(RES_ROCKS, rocks, world_position)
 
-	# Minério (chance por golpe).
-	if randf() < era.mineral_chance * get_multiplier(STAT_MINERAL_CHANCE):
-		add_resource(RES_MINERALS, era.mineral_amount)
-		Events.loot_dropped.emit(RES_MINERALS, era.mineral_amount, world_position)
+	# Ciclos de escavação para desenterrar minérios e fósseis específicos da camada.
+	_dig_cycle_damage += harvest_damage
+	var threshold: float = maxf(era.fossil_damage_threshold, 1.0)
+	var rolls: int = mini(floori(_dig_cycle_damage / threshold), 5)
+	if rolls > 0:
+		_dig_cycle_damage = fmod(_dig_cycle_damage, threshold)
+		var mineral_prob: float = clampf(era.mineral_chance * get_multiplier(STAT_MINERAL_CHANCE), 0.0, 0.85)
+		var fragment_prob: float = clampf(era.fragment_chance * get_multiplier(STAT_FRAGMENT_CHANCE), 0.0, 0.75)
+		for _i: int in range(rolls):
+			if randf() < mineral_prob:
+				add_resource(RES_MINERALS, era.mineral_amount)
+				Events.loot_dropped.emit(RES_MINERALS, era.mineral_amount, world_position)
+			if randf() < fragment_prob:
+				var dino: DinoData = era.pick_random_fragment()
+				if dino != null:
+					add_fragments(dino.id, 1)
+					Events.fragment_dropped.emit(dino.id, world_position)
 
-	# Fragmento de fóssil (chance por golpe).
-	if randf() < era.fragment_chance * get_multiplier(STAT_FRAGMENT_CHANCE):
-		var dino: DinoData = era.pick_random_fragment()
-		if dino != null:
-			add_fragments(dino.id, 1)
-			Events.fragment_dropped.emit(dino.id, world_position)
-
-	layer_hp -= effective
+	layer_hp = maxf(layer_hp - effective, 1.0 if blocked_by_early_run else 0.0)
 	Events.layer_hp_changed.emit(layer_hp, layer_max_hp)
+
+	if blocked_by_early_run and layer_hp <= 1.0:
+		if not _crust_block_notified:
+			_crust_block_notified = true
+			Events.layer_break_blocked_by_crust.emit(current_era_index, era.min_run_to_break)
+			Events.notification_requested.emit(
+				"🪨 %s resistente demais nesta run (Run %d/%d)! Fortaleça-se com Âmbar para rompê-la." % [
+					era.display_name,
+					run_number,
+					era.min_run_to_break,
+				],
+				null
+			)
+		return
+
 	if layer_hp <= 0.0:
 		_break_layer()
 
 
 func _break_layer() -> void:
+	var era: EraData = get_current_era()
+	if era != null:
+		var bonus_bones: float = era.layer_break_bonus_bones * get_multiplier(STAT_BONES_MULT)
+		var bonus_minerals: float = era.layer_break_bonus_minerals
+		if bonus_bones > 0.0:
+			add_resource(RES_BONES, bonus_bones)
+		if bonus_minerals > 0.0:
+			add_resource(RES_MINERALS, bonus_minerals)
+		Events.layer_resources_extracted.emit(current_era_index, bonus_bones, bonus_minerals)
+
 	depth += 1
 	max_depth_ever = maxi(max_depth_ever, depth)
 	# Bônus de rochas ao quebrar uma camada inteira!
@@ -618,7 +685,6 @@ func _break_layer() -> void:
 	add_resource(RES_ROCKS, bonus_rocks)
 	Events.layer_broken.emit(current_era_index, current_layer_index, depth)
 
-	var era: EraData = get_current_era()
 	current_layer_index += 1
 	var is_last_era: bool = current_era_index >= eras.size() - 1
 	if era != null and current_layer_index >= era.layers_count and not is_last_era:
@@ -730,8 +796,9 @@ func trigger_meteor_impact() -> void:
 func calculate_amber_reward(shield_ratio: float = -1.0) -> float:
 	if shield_ratio < 0.0:
 		shield_ratio = get_shield_ratio()
-	var from_bones: float = sqrt(run_total_bones / 1000.0)
-	var depth_factor: float = 1.0 + float(depth) * 0.1
+	var from_bones: float = sqrt(run_total_bones / 45.0)
+	var layer_progress: float = 1.0 - (layer_hp / maxf(layer_max_hp, 1.0))
+	var depth_factor: float = 1.0 + float(depth) * 0.35 + clampf(layer_progress, 0.0, 1.0) * 0.5
 	var survival_factor: float = 1.0 + clampf(shield_ratio, 0.0, 1.0)
 	return floorf(from_bones * depth_factor * survival_factor * get_multiplier(STAT_AMBER_MULT))
 
