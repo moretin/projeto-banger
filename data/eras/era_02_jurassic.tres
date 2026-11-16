@@ -10,8 +10,8 @@
 [resource]
 script = ExtResource("6_mnk77")
 id = &"jurassic"
-display_name = "Jurássico"
-description = "Rocha densa dos gigantes saurópodes e répteis voadores."
+display_name = "3. Litosfera & Moho"
+description = "Descontinuidade de Mohorovičić e base litosférica rígida de peridotito (70–200 km) com vestígios de gigantes."
 index = 2
 layers_count = 12
 base_layer_hp = 2200.0
@@ -20,5 +20,5 @@ mineral_chance = 0.12
 mineral_amount = 2.0
 fragment_chance = 0.09
 fragment_pool = Array[ExtResource("1_1nc03")]([ExtResource("2_r10se"), ExtResource("3_rlwds"), ExtResource("4_o101x"), ExtResource("5_t846f")])
-rock_color_muted = Color(0.36, 0.37, 0.39, 1)
-rock_color_vivid = Color(0.32, 0.58, 0.46, 1)
+rock_color_muted = Color(0.36, 0.38, 0.36, 1)
+rock_color_vivid = Color(0.34, 0.56, 0.42, 1)

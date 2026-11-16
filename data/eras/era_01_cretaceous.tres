@@ -10,8 +10,8 @@
 [resource]
 script = ExtResource("6_bny6d")
 id = &"cretaceous"
-display_name = "Cretáceo"
-description = "Camadas calcárias repletas de grandes predadores."
+display_name = "2. Crosta Continental"
+description = "Maciços cristalinos de granito e basalto da crosta profunda (15–70 km), repletos de grandes predadores."
 index = 1
 base_layer_hp = 160.0
 layer_hp_growth = 1.26
@@ -20,4 +20,4 @@ mineral_chance = 0.08
 fragment_chance = 0.1
 fragment_pool = Array[ExtResource("1_h51cv")]([ExtResource("2_m5u66"), ExtResource("3_0jykf"), ExtResource("4_e47qs"), ExtResource("5_k12fp")])
 rock_color_muted = Color(0.4, 0.38, 0.36, 1)
-rock_color_vivid = Color(0.72, 0.5, 0.28, 1)
+rock_color_vivid = Color(0.68, 0.52, 0.36, 1)

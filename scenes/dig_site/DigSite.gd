@@ -16,7 +16,11 @@ const MAX_FLOATING_LABELS: int = 32
 @onready var _rock_button: Control = %RockHitArea
 @onready var _rock_bg: ColorRect = %RockBg
 @onready var _sub_layer_1: ColorRect = %SubLayer1
+@onready var _sub_layer_1_label: Label = %SubLayer1Label
 @onready var _sub_layer_2: ColorRect = %SubLayer2
+@onready var _sub_layer_2_label: Label = %SubLayer2Label
+@onready var _sub_layer_3: ColorRect = %SubLayer3
+@onready var _sub_layer_3_label: Label = %SubLayer3Label
 @onready var _era_title_label: Label = %EraTitleLabel
 @onready var _era_desc_label: Label = %EraDescLabel
 @onready var _hp_bar: ProgressBar = %LayerHpBar
@@ -78,18 +82,46 @@ func _update_era_visuals() -> void:
 	var cp: float = GameState.color_progress
 	var rock_col: Color = era.get_rock_color(cp)
 	_rock_bg.color = rock_col
-	_sub_layer_1.color = rock_col.darkened(0.18)
-	_sub_layer_2.color = rock_col.darkened(0.34)
 	_surface_grass.color = Color(0.36, 0.35, 0.30).lerp(Color(0.32, 0.68, 0.28), cp)
 
-	_era_title_label.text = "%s  —  Camada %d / %d  (Profundidade: %dm)" % [
+	_update_sub_layer(_sub_layer_1, _sub_layer_1_label, 1, 0.16, cp)
+	_update_sub_layer(_sub_layer_2, _sub_layer_2_label, 2, 0.30, cp)
+	_update_sub_layer(_sub_layer_3, _sub_layer_3_label, 3, 0.44, cp)
+
+	var total_eras: int = maxi(GameState.eras.size(), 1)
+	var current_idx: int = clampi(GameState.current_era_index, 0, total_eras - 1)
+	_era_title_label.text = "🌍 %s  [Faixa %d/%d]  —  Subcamada %d / %d  (Profundidade: %dm)" % [
 		era.display_name,
+		current_idx + 1,
+		total_eras,
 		GameState.current_layer_index + 1,
 		era.layers_count,
 		GameState.depth,
 	]
 	_era_desc_label.text = era.description
 	_rock_bg.queue_redraw()
+
+
+func _update_sub_layer(rect: ColorRect, label: Label, offset: int, darken_factor: float, cp: float) -> void:
+	var total_eras: int = GameState.eras.size()
+	if total_eras == 0:
+		return
+	var target_idx: int = GameState.current_era_index + offset
+	if target_idx < total_eras:
+		var next_era: EraData = GameState.eras[target_idx]
+		rect.color = next_era.get_rock_color(cp).darkened(darken_factor)
+		var prefix: String = "▼ Próxima camada da Terra: " if offset == 1 else "▼ "
+		label.text = "%s%s" % [prefix, next_era.display_name]
+	else:
+		var core_era: EraData = GameState.eras[total_eras - 1]
+		rect.color = core_era.get_rock_color(cp).darkened(darken_factor)
+		var core_subdivisions: Array[String] = [
+			"▼ Núcleo Externo Fluido (Ferro-Níquel em Convecção)",
+			"▼ Descontinuidade de Lehmann (Zona de Transição do Núcleo)",
+			"▼ Núcleo Interno Sólido (Centro da Terra — 6.371 km)",
+		]
+		var sub_idx: int = clampi(target_idx - total_eras, 0, core_subdivisions.size() - 1)
+		label.text = core_subdivisions[sub_idx]
 
 
 func _update_sky_color() -> void:
@@ -142,12 +174,17 @@ func _on_danger_level_changed(_level: float) -> void:
 	_update_sky_color()
 
 
-## Desenha rachaduras procedurais na rocha conforme o HP diminui.
+## Desenha linhas de estratificação geológica e rachaduras procedurais na rocha conforme o HP diminui.
 func _on_rock_draw() -> void:
+	var sz: Vector2 = _rock_bg.size
+	var strata_col: Color = Color(0.0, 0.0, 0.0, 0.14)
+	for s: int in range(1, 4):
+		var y_pos: float = sz.y * (float(s) / 4.0)
+		_rock_bg.draw_line(Vector2(0.0, y_pos), Vector2(sz.x, y_pos), strata_col, 2.0)
+
 	var ratio: float = 1.0 - (_hp_bar.value / maxf(_hp_bar.max_value, 1.0))
 	if ratio <= 0.05:
 		return
-	var sz: Vector2 = _rock_bg.size
 	var crack_count: int = clampi(int(ratio * 10.0), 1, 10)
 	var col: Color = Color(0.1, 0.08, 0.06, 0.65)
 	for i: int in range(crack_count):

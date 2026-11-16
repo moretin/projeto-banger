@@ -8,12 +8,13 @@
 [resource]
 script = ExtResource("4_pxp4i")
 id = &"holocene"
-display_name = "Holoceno"
-description = "Superfície recente: terra macia e fósseis rasos."
+display_name = "1. Crosta Superficial"
+description = "Solo, húmus e rochas sedimentares rasas da superfície terrestre (0–15 km), ricas em fósseis recentes."
 layers_count = 6
 base_layer_hp = 15.0
 layer_hp_growth = 1.28
 mineral_chance = 0.02
 fragment_chance = 0.12
 fragment_pool = Array[ExtResource("1_oju6h")]([ExtResource("2_283uo"), ExtResource("3_vk5vj")])
-rock_color_vivid = Color(0.56, 0.44, 0.3, 1)
+rock_color_muted = Color(0.45, 0.42, 0.38, 1)
+rock_color_vivid = Color(0.58, 0.45, 0.3, 1)
