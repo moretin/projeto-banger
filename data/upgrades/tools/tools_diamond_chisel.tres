@@ -6,11 +6,11 @@
 script = ExtResource("1_7sdl3")
 id = &"tools_diamond_chisel"
 display_name = "Cinzel de Diamante"
-description = "+15 de dano por clique na rocha."
+description = "+25 de dano por clique para romper Pedra e Rocha Incandescente."
 sort_order = 3
-base_cost = 450.0
-cost_growth = 1.17
+base_cost = 240.0
+cost_growth = 1.25
 stat_id = &"click_damage"
-effect_value = 15.0
+effect_value = 25.0
 required_upgrade = &"tools_sharp_pickaxe"
 required_level = 5

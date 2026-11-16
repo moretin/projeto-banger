@@ -14,20 +14,30 @@ extends Resource
 @export var index: int = 0
 
 @export_group("Camadas")
-## Camadas até passar para a próxima era. Na última era, as camadas continuam infinitamente.
+## Camadas até passar para a próxima faixa da Terra. No Núcleo, as camadas continuam infinitamente.
 @export var layers_count: int = 10
-@export var base_layer_hp: float = 10.0
-@export_range(1.0, 10.0, 0.001) var layer_hp_growth: float = 1.25
+@export var base_layer_hp: float = 120000.0
+@export_range(1.0, 10.0, 0.001) var layer_hp_growth: float = 1.85
+## Run mínima necessária para conseguir quebrar a primeira camada desta faixa (ex.: Crosta exige run >= 3).
+@export var min_run_to_break: int = 1
 
 @export_group("Recompensas")
-## Ossos gerados por ponto de dano causado.
-@export var bones_per_damage: float = 1.0
-## Chance (0–1) de cada golpe soltar minério.
-@export_range(0.0, 1.0, 0.001) var mineral_chance: float = 0.0
+## Nome do recurso/material proveniente desta camada da Terra (Terra, Pedra, Rocha Incandescente, Magma, Núcleo).
+@export var layer_resource_name: String = "Terra"
+## Recursos gerados por ponto de dano causado na escavação (mantido baixo para evitar inflação).
+@export var bones_per_damage: float = 0.06
+## Bônus de recursos proveniente da camada ao conseguir quebrá-la por completo.
+@export var layer_break_bonus_bones: float = 800.0
+## Bônus de minérios raros liberado ao quebrar uma camada desta faixa.
+@export var layer_break_bonus_minerals: float = 5.0
+## Dano acumulado necessário na camada para cada rolagem de extração de fóssil/minério.
+@export var fossil_damage_threshold: float = 180.0
+## Chance (0–1) de cada ciclo de escavação soltar minério.
+@export_range(0.0, 1.0, 0.001) var mineral_chance: float = 0.01
 @export var mineral_amount: float = 1.0
-## Chance (0–1) de cada golpe soltar um fragmento de fóssil.
-@export_range(0.0, 1.0, 0.0001) var fragment_chance: float = 0.0
-## Espécies cujos fragmentos podem cair nesta era.
+## Chance (0–1) de cada ciclo de escavação desenterrar um fóssil específico.
+@export_range(0.0, 1.0, 0.0001) var fragment_chance: float = 0.015
+## Espécies cujos fósseis específicos podem ser encontrados nesta camada da Terra.
 @export var fragment_pool: Array[DinoData] = []
 
 @export_group("Visual")

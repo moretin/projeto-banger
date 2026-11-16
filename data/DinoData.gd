@@ -35,16 +35,25 @@ enum Role {
 ## Cena opcional com comportamento especial (se vazio, usa o comportamento padrão do Role).
 @export var behavior_scene: PackedScene
 
-@export_group("Desbloqueio")
-## Era (índice) em que os fragmentos começam a aparecer.
+@export_group("Desbloqueio & Fóssil Específico")
+## ID único do fóssil específico deste dinossauro (ex.: &"fossil_trex").
+@export var fossil_id: StringName = &""
+## Nome legível do fóssil específico encontrado na escavação.
+@export var fossil_name: String = ""
+## Camada da Terra (índice 0..4) em que os fósseis desta espécie começam a aparecer.
 @export var unlock_era_index: int = 0
-@export var fragments_required: int = 10
-## Custo em ossos para montar o 1º esqueleto.
-@export var assembly_cost: float = 50.0
+## Quantidade X do fóssil específico que deve ser encontrada escavando para reviver o 1º exemplar.
+@export var fragments_required: int = 15
+## Fósseis adicionais exigidos a cada exemplar já revivido (impede spawn fácil sem escavar).
+@export var fragments_growth_per_unit: int = 10
+## Limite máximo de exemplares desta espécie por run (0 = sem limite, mas bloqueado por fósseis).
+@export var max_units_per_run: int = 5
+## Custo em recursos para montar/reviver o 1º esqueleto (além dos X fósseis).
+@export var assembly_cost: float = 150.0
 
 @export_group("Custo de unidades extras")
-@export var unit_base_cost: float = 25.0
-@export_range(1.0, 10.0, 0.001) var unit_cost_growth: float = 1.12
+@export var unit_base_cost: float = 350.0
+@export_range(1.0, 10.0, 0.001) var unit_cost_growth: float = 2.25
 
 @export_group("Combate / Escavação")
 ## Dano por golpe (antes de multiplicadores).
@@ -67,17 +76,35 @@ enum Role {
 
 @export_group("Marcos")
 ## Quantidades que disparam bônus.
-@export var milestones: Array[int] = [25, 50, 100, 200, 400]
+@export var milestones: Array[int] = [2, 3, 4, 5]
 ## Multiplicador aplicado a CADA marco atingido (2.0 = dobra).
 @export var milestone_multiplier: float = 2.0
 
 
-## Custo em ossos da próxima unidade, tendo `owned` unidades.
-## Retorna `assembly_cost` para a primeira unidade.
+## Quantidade X de fósseis específicos necessária para reviver a próxima unidade (tendo `owned` unidades).
+func get_fragments_required(owned: int = 0) -> int:
+	return fragments_required + maxi(owned, 0) * fragments_growth_per_unit
+
+
+## Nome formatado do fóssil específico deste dinossauro.
+func get_fossil_display_name() -> String:
+	if not fossil_name.is_empty():
+		return fossil_name
+	return "Fóssil de %s" % display_name
+
+
+## Verifica se ainda é permitido reviver mais exemplares nesta run.
+func can_spawn_more(owned: int) -> bool:
+	return max_units_per_run <= 0 or owned < max_units_per_run
+
+
+## Custo em recursos da próxima unidade, tendo `owned` unidades.
+## Retorna `assembly_cost` para a primeira unidade, e cresce fortemente para unidades adicionais.
 func get_unit_cost(owned: int) -> float:
 	if owned <= 0:
 		return assembly_cost
-	return unit_base_cost * pow(unit_cost_growth, float(owned - 1))
+	var base: float = maxf(unit_base_cost, assembly_cost * 1.5)
+	return base * pow(unit_cost_growth, float(owned - 1))
 
 
 ## Dano por segundo de UMA unidade, sem multiplicadores externos.

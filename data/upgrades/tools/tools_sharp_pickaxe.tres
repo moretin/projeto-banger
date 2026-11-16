@@ -6,6 +6,8 @@
 script = ExtResource("1_iqrhl")
 id = &"tools_sharp_pickaxe"
 display_name = "Picareta Afiada"
-description = "+2 de dano por clique na rocha."
+description = "+3 de dano por clique para perfurar as camadas da Terra."
+base_cost = 5.0
+cost_growth = 1.22
 stat_id = &"click_damage"
-effect_value = 2.0
+effect_value = 3.0
