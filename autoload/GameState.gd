@@ -293,7 +293,8 @@ func get_upgrade_level(upgrade_id: StringName) -> int:
 ## Upgrades de uma aba, ordenados por sort_order (para a UI montar a lista).
 func get_upgrades_by_category(category: UpgradeData.Category) -> Array[UpgradeData]:
 	var result: Array[UpgradeData] = []
-	for data: UpgradeData in upgrades_db.values():
+	for item: Variant in upgrades_db.values():
+		var data: UpgradeData = item as UpgradeData
 		if data.category == category:
 			result.append(data)
 	result.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.sort_order < b.sort_order)
@@ -392,7 +393,8 @@ func _on_upgrade_purchase_requested(upgrade_id: StringName, amount: int) -> void
 func recalculate_stats() -> void:
 	_stat_flat.clear()
 	_stat_mult.clear()
-	for data: UpgradeData in upgrades_db.values():
+	for item: Variant in upgrades_db.values():
+		var data: UpgradeData = item as UpgradeData
 		var level: int = get_upgrade_level(data.id)
 		if level <= 0 or data.stat_id == &"":
 			continue
@@ -502,7 +504,8 @@ func get_dino(dino_id: StringName) -> DinoData:
 ## Lista todas as espécies ordenadas por era de desbloqueio e custo de montagem.
 func get_dinos_sorted() -> Array[DinoData]:
 	var list: Array[DinoData] = []
-	for data: DinoData in dinos_db.values():
+	for item: Variant in dinos_db.values():
+		var data: DinoData = item as DinoData
 		list.append(data)
 	list.sort_custom(func(a: DinoData, b: DinoData) -> bool:
 		if a.unlock_era_index != b.unlock_era_index:
