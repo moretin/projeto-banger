@@ -12,7 +12,7 @@ const SAVE_PATH: String = "user://savegame.json"
 const BACKUP_PATH: String = "user://savegame.bak.json"
 const TEMP_PATH: String = "user://savegame.tmp"
 
-const SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 2
 const AUTOSAVE_INTERVAL: float = 30.0
 ## Limite de tempo offline recompensado (8 horas).
 const MAX_OFFLINE_SECONDS: float = 8.0 * 3600.0
@@ -133,10 +133,14 @@ func _read_payload(path: String) -> Dictionary:
 ## Converte saves de versões antigas para a atual. Adicione um `if` por versão.
 func _migrate(payload: Dictionary) -> Dictionary:
 	var version: int = int(payload.get("version", 0))
-	# Exemplo para o futuro:
-	# if version < 2:
-	#     payload["game"]["novo_campo"] = valor_padrao
-	#     version = 2
+	# v1 → v2: camadas da Terra rebalanceadas (5 eras), Superfície com Rocha Laranja e
+	# fósseis específicos por camada. Saves antigos ficam com era/HP incompatíveis,
+	# então são descartados e o jogo recomeça do zero.
+	if version < 2:
+		push_warning("[SaveManager] Save v%d incompatível com a nova estrutura; iniciando novo jogo." % version)
+		payload["game"] = {}
+		payload["saved_at"] = Time.get_unix_time_from_system()
+		version = 2
 	if version > SAVE_VERSION:
 		push_warning("[SaveManager] Save de versão mais nova (%d > %d)." % [version, SAVE_VERSION])
 	payload["version"] = SAVE_VERSION

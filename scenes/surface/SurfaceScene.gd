@@ -50,7 +50,7 @@ var _rubble_cards: Dictionary = {}
 
 
 func _ready() -> void:
-	_hero_sprite.texture = _create_pixel_dino_texture()
+	_hero_sprite.texture = _get_hero_texture()
 	_hero_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 	_orange_rock_box.gui_input.connect(_on_orange_rock_gui_input)
