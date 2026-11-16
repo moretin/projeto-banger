@@ -55,7 +55,7 @@ unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 280.0
+offset_bottom = 260.0
 grow_horizontal = 2
 mouse_filter = 2
 color = Color(0.45, 0.42, 0.38, 1)
@@ -84,23 +84,79 @@ unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 280.0
-offset_bottom = 440.0
+offset_top = 260.0
+offset_bottom = 390.0
 grow_horizontal = 2
 mouse_filter = 2
 color = Color(0.35, 0.32, 0.28, 1)
 
-[node name="SubLayer2" type="ColorRect" parent="RockHitArea"]
+[node name="SubLayer1Label" type="Label" parent="RockHitArea/SubLayer1"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 440.0
+offset_left = 20.0
+offset_right = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.45)
+theme_override_font_sizes/font_size = 14
+text = "▼ Próxima camada: 2. Crosta Continental"
+vertical_alignment = 1
+
+[node name="SubLayer2" type="ColorRect" parent="RockHitArea"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 390.0
+offset_bottom = 520.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.28, 0.26, 0.24, 1)
+
+[node name="SubLayer2Label" type="Label" parent="RockHitArea/SubLayer2"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_right = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.38)
+theme_override_font_sizes/font_size = 14
+text = "▼ 3. Litosfera & Moho"
+vertical_alignment = 1
+
+[node name="SubLayer3" type="ColorRect" parent="RockHitArea"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 520.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.25, 0.22, 0.2, 1)
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="SubLayer3Label" type="Label" parent="RockHitArea/SubLayer3"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_right = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.32)
+theme_override_font_sizes/font_size = 14
+text = "▼ 4. Manto Superior (Astenosfera)"
+vertical_alignment = 1
 
 [node name="LayerOverlay" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -136,14 +192,14 @@ text = "🏕️ ▲ VOLTAR PARA A SUPERFÍCIE ▲"
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Holoceno — Camada 1 / 6"
+text = "🌍 1. Crosta Superficial — Subcamada 1 / 6"
 
 [node name="EraDescLabel" type="Label" parent="LayerOverlay/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.82, 0.82, 0.85, 1)
 theme_override_font_sizes/font_size = 14
-text = "Superfície recente: terra macia e fósseis rasos."
+text = "Solo, húmus e rochas sedimentares rasas da superfície terrestre (0–15 km), ricas em fósseis recentes."
 
 [node name="LayerHpBar" type="ProgressBar" parent="LayerOverlay/VBox"]
 unique_name_in_owner = true
