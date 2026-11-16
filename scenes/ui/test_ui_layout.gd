@@ -15,11 +15,9 @@ const SIZES: Array[Vector2i] = [
 	Vector2i(1920, 1440),
 ]
 
-const HUD_SCENE: PackedScene = preload("res://scenes/ui/HUD.tscn")
-const UPGRADE_PANEL_SCENE: PackedScene = preload("res://scenes/ui/UpgradePanel.tscn")
-
-
 func _initialize() -> void:
+	var hud_scene: PackedScene = load("res://scenes/ui/HUD.tscn") as PackedScene
+	var upgrade_panel_scene: PackedScene = load("res://scenes/ui/UpgradePanel.tscn") as PackedScene
 	var failed: int = 0
 	for size: Vector2i in SIZES:
 		var vp: SubViewport = SubViewport.new()
@@ -31,7 +29,7 @@ func _initialize() -> void:
 		ui_root.add_theme_constant_override("separation", 0)
 		vp.add_child(ui_root)
 
-		var hud: Control = HUD_SCENE.instantiate() as Control
+		var hud: Control = hud_scene.instantiate() as Control
 		ui_root.add_child(hud)
 
 		var body_split: HBoxContainer = HBoxContainer.new()
@@ -45,7 +43,7 @@ func _initialize() -> void:
 		dig_placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		body_split.add_child(dig_placeholder)
 
-		var panel: Control = UPGRADE_PANEL_SCENE.instantiate() as Control
+		var panel: Control = upgrade_panel_scene.instantiate() as Control
 		body_split.add_child(panel)
 
 		await process_frame

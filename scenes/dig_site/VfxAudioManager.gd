@@ -30,9 +30,10 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	_playback = null
 	if _audio_player != null:
 		_audio_player.stop()
-	_playback = null
+		_audio_player.stream = null
 
 
 func _process(delta: float) -> void:
