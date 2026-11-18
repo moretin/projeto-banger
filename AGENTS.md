@@ -1,6 +1,11 @@
-# AGENTS.md — Guia para Agentes de IA (Codex & Antigravity)
+# AGENTS.md — Guia para Agentes de IA (Fluxo do Pedro: Codex & Antigravity)
 
-Este arquivo é lido automaticamente pelo **Codex** e pelo **Antigravity** para manter consistência arquitetural e evitar conflitos de merge no projeto **Fóssil Rush** (**Godot 4.7.2**).
+> **Aviso de Escopo Colaborativo (`moretin` & `gabrielarroyoc`)**:
+> Este arquivo é de uso **exclusivo do fluxo de trabalho com IA (Codex e Antigravity) do Pedro (`moretin`)**.
+> O projeto **Fóssil Rush** é desenvolvido em dupla com o **Gabriel (`gabrielarroyoc`)**. Portanto, qualquer agente de IA que leia este arquivo deve seguir estritamente as regras de convivência abaixo para **nunca gerar conflito com o trabalho do Gabriel**:
+> 1. **Sempre faça `git fetch origin` antes de editar ou subir commits**, verificando se o Gabriel (`gabrielarroyoc`) enviou novos commits na `main` ou em qualquer branch.
+> 2. **NUNCA faça `git push --force`** nem sobrescreva branches em que o Gabriel esteja trabalhando.
+> 3. **Não implemente automaticamente ideias do arquivo `IDEIAS.md`**: o `IDEIAS.md` é apenas um bloco de notas de design para consulta futura e só deve ser codificado quando solicitado explicitamente.
 
 ## 1. Regras Obrigatórias de GDScript e Versão da Engine
 - **Engine Oficial**: **Godot 4.7.2** (`config/features=PackedStringArray("4.7", "GL Compatibility")` no `project.godot`).

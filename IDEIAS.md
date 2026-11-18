@@ -1,6 +1,9 @@
 # 💡 Banco de Ideias e Design Futuro — Fóssil Rush
 
-> **Status**: Documento de consulta e planejamento (ideias **não implementadas** no código ainda, mantidas como referência para desenvolvimento futuro pelo time, Codex e Antigravity).
+> [!NOTE]
+> **Status & Convivência com o Projeto do Gabriel (`gabrielarroyoc`)**:
+> - Este arquivo é apenas um **caderno de ideias e planejamento futuro** organizado pelo **Pedro (`moretin`)** para consulta posterior.
+> - **Nenhuma ideia abaixo deve ser implementada automaticamente** pelo Codex ou pelo Antigravity sem pedido explícito, garantindo que o desenvolvimento atual compartilhado com o **Gabriel (`gabrielarroyoc`)** não sofra conflitos de código, escopo ou merge.
 
 ---
 
