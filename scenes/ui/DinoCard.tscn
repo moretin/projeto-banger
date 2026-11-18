@@ -31,6 +31,7 @@ color = Color(0.55, 0.82, 0.35, 1)
 [node name="SpriteIcon" type="TextureRect" parent="Margin/HBox"]
 unique_name_in_owner = true
 visible = false
+texture_filter = 1
 custom_minimum_size = Vector2(56, 56)
 layout_mode = 2
 size_flags_vertical = 4
@@ -74,7 +75,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.84, 0.58, 1)
 theme_override_font_sizes/font_size = 13
-text = "🧩 Fragmentos: 0 / 5"
+text = "Fósseis: 0 / 5"
 
 [node name="MilestoneBar" type="ProgressBar" parent="Margin/HBox/InfoVBox"]
 unique_name_in_owner = true
@@ -94,13 +95,14 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_font_sizes/font_size = 11
-text = "Próximo marco (×2): 0 / 25"
+text = "Marco x2: 0 / 25"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="AssembleButton" type="Button" parent="Margin/HBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(140, 56)
+texture_filter = 1
+custom_minimum_size = Vector2(142, 56)
 layout_mode = 2
 size_flags_vertical = 4
 focus_mode = 2

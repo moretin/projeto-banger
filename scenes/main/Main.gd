@@ -2,9 +2,9 @@ extends Control
 ## Main — cena raiz do Fóssil Rush.
 ##
 ## Gerencia os 2 cenários verticais na área esquerda/centro (`ScenarioViewport`):
-##   • Cenário 1 (Topo): `SurfaceScene` — Onde o jogo começa (Rocha Laranja, Dinossauro Principal
-##     em Pixel Art e Escombros de Pedra reconstruíveis com Rochas).
-##   • Cenário 2 (Abaixo): `DigSite` — Corte lateral do solo para escavação de camadas e eras.
+##   • Cenário 1 (Topo): `SurfaceScene` — Acampamento de Campo (Ovo de Âmbar, Compsognato Principal
+##     em Pixel Art e estações reconstruíveis com Rochas).
+##   • Cenário 2 (Abaixo): `DigSite` — Corte Geológico Vertical com escovação, silhuetas e câmera móvel.
 ## A transição entre `surface` e `dig_site` é feita suavemente via Tween vertical ao receber
 ## `Events.scenario_transition_requested`.
 
@@ -28,6 +28,20 @@ func _ready() -> void:
 
 	# Aguarda 1 frame para o container calcular o tamanho final e posiciona na Superfície.
 	_sync_scenario_layout.call_deferred()
+
+
+func _process(_delta: float) -> void:
+	if _transition_tween != null and _transition_tween.is_running():
+		return
+	var d: float = GameState.danger_level
+	if d >= 0.45 and not GameState.is_impacting:
+		var amp: float = pow((d - 0.45) / 0.55, 1.4) * 2.8
+		var jitter_x: float = randf_range(-amp, amp)
+		_surface_scene.position.x = jitter_x
+		_dig_site.position.x = jitter_x
+	else:
+		_surface_scene.position.x = 0.0
+		_dig_site.position.x = 0.0
 
 
 func transition_to_scenario(target: StringName) -> void:

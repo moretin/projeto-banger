@@ -2,7 +2,6 @@
 .godot/
 /android/
 *.translation
-*.uid
 
 # Exports
 /build/

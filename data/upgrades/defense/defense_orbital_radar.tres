@@ -6,12 +6,12 @@
 script = ExtResource("1_gx4c8")
 id = &"defense_orbital_radar"
 display_name = "Satélite de Desvio"
-description = "+45 segundos no timer do meteoro nesta run."
+description = "+12 segundos no timer do meteoro nesta run (usa Minérios)."
 category = 3
 sort_order = 1
 cost_resource = &"minerals"
-base_cost = 2.0
-cost_growth = 1.35
-max_level = 10
+base_cost = 10.0
+cost_growth = 1.65
+max_level = 4
 stat_id = &"meteor_time"
-effect_value = 45.0
+effect_value = 12.0

@@ -3,8 +3,8 @@ extends Node2D
 ## Gerenciador de Partículas GPU (`GPUParticles2D`) e Áudio Procedural (`AudioStreamGenerator`).
 ##
 ## Totalmente desacoplado: escuta sinais do `Events.gd` e dispara:
-##   • Pool de `GPUParticles2D` para estilhaços de rocha, ossos e quebra de camada.
-##   • Síntese de efeitos sonoros (toc de escavação, acorde de upgrade/dino, estrondo de camada).
+##   • Pool de `GPUParticles2D` para estilhaços sedimentares, poeira de escovação e âmbar.
+##   • Síntese de efeitos sonoros (escovação em areia, cinzel, acorde de compra/dino, carimbo).
 
 const PARTICLE_POOL_SIZE: int = 8
 const SAMPLE_RATE: float = 22050.0
@@ -16,6 +16,10 @@ var _audio_player: AudioStreamPlayer
 var _playback: AudioStreamGeneratorPlayback
 var _active_tones: Array[Dictionary] = []
 var _sfx_cooldown: float = 0.0
+var _brush_cooldown: float = 0.0
+var _brush_suppress_timer: float = 0.0
+var _drum_timer: float = 0.0
+var _drum_double_timer: float = -1.0
 
 
 func _ready() -> void:
@@ -23,10 +27,15 @@ func _ready() -> void:
 	_setup_procedural_audio()
 
 	Events.dig_hit.connect(_on_dig_hit)
+	Events.orange_rock_hit.connect(_on_orange_rock_hit)
+	Events.brush_stroke.connect(_on_brush_stroke)
+	Events.fossil_found.connect(_on_fossil_found)
+	Events.precise_strike_resolved.connect(_on_precise_strike_resolved)
 	Events.layer_broken.connect(_on_layer_broken)
 	Events.upgrade_purchased.connect(_on_upgrade_purchased)
 	Events.dino_unlocked.connect(_on_dino_unlocked)
 	Events.meteor_impact_started.connect(_on_meteor_impact_started)
+	Events.scenario_changed.connect(_on_scenario_changed)
 
 
 func _exit_tree() -> void:
@@ -38,25 +47,49 @@ func _exit_tree() -> void:
 
 func _process(delta: float) -> void:
 	_sfx_cooldown = maxf(_sfx_cooldown - delta, 0.0)
+	_brush_cooldown = maxf(_brush_cooldown - delta, 0.0)
+	_brush_suppress_timer = maxf(_brush_suppress_timer - delta, 0.0)
+	_tick_seismic_drum(delta)
 	_fill_audio_buffer()
+
+
+func _tick_seismic_drum(delta: float) -> void:
+	if _playback == null or GameState.is_impacting:
+		return
+	var d: float = GameState.danger_level
+	if d < 0.45:
+		_drum_timer = 0.0
+		_drum_double_timer = -1.0
+		return
+	var danger_t: float = clampf((d - 0.45) / 0.55, 0.0, 1.0)
+	if _drum_double_timer > 0.0:
+		_drum_double_timer -= delta
+		if _drum_double_timer <= 0.0:
+			_drum_double_timer = -1.0
+			_play_tone(52.0, 28.0, 0.14, 0.18 + danger_t * 0.08)
+	_drum_timer -= delta
+	if _drum_timer <= 0.0:
+		_drum_timer = lerpf(1.20, 0.34, danger_t)
+		_drum_double_timer = lerpf(0.18, 0.11, danger_t)
+		_play_tone(68.0, 34.0, 0.16, 0.22 + danger_t * 0.12)
 
 
 func _setup_particle_pool() -> void:
 	var mat := ParticleProcessMaterial.new()
 	mat.direction = Vector3(0.0, -1.0, 0.0)
 	mat.spread = 70.0
-	mat.initial_velocity_min = 90.0
-	mat.initial_velocity_max = 220.0
-	mat.gravity = Vector3(0.0, 520.0, 0.0)
+	mat.initial_velocity_min = 80.0
+	mat.initial_velocity_max = 195.0
+	mat.gravity = Vector3(0.0, 480.0, 0.0)
 	mat.scale_min = 4.0
-	mat.scale_max = 8.0
+	mat.scale_max = 7.0
 
 	for _i: int in range(PARTICLE_POOL_SIZE):
 		var p := GPUParticles2D.new()
-		p.amount = 18
-		p.lifetime = 0.55
+		p.amount = 16
+		p.lifetime = 0.50
 		p.one_shot = true
-		p.explosiveness = 0.92
+		p.explosiveness = 0.90
 		p.emitting = false
 		p.process_material = mat
 		add_child(p)
@@ -76,6 +109,8 @@ func _emit_burst(world_pos: Vector2, color: Color, scale_mult: float = 1.0) -> v
 
 
 func _setup_procedural_audio() -> void:
+	if AudioServer.get_driver_name() == "Dummy":
+		return
 	_audio_player = AudioStreamPlayer.new()
 	var stream := AudioStreamGenerator.new()
 	stream.mix_rate = SAMPLE_RATE
@@ -87,8 +122,8 @@ func _setup_procedural_audio() -> void:
 	_playback = _audio_player.get_stream_playback() as AudioStreamGeneratorPlayback
 
 
-func _play_tone(freq_start: float, freq_end: float, duration: float, amp: float = 0.22) -> void:
-	if _active_tones.size() >= 6:
+func _play_tone(freq_start: float, freq_end: float, duration: float, amp: float = 0.22, noise_mix: float = 0.0) -> void:
+	if _playback == null or _active_tones.size() >= 6:
 		return
 	_active_tones.append({
 		"f0": freq_start,
@@ -97,6 +132,7 @@ func _play_tone(freq_start: float, freq_end: float, duration: float, amp: float 
 		"t": 0.0,
 		"phase": 0.0,
 		"amp": amp,
+		"noise": noise_mix,
 	})
 
 
@@ -126,7 +162,10 @@ func _fill_audio_buffer() -> void:
 				var freq: float = lerpf(float(tone["f0"]), float(tone["f1"]), ratio)
 				var phase: float = float(tone["phase"]) + freq * dt * TAU
 				var env: float = (1.0 - ratio) * float(tone["amp"])
-				sample += sin(phase) * env
+				var nm: float = float(tone.get("noise", 0.0))
+				var pure: float = sin(phase) * (1.0 - nm)
+				var grain: float = randf_range(-1.0, 1.0) * nm
+				sample += (pure + grain) * env
 				tone["t"] = t + dt
 				tone["phase"] = phase
 			idx -= 1
@@ -134,17 +173,42 @@ func _fill_audio_buffer() -> void:
 		_playback.push_frame(Vector2(sample, sample))
 
 
+func _on_brush_stroke(world_pos: Vector2) -> void:
+	_brush_suppress_timer = 0.09
+	_emit_burst(world_pos, Color(0.92, 0.78, 0.52, 0.85), 0.75)
+	if _brush_cooldown <= 0.0:
+		_brush_cooldown = 0.055
+		_play_tone(780.0, 460.0, 0.05, 0.12, 0.68)
+
+
 func _on_dig_hit(_damage: float, world_pos: Vector2, is_crit: bool) -> void:
-	var col: Color = Color(1.0, 0.85, 0.35) if is_crit else Color(0.88, 0.82, 0.72)
-	_emit_burst(world_pos, col, 1.35 if is_crit else 1.0)
+	if _brush_suppress_timer > 0.0:
+		return
+	var col: Color = Color(1.0, 0.82, 0.30) if is_crit else Color(0.88, 0.72, 0.48)
+	_emit_burst(world_pos, col, 1.35 if is_crit else 0.95)
 	if _sfx_cooldown <= 0.0:
 		_sfx_cooldown = 0.045
 		var pitch: float = randf_range(240.0, 320.0) if not is_crit else 440.0
-		_play_tone(pitch, pitch * 0.45, 0.055, 0.18)
+		_play_tone(pitch, pitch * 0.45, 0.055, 0.18, 0.15)
+
+
+func _on_orange_rock_hit(_damage: float, world_pos: Vector2) -> void:
+	_emit_burst(world_pos, Color(0.95, 0.55, 0.18), 1.1)
+	if _sfx_cooldown <= 0.0:
+		_sfx_cooldown = 0.045
+		var pitch: float = randf_range(250.0, 330.0)
+		_play_tone(pitch, pitch * 0.48, 0.055, 0.18)
+
+
+func _on_scenario_changed(current_scenario: StringName) -> void:
+	if current_scenario == &"dig_site":
+		_play_tone(260.0, 175.0, 0.08, 0.12)
+	else:
+		_play_tone(175.0, 260.0, 0.08, 0.12)
 
 
 func _on_layer_broken(_era_idx: int, _layer_idx: int, _depth: int) -> void:
-	_emit_burst(Vector2(480.0, 420.0), Color(0.95, 0.72, 0.38), 2.2)
+	_emit_burst(Vector2(480.0, 420.0), Color(0.95, 0.72, 0.34), 2.2)
 	_play_tone(140.0, 55.0, 0.22, 0.30)
 
 
@@ -159,3 +223,28 @@ func _on_dino_unlocked(_dino_id: StringName) -> void:
 
 func _on_meteor_impact_started() -> void:
 	_play_tone(110.0, 32.0, 0.55, 0.38)
+
+
+func _on_fossil_found(_dino_id: StringName, rarity: int) -> void:
+	# Batida seca do carimbo de laboratório + acorde por raridade
+	_play_tone(175.0, 72.0, 0.08, 0.28, 0.25)
+	if rarity == 1:
+		_play_tone(520.0, 680.0, 0.14, 0.18)
+	elif rarity == 2:
+		_play_tone(587.0, 880.0, 0.18, 0.22)
+	elif rarity >= 3:
+		_emit_burst(Vector2(240.0, 760.0), Color(1.0, 0.84, 0.30), 1.8)
+		_play_tone(659.0, 1046.0, 0.26, 0.26)
+		_play_tone(523.0, 784.0, 0.22, 0.20)
+
+
+func _on_precise_strike_resolved(result: StringName, _bonus_damage: float) -> void:
+	if result == &"perfect":
+		_emit_burst(Vector2(520.0, 480.0), Color(1.0, 0.88, 0.32), 2.4)
+		_play_tone(587.0, 1174.0, 0.24, 0.28)
+		_play_tone(440.0, 880.0, 0.18, 0.20)
+	elif result == &"good":
+		_emit_burst(Vector2(520.0, 480.0), Color(0.65, 0.94, 0.45), 1.6)
+		_play_tone(440.0, 660.0, 0.16, 0.22)
+	else:
+		_play_tone(180.0, 120.0, 0.10, 0.12)

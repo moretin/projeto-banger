@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AmberPalette" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/AmberPalette.gd" id="1_palette"]
+
+[resource]
+script = ExtResource("1_palette")
+sepia_sky_top = Color(0.231373, 0.141176, 0.0784314, 1)
+sepia_sky_horizon = Color(0.431373, 0.266667, 0.117647, 1)
+sepia_ground = Color(0.321569, 0.203922, 0.101961, 1)
+sepia_canopy = Color(0.501961, 0.333333, 0.141176, 1)
+jungle_sky_top = Color(0.0862745, 0.243137, 0.203922, 1)
+jungle_sky_horizon = Color(0.164706, 0.439216, 0.313726, 1)
+jungle_ground = Color(0.156863, 0.352941, 0.203922, 1)
+jungle_canopy = Color(0.290196, 0.6, 0.266667, 1)
+ember_sky_top = Color(0.309804, 0.0705882, 0.0352941, 1)
+ember_sky_horizon = Color(0.788235, 0.258824, 0.0862745, 1)
+ember_ground = Color(0.4, 0.133333, 0.0666667, 1)
+ember_canopy = Color(0.886275, 0.372549, 0.121569, 1)
+amber_highlight = Color(0.964706, 0.698039, 0.239216, 1)
+parchment_text = Color(0.980392, 0.92549, 0.815686, 1)
+frame_border = Color(0.658824, 0.439216, 0.168627, 1)

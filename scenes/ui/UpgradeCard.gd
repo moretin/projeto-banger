@@ -51,38 +51,30 @@ func refresh() -> void:
 	_desc_label.text = data.description
 
 	if data.is_maxed(level):
+		_buy_button.icon = null
 		_buy_button.text = "MÁXIMO"
 		_buy_button.disabled = true
-		modulate = Color(0.82, 0.95, 0.82, 1.0)
+		modulate = Color(0.84, 0.95, 0.80, 1.0)
 		return
 
 	var mult: int = GameState.buy_multiplier
 	var amount: int = GameState.resolve_purchase_amount(upgrade_id, mult)
 	var cost: float = GameState.get_purchase_cost(upgrade_id, mult)
 	var can_buy: bool = GameState.can_purchase_upgrade(upgrade_id, mult)
-	var res_icon: String = _get_resource_icon(data.cost_resource)
+	_buy_button.icon = AmberTheme.get_resource_icon(data.cost_resource)
 	var amount_prefix: String = ""
 	if mult == GameState.BUY_MAX and amount > 1:
 		amount_prefix = "+%d · " % amount
 	elif mult > 1 and amount > 0:
 		amount_prefix = "+%d · " % amount
 
-	_buy_button.text = "%s%s %s" % [amount_prefix, res_icon, GameState.format_number(cost)]
+	_buy_button.text = "%s%s" % [amount_prefix, GameState.format_number(cost)]
 	_buy_button.disabled = not can_buy
 	modulate = Color.WHITE if can_buy else Color(0.75, 0.75, 0.75, 0.92)
 
 
-static func _get_resource_icon(res_id: StringName) -> String:
-	match res_id:
-		GameState.RES_BONES:
-			return "🦴"
-		GameState.RES_MINERALS:
-			return "💎"
-		GameState.RES_DNA:
-			return "🧬"
-		GameState.RES_AMBER:
-			return "🟠"
-	return "•"
+static func _get_resource_icon(_res_id: StringName) -> String:
+	return ""
 
 
 func _play_purchase_feedback() -> void:

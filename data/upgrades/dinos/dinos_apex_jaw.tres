@@ -6,11 +6,12 @@
 script = ExtResource("1_1ymuw")
 id = &"dinos_apex_jaw"
 display_name = "Mandíbula Colossal"
-description = "+40% de dano para o T-Rex."
+description = "+24% de dano para o T-Rex."
 category = 1
 sort_order = 2
-base_cost = 4500.0
-cost_growth = 1.22
+base_cost = 150000.0
+cost_growth = 1.40
+max_level = 0
 stat_id = &"dino_damage:trex"
 effect_type = 1
-effect_value = 0.4
+effect_value = 0.24

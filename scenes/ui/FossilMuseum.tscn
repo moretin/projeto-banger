@@ -1,0 +1,243 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/FossilMuseum.gd" id="1_fmuseum"]
+[ext_resource type="Theme" path="res://scenes/ui/ui_theme.tres" id="2_theme"]
+
+[node name="FossilMuseum" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_fmuseum")
+
+[node name="LaudoCard" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -176.0
+offset_right = 456.0
+offset_bottom = -18.0
+grow_vertical = 0
+mouse_default_cursor_shape = 2
+
+[node name="PaperMargin" type="MarginContainer" parent="LaudoCard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="LaudoCard/PaperMargin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="TopLine" type="HBoxContainer" parent="LaudoCard/PaperMargin/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="LaudoBadgeIcon" type="TextureRect" parent="LaudoCard/PaperMargin/VBox/TopLine"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="LaudoHeaderLabel" type="Label" parent="LaudoCard/PaperMargin/VBox/TopLine"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.98, 0.84, 0.44, 1)
+theme_override_font_sizes/font_size = 13
+text = "LAUDO DO FÓSSIL · REGISTRO #001"
+
+[node name="LaudoHintLabel" type="Label" parent="LaudoCard/PaperMargin/VBox/TopLine"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.84, 0.74, 0.56, 0.85)
+theme_override_font_sizes/font_size = 11
+text = "Abrir Museu ▶"
+
+[node name="BodyRow" type="HBoxContainer" parent="LaudoCard/PaperMargin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="LaudoSprite" type="TextureRect" parent="LaudoCard/PaperMargin/VBox/BodyRow"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(54, 54)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextVBox" type="VBoxContainer" parent="LaudoCard/PaperMargin/VBox/BodyRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="LaudoSpeciesLabel" type="Label" parent="LaudoCard/PaperMargin/VBox/BodyRow/TextVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.99, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 16
+text = "Tiranossauro Rex"
+
+[node name="LaudoPartLabel" type="Label" parent="LaudoCard/PaperMargin/VBox/BodyRow/TextVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.9, 0.8, 0.62, 1)
+theme_override_font_sizes/font_size = 13
+text = "Peça: Mandíbula Petrificada (+1)"
+
+[node name="LaudoMetaLabel" type="Label" parent="LaudoCard/PaperMargin/VBox/BodyRow/TextVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.78, 0.68, 0.52, 0.9)
+theme_override_font_sizes/font_size = 11
+text = "Estrato: Cota -3m · Acervo do Museu"
+
+[node name="StampHolder" type="Control" parent="LaudoCard"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="StampBadge" type="PanelContainer" parent="LaudoCard/StampHolder"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -210.0
+offset_top = -36.0
+offset_right = -10.0
+offset_bottom = -6.0
+grow_horizontal = 0
+grow_vertical = 0
+rotation = -0.14
+mouse_filter = 2
+
+[node name="StampMargin" type="MarginContainer" parent="LaudoCard/StampHolder/StampBadge"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 4
+
+[node name="StampLabel" type="Label" parent="LaudoCard/StampHolder/StampBadge/StampMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.36, 1)
+theme_override_font_sizes/font_size = 13
+text = "HOLÓTIPO LENDÁRIO"
+horizontal_alignment = 1
+
+[node name="MuseumBackdrop" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.03, 0.02, 0.82)
+
+[node name="CenterPanel" type="PanelContainer" parent="MuseumBackdrop"]
+custom_minimum_size = Vector2(880, 560)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -440.0
+offset_top = -280.0
+offset_right = 440.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="MuseumBackdrop/CenterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="MuseumBackdrop/CenterPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HeaderHBox" type="HBoxContainer" parent="MuseumBackdrop/CenterPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MuseumIcon" type="TextureRect" parent="MuseumBackdrop/CenterPanel/Margin/VBox/HeaderHBox"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TitleLabel" type="Label" parent="MuseumBackdrop/CenterPanel/Margin/VBox/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.84, 0.42, 1)
+theme_override_font_sizes/font_size = 21
+text = "MUSEU PALEONTOLÓGICO — Galeria de Holótipos"
+
+[node name="MuseumCloseButton" type="Button" parent="MuseumBackdrop/CenterPanel/Margin/VBox/HeaderHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 34)
+layout_mode = 2
+focus_mode = 0
+text = "Fechar"
+
+[node name="MuseumSummaryLabel" type="Label" parent="MuseumBackdrop/CenterPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.84, 0.68, 1)
+theme_override_font_sizes/font_size = 14
+text = "Fósseis catalogados na expedição: 0 · Holótipos Lendários: 0"
+
+[node name="Scroll" type="ScrollContainer" parent="MuseumBackdrop/CenterPanel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="VitrinesGrid" type="GridContainer" parent="MuseumBackdrop/CenterPanel/Margin/VBox/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 4

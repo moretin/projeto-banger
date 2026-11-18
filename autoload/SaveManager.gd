@@ -12,7 +12,7 @@ const SAVE_PATH: String = "user://savegame.json"
 const BACKUP_PATH: String = "user://savegame.bak.json"
 const TEMP_PATH: String = "user://savegame.tmp"
 
-const SAVE_VERSION: int = 2
+const SAVE_VERSION: int = 3
 const AUTOSAVE_INTERVAL: float = 30.0
 ## Limite de tempo offline recompensado (8 horas).
 const MAX_OFFLINE_SECONDS: float = 8.0 * 3600.0
@@ -24,6 +24,8 @@ var _autosave_timer: Timer
 var _is_loading: bool = false
 ## Permite desligar o autosave (ex.: em testes ou cenas de debug).
 var autosave_enabled: bool = true
+## Versão original de um save antigo descartado na migração (-1 se não houve descarte).
+var last_migrated_reset_version: int = -1
 
 
 func _ready() -> void:
@@ -33,7 +35,10 @@ func _ready() -> void:
 	_autosave_timer.timeout.connect(_on_autosave_timeout)
 	add_child(_autosave_timer)
 	# Salva logo após um prestígio (momento importante).
-	Events.prestige_completed.connect(func(_amber: float, _run: int) -> void: save_game())
+	Events.prestige_completed.connect(func(_amber: float, _run: int) -> void:
+		if autosave_enabled:
+			save_game()
+	)
 	# Deferred: dá tempo da cena principal entrar na árvore e conectar em Events.game_loaded.
 	load_game.call_deferred()
 
@@ -41,12 +46,13 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	match what:
 		NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT:
-			save_game()
+			if autosave_enabled:
+				save_game()
 
 
 #region Salvar
 func save_game() -> bool:
-	if _is_loading:
+	if _is_loading or GameState.is_impacting:
 		return false
 	var payload: Dictionary = {
 		"version": SAVE_VERSION,
@@ -105,6 +111,8 @@ func load_game() -> bool:
 func _apply_payload(payload: Dictionary) -> bool:
 	_is_loading = true
 	payload = _migrate(payload)
+	last_migrated_reset_version = int(payload.get("_migrated_reset_from", -1))
+	payload.erase("_migrated_reset_from")
 	var game_data: Variant = payload.get("game", {})
 	if not game_data is Dictionary:
 		_is_loading = false
@@ -112,6 +120,11 @@ func _apply_payload(payload: Dictionary) -> bool:
 	GameState.load_save_dict(game_data as Dictionary)
 	_is_loading = false
 	Events.game_loaded.emit()
+	if last_migrated_reset_version >= 0:
+		Events.notification_requested.emit(
+			"⚠️ Save antigo (v%d) incompatível com a v%d — um novo jogo foi iniciado." % [last_migrated_reset_version, SAVE_VERSION],
+			null
+		)
 
 	var saved_at: float = float(payload.get("saved_at", 0.0))
 	if saved_at > 0.0:
@@ -133,6 +146,7 @@ func _read_payload(path: String) -> Dictionary:
 ## Converte saves de versões antigas para a atual. Adicione um `if` por versão.
 func _migrate(payload: Dictionary) -> Dictionary:
 	var version: int = int(payload.get("version", 0))
+	payload.erase("_migrated_reset_from")
 	# v1 → v2: camadas da Terra rebalanceadas (5 eras), Superfície com Rocha Laranja e
 	# fósseis específicos por camada. Saves antigos ficam com era/HP incompatíveis,
 	# então são descartados e o jogo recomeça do zero.
@@ -140,7 +154,20 @@ func _migrate(payload: Dictionary) -> Dictionary:
 		push_warning("[SaveManager] Save v%d incompatível com a nova estrutura; iniciando novo jogo." % version)
 		payload["game"] = {}
 		payload["saved_at"] = Time.get_unix_time_from_system()
+		payload["_migrated_reset_from"] = version
 		version = 2
+	# v2 → v3: adiciona acervo persistente do Museu Paleontológico sem apagar progresso anterior.
+	if version == 2:
+		var raw_game: Variant = payload.get("game", {})
+		var game_dict: Dictionary = raw_game as Dictionary if raw_game is Dictionary else {}
+		if not game_dict.has("fossil_catalog"):
+			game_dict["fossil_catalog"] = {}
+		if not game_dict.has("total_fossils_evaluated"):
+			game_dict["total_fossils_evaluated"] = 0
+		if not game_dict.has("total_legendary_fossils"):
+			game_dict["total_legendary_fossils"] = 0
+		payload["game"] = game_dict
+		version = 3
 	if version > SAVE_VERSION:
 		push_warning("[SaveManager] Save de versão mais nova (%d > %d)." % [version, SAVE_VERSION])
 	payload["version"] = SAVE_VERSION
@@ -191,6 +218,7 @@ func import_save_string(encoded: String) -> bool:
 	payload.erase("saved_at")  # não conceder progresso offline em saves importados
 	if not _apply_payload(payload):
 		return false
-	save_game()
+	if autosave_enabled:
+		save_game()
 	return true
 #endregion

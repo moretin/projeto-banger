@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/dig_site/DigSite.gd" id="1_digsite"]
+[ext_resource type="Script" path="res://scenes/dig_site/SeismographDial.gd" id="2_dial"]
 
 [node name="DigSite" type="Control"]
 clip_contents = true
@@ -14,124 +15,144 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("1_digsite")
 
-[node name="SkyRect" type="ColorRect" parent="."]
+[node name="CameraContainer" type="Control" parent="."]
+unique_name_in_owner = true
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SkyRect" type="ColorRect" parent="CameraContainer"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 260.0
+offset_bottom = 282.0
 grow_horizontal = 2
 mouse_filter = 2
-color = Color(0.24, 0.24, 0.26, 1)
+color = Color(0.231373, 0.141176, 0.0784314, 1)
 
-[node name="SurfaceGrass" type="ColorRect" parent="."]
+[node name="ExcavatedBackdrop" type="Control" parent="CameraContainer"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 248.0
-offset_bottom = 266.0
+offset_bottom = 282.0
 grow_horizontal = 2
 mouse_filter = 2
-color = Color(0.36, 0.35, 0.3, 1)
 
-[node name="DinoStage" type="Node2D" parent="."]
+[node name="SurfaceGrass" type="ColorRect" parent="CameraContainer"]
 unique_name_in_owner = true
-position = Vector2(0, 248)
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 268.0
+offset_bottom = 284.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.501961, 0.333333, 0.141176, 1)
 
-[node name="RockHitArea" type="Control" parent="."]
+[node name="DinoStage" type="Node2D" parent="CameraContainer"]
+unique_name_in_owner = true
+position = Vector2(0, 272)
+
+[node name="RockHitArea" type="Control" parent="CameraContainer"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 266.0
+offset_top = 282.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_default_cursor_shape = 2
 
-[node name="RockBg" type="ColorRect" parent="RockHitArea"]
+[node name="RockBg" type="ColorRect" parent="CameraContainer/RockHitArea"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 260.0
+offset_bottom = 276.0
 grow_horizontal = 2
 mouse_filter = 2
-color = Color(0.45, 0.42, 0.38, 1)
+color = Color(0.45, 0.32, 0.2, 1)
 
-[node name="ClickPrompt" type="Label" parent="RockHitArea/RockBg"]
+[node name="ClickPrompt" type="Label" parent="CameraContainer/RockHitArea/RockBg"]
 layout_mode = 1
-anchors_preset = 8
+anchors_preset = 7
 anchor_left = 0.5
-anchor_top = 0.5
+anchor_top = 1.0
 anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -180.0
-offset_top = -24.0
-offset_right = 180.0
-offset_bottom = 24.0
+anchor_bottom = 1.0
+offset_left = -310.0
+offset_top = -34.0
+offset_right = 310.0
+offset_bottom = -6.0
 grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 0.55)
-theme_override_font_sizes/font_size = 20
-text = "⛏️ CLIQUE NA ROCHA PARA ESCAVAR"
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.98, 0.91, 0.74, 0.78)
+theme_override_font_sizes/font_size = 15
+text = "SEGURE E ARRASTE PARA ESCOVAR O SEDIMENTO · CLIQUE PARA CINZELAR"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SubLayer1" type="ColorRect" parent="RockHitArea"]
+[node name="SubLayer1" type="ColorRect" parent="CameraContainer/RockHitArea"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 260.0
-offset_bottom = 390.0
+offset_top = 276.0
+offset_bottom = 398.0
 grow_horizontal = 2
 mouse_filter = 2
-color = Color(0.35, 0.32, 0.28, 1)
+color = Color(0.35, 0.25, 0.16, 1)
 
-[node name="SubLayer1Label" type="Label" parent="RockHitArea/SubLayer1"]
+[node name="SubLayer1Label" type="Label" parent="CameraContainer/RockHitArea/SubLayer1"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_right = -20.0
+offset_left = 78.0
+offset_right = -78.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 0.45)
+theme_override_colors/font_color = Color(0.96, 0.89, 0.75, 0.65)
 theme_override_font_sizes/font_size = 14
-text = "▼ Próxima camada: 2. Crosta Continental"
+text = "Próximo estrato: Pedra"
 vertical_alignment = 1
 
-[node name="SubLayer2" type="ColorRect" parent="RockHitArea"]
+[node name="SubLayer2" type="ColorRect" parent="CameraContainer/RockHitArea"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 390.0
+offset_top = 398.0
 offset_bottom = 520.0
 grow_horizontal = 2
 mouse_filter = 2
-color = Color(0.28, 0.26, 0.24, 1)
+color = Color(0.28, 0.19, 0.13, 1)
 
-[node name="SubLayer2Label" type="Label" parent="RockHitArea/SubLayer2"]
+[node name="SubLayer2Label" type="Label" parent="CameraContainer/RockHitArea/SubLayer2"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_right = -20.0
+offset_left = 78.0
+offset_right = -78.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 0.38)
+theme_override_colors/font_color = Color(0.94, 0.85, 0.7, 0.55)
 theme_override_font_sizes/font_size = 14
-text = "▼ 3. Litosfera & Moho"
+text = "Rocha Incandescente"
 vertical_alignment = 1
 
-[node name="SubLayer3" type="ColorRect" parent="RockHitArea"]
+[node name="SubLayer3" type="ColorRect" parent="CameraContainer/RockHitArea"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -141,76 +162,100 @@ offset_top = 520.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.22, 0.2, 0.18, 1)
+color = Color(0.21, 0.14, 0.1, 1)
 
-[node name="SubLayer3Label" type="Label" parent="RockHitArea/SubLayer3"]
+[node name="SubLayer3Label" type="Label" parent="CameraContainer/RockHitArea/SubLayer3"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_right = -20.0
+offset_left = 78.0
+offset_right = -78.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 0.32)
+theme_override_colors/font_color = Color(0.92, 0.82, 0.68, 0.45)
 theme_override_font_sizes/font_size = 14
-text = "▼ 4. Manto Superior (Astenosfera)"
+text = "Magma"
 vertical_alignment = 1
+
+[node name="TrenchWallsOverlay" type="Control" parent="CameraContainer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="LayerOverlay" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 10.0
-offset_bottom = 165.0
+offset_top = 8.0
+offset_bottom = 148.0
 grow_horizontal = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_right = 20
+theme_override_constants/margin_left = 68
+theme_override_constants/margin_right = 68
 
-[node name="VBox" type="VBoxContainer" parent="LayerOverlay"]
+[node name="OverlayPanel" type="PanelContainer" parent="LayerOverlay"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 6
 
-[node name="TopNavHBox" type="HBoxContainer" parent="LayerOverlay/VBox"]
+[node name="Pad" type="MarginContainer" parent="LayerOverlay/OverlayPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="LayerOverlay/OverlayPanel/Pad"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+
+[node name="TopNavHBox" type="HBoxContainer" parent="LayerOverlay/OverlayPanel/Pad/VBox"]
 layout_mode = 2
 mouse_filter = 2
 alignment = 1
 
-[node name="ToSurfaceButton" type="Button" parent="LayerOverlay/VBox/TopNavHBox"]
+[node name="ToSurfaceButton" type="Button" parent="LayerOverlay/OverlayPanel/Pad/VBox/TopNavHBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 40)
+texture_filter = 1
+custom_minimum_size = Vector2(360, 36)
 layout_mode = 2
 focus_mode = 0
-theme_override_colors/font_color = Color(0.75, 0.96, 0.68, 1)
-theme_override_font_sizes/font_size = 16
-text = "🏕️ ▲ VOLTAR PARA A SUPERFÍCIE ▲"
+theme_override_colors/font_color = Color(0.95, 0.92, 0.72, 1)
+theme_override_font_sizes/font_size = 15
+text = "SUBIR AO ACAMPAMENTO"
 
-[node name="EraTitleLabel" type="Label" parent="LayerOverlay/VBox"]
+[node name="EraTitleLabel" type="Label" parent="LayerOverlay/OverlayPanel/Pad/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "🌍 1. Crosta Superficial — Subcamada 1 / 6"
+theme_override_colors/font_color = Color(0.99, 0.9, 0.68, 1)
+theme_override_font_sizes/font_size = 18
+text = "Terra (Crosta) — Subcamada 1 / 5"
 
-[node name="EraDescLabel" type="Label" parent="LayerOverlay/VBox"]
+[node name="EraDescLabel" type="Label" parent="LayerOverlay/OverlayPanel/Pad/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.82, 0.82, 0.85, 1)
-theme_override_font_sizes/font_size = 14
-text = "Solo, húmus e rochas sedimentares rasas da superfície terrestre (0–15 km), ricas em fósseis recentes."
+theme_override_colors/font_color = Color(0.86, 0.8, 0.68, 1)
+theme_override_font_sizes/font_size = 13
+text = "Solo, húmus e rochas sedimentares rasas da superfície terrestre."
 
-[node name="LayerHpBar" type="ProgressBar" parent="LayerOverlay/VBox"]
+[node name="LayerHpBar" type="ProgressBar" parent="LayerOverlay/OverlayPanel/Pad/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 26)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 mouse_filter = 2
 max_value = 15.0
 value = 15.0
 show_percentage = false
 
-[node name="LayerHpLabel" type="Label" parent="LayerOverlay/VBox/LayerHpBar"]
+[node name="LayerHpLabel" type="Label" parent="LayerOverlay/OverlayPanel/Pad/VBox/LayerHpBar"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -218,8 +263,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 14
-text = "🪨 Rocha: 15 / 15 HP"
+theme_override_font_sizes/font_size = 13
+text = "Jazida: 15 / 15 HP"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -232,3 +277,20 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="SeismographDial" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -458.0
+offset_top = -114.0
+offset_right = -68.0
+offset_bottom = -22.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("2_dial")

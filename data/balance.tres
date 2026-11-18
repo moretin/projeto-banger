@@ -1,0 +1,57 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://data/BalanceConfig.gd" id="1_balcfg"]
+
+[resource]
+script = ExtResource("1_balcfg")
+base_meteor_time = 600.0
+meteor_first_run = 1
+early_impact_min_depth = 3
+early_impact_min_amber = 1.0
+prestige_dig_exponent = 0.28
+amber_bones_divisor = 2700.0
+amber_bones_exponent = 0.088
+amber_depth_per_layer = 0.042
+amber_layer_progress_weight = 0.05
+amber_shield_bonus = 0.75
+ark_required_level = 5
+ark_required_shield = 0.75
+ark_required_era = 3
+ark_first_completion_amber = 25.0
+base_click_damage = 1.0
+base_click_crit_chance = 0.05
+click_crit_multiplier = 2.5
+max_overkill_layers_per_hit = 8
+drop_rolls_per_base_layer = 16.0
+drop_max_single_prob = 0.95
+layer_break_bonus_fragment_chance = 0.35
+vein_click_multiplier = 5.5
+vein_bps_seconds = 2.0
+vein_mineral_multiplier = 2.0
+vein_fragment_chance = 0.5
+rocks_per_bone_ratio = 0.08
+offline_base_efficiency = 0.2
+offline_max_efficiency = 0.5
+offline_max_hours = 8.0
+collector_max_units = 30
+collector_default_bone_bonus = 0.015
+collector_drop_bonus_ratio = 1.0
+fast_pack_bonus_per_unit = 0.02
+fast_pack_max_units = 30
+area_tremor_bonus_per_unit = 0.015
+area_tremor_max_units = 30
+breaker_era_bonus = 0.25
+transport_max_units = 25
+transport_default_mineral_bonus = 0.03
+support_max_units = 20
+support_dna_bonus_ratio = 0.5
+defense_shield_to_dino_damage = 0.65
+shield_excavation_bonus = 0.85
+elemental_hp_pct_per_unit = 0.002
+elemental_hp_pct_cap = 0.04
+elemental_dps_cap_ratio = 0.45
+fossil_rarity_weights = Array[float]([55.0, 27.0, 13.0, 5.0])
+precise_strike_perfect_mult = 8.0
+precise_strike_good_mult = 3.5
+precise_strike_dial_duration = 2.6
+precise_strike_dial_cooldown = 5.5

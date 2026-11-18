@@ -44,10 +44,10 @@ enum Role {
 @export var unlock_era_index: int = 0
 ## Quantidade X do fóssil específico que deve ser encontrada escavando para reviver o 1º exemplar.
 @export var fragments_required: int = 15
-## Fósseis adicionais exigidos a cada exemplar já revivido (impede spawn fácil sem escavar).
-@export var fragments_growth_per_unit: int = 10
-## Limite máximo de exemplares desta espécie por run (0 = sem limite, mas bloqueado por fósseis).
-@export var max_units_per_run: int = 5
+## Fósseis adicionais exigidos a cada exemplar já revivido (0 = clones adicionais custam apenas ossos).
+@export var fragments_growth_per_unit: int = 0
+## Limite máximo de exemplares desta espécie por run (0 = sem limite).
+@export var max_units_per_run: int = 0
 ## Custo em recursos para montar/reviver o 1º esqueleto (além dos X fósseis).
 @export var assembly_cost: float = 150.0
 
@@ -76,9 +76,9 @@ enum Role {
 
 @export_group("Marcos")
 ## Quantidades que disparam bônus.
-@export var milestones: Array[int] = [2, 3, 4, 5]
-## Multiplicador aplicado a CADA marco atingido (2.0 = dobra).
-@export var milestone_multiplier: float = 2.0
+@export var milestones: Array[int] = [25, 50, 100, 200, 400]
+## Multiplicador aplicado a CADA marco atingido (1.5 = +50%).
+@export var milestone_multiplier: float = 1.5
 
 
 ## Quantidade X de fósseis específicos necessária para reviver a próxima unidade (tendo `owned` unidades).
@@ -98,13 +98,44 @@ func can_spawn_more(owned: int) -> bool:
 	return max_units_per_run <= 0 or owned < max_units_per_run
 
 
-## Custo em recursos da próxima unidade, tendo `owned` unidades.
-## Retorna `assembly_cost` para a primeira unidade, e cresce fortemente para unidades adicionais.
+## Custo em ossos da próxima unidade, tendo `owned` unidades.
+## Retorna `assembly_cost` para a primeira unidade.
 func get_unit_cost(owned: int) -> float:
 	if owned <= 0:
 		return assembly_cost
-	var base: float = maxf(unit_base_cost, assembly_cost * 1.5)
-	return base * pow(unit_cost_growth, float(owned - 1))
+	return unit_base_cost * pow(unit_cost_growth, float(owned - 1))
+
+
+## Custo em ossos de comprar `amount` unidades a partir de `owned`.
+## Se `owned == 0`, somente a 1ª unidade (reviver) é considerada.
+func get_bulk_unit_cost(owned: int, amount: int) -> float:
+	if amount <= 0:
+		return 0.0
+	if owned <= 0:
+		return assembly_cost
+	var first: float = get_unit_cost(owned)
+	if is_equal_approx(unit_cost_growth, 1.0):
+		return first * float(amount)
+	return first * (pow(unit_cost_growth, float(amount)) - 1.0) / (unit_cost_growth - 1.0)
+
+
+## Quantas unidades cabem em `budget` ossos a partir de `owned`.
+func get_max_affordable_units(owned: int, budget: float) -> int:
+	if owned <= 0:
+		return 1 if budget >= assembly_cost else 0
+	var first: float = get_unit_cost(owned)
+	if budget < first or first <= 0.0:
+		return 0
+	var n: int
+	if is_equal_approx(unit_cost_growth, 1.0):
+		n = floori(budget / first)
+	else:
+		var ratio: float = budget * (unit_cost_growth - 1.0) / first + 1.0
+		n = floori(log(ratio) / log(unit_cost_growth))
+	n = mini(n, 10000)
+	while n > 0 and get_bulk_unit_cost(owned, n) > budget:
+		n -= 1
+	return n
 
 
 ## Dano por segundo de UMA unidade, sem multiplicadores externos.

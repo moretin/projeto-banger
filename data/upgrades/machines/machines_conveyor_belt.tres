@@ -6,11 +6,12 @@
 script = ExtResource("1_uc1gb")
 id = &"machines_conveyor_belt"
 display_name = "Esteira Transportadora"
-description = "+20% de produção total de ossos."
+description = "+11% de produção total de ossos."
 category = 2
 sort_order = 1
-base_cost = 300.0
-cost_growth = 1.2
+base_cost = 480.0
+cost_growth = 1.40
+max_level = 30
 stat_id = &"bones_mult"
 effect_type = 1
-effect_value = 0.2
+effect_value = 0.11

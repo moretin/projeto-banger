@@ -3,7 +3,9 @@
 [ext_resource type="Script" path="res://scenes/dinos/DinoSwarm.gd" id="1_dswarm"]
 
 [node name="DinoSwarm" type="Node2D"]
+texture_filter = 1
 script = ExtResource("1_dswarm")
 
 [node name="MultiMeshInstance2D" type="MultiMeshInstance2D" parent="."]
 unique_name_in_owner = true
+texture_filter = 1

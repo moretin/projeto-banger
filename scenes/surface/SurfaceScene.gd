@@ -1,15 +1,13 @@
 class_name SurfaceScene
 extends Control
-## Cenário 1: Superfície (onde o jogo começa).
+## Cenário 1: Superfície — Acampamento de Campo (onde o jogo começa).
 ##
-## • Rocha Laranja inicial no centro: o jogador clica para quebrar e despertar o
-##   Dinossauro Principal em Pixel Art.
-## • Personagem Principal (HeroDino): sprite 16×16 em Pixel Art nítido (filtro NEAREST)
-##   que patrulha e anima na superfície após nascer.
-## • Escombros de Pedra: 4 estruturas em ruínas na superfície que usam Rochas (🪨,
-##   obtidas escavando no cenário abaixo) para serem reconstruídas e funcionam como
-##   upgrades permanentes da run para cada área.
-## • Botão inferior "▼ ESCAVAÇÃO": transiciona suavemente para o cenário da Escavação.
+## • Ovo de Âmbar Primordial no centro: o jogador clica ou escova para chocar e despertar o
+##   Compsognato Principal em Pixel Art.
+## • Estações do Acampamento de Campo: 4 estruturas de expedição na superfície reconstruídas com Rochas.
+## • Botão inferior "DESCER À JAZIDA": transiciona para o Corte Geológico Vertical.
+
+const PALETTE: AmberPalette = preload("res://scenes/ui/amber_palette.tres")
 
 const PIXEL_DINO_ROWS: PackedStringArray = [
 	"......GGGGGG....",
@@ -30,8 +28,19 @@ const PIXEL_DINO_ROWS: PackedStringArray = [
 	"................",
 ]
 
+const CAMP_STATION_NAMES: Dictionary = {
+	&"rubble_forge": "Tenda de Ferramentas",
+	&"rubble_nest": "Incubadora de Campo",
+	&"rubble_silo": "Torre Estratigráfica",
+	&"rubble_bunker": "Bastião Anti-Impacto",
+}
+
 @onready var _sky_rect: ColorRect = %SurfaceSky
+@onready var _horizon_glow: ColorRect = %HorizonGlow
 @onready var _ground_rect: ColorRect = %SurfaceGround
+@onready var _subsoil_strip: ColorRect = %SubSoilStrip
+@onready var _header_icon: TextureRect = %HeaderIcon
+@onready var _rubble_section_icon: TextureRect = %RubbleSectionIcon
 @onready var _orange_rock_box: Control = %OrangeRockBox
 @onready var _orange_rock_canvas: Control = %OrangeRockCanvas
 @onready var _orange_rock_hp_bar: ProgressBar = %OrangeRockHpBar
@@ -47,13 +56,20 @@ var _hero_x: float = 420.0
 var _hero_dir: float = 1.0
 var _hero_phase: float = 0.0
 var _rubble_cards: Dictionary = {}
+var _egg_hover: bool = false
+var _egg_pulse_t: float = 0.0
 
 
 func _ready() -> void:
 	_hero_sprite.texture = _get_hero_texture()
 	_hero_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_header_icon.texture = AmberTheme.get_icon(&"camp")
+	_rubble_section_icon.texture = AmberTheme.get_icon(&"rocks")
+	_to_dig_button.icon = AmberTheme.get_icon(&"brush")
 
 	_orange_rock_box.gui_input.connect(_on_orange_rock_gui_input)
+	_orange_rock_box.mouse_entered.connect(func() -> void: _egg_hover = true)
+	_orange_rock_box.mouse_exited.connect(func() -> void: _egg_hover = false)
 	_orange_rock_canvas.draw.connect(_on_orange_rock_draw)
 	_to_dig_button.pressed.connect(func() -> void:
 		Events.scenario_transition_requested.emit(&"dig_site")
@@ -67,6 +83,8 @@ func _ready() -> void:
 	Events.resource_changed.connect(_on_resource_changed)
 	Events.color_progress_changed.connect(_on_color_progress_changed)
 	Events.danger_level_changed.connect(_on_danger_level_changed)
+	Events.era_changed.connect(_on_era_changed)
+	Events.layer_broken.connect(_on_layer_broken)
 	Events.run_started.connect(_on_run_started)
 	Events.game_loaded.connect(_refresh_all)
 
@@ -74,6 +92,9 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_egg_pulse_t += delta
+	if not GameState.orange_rock_broken and _orange_rock_box.visible:
+		_orange_rock_canvas.queue_redraw()
 	if _rock_shake > 0.01:
 		_rock_shake = lerpf(_rock_shake, 0.0, minf(delta * 15.0, 1.0))
 		_orange_rock_canvas.position = Vector2(
@@ -101,7 +122,6 @@ func _animate_hero_dino(delta: float) -> void:
 
 	var hop: float = absf(sin(_hero_phase)) * 10.0
 	_hero_sprite.position = Vector2(_hero_x, 24.0 - hop)
-	# O PNG do Compsognato olha para a esquerda: inverte quando anda para a direita.
 	_hero_sprite.flip_h = (_hero_dir > 0.0)
 
 
@@ -111,9 +131,9 @@ func _refresh_all() -> void:
 	_hero_dino_stage.visible = broken
 	_to_dig_button.disabled = false
 	if not broken:
-		_to_dig_button.text = "▼ ESCAVAÇÃO  (Quebre a Rocha Laranja primeiro ou desça agora)"
+		_to_dig_button.text = "DESCER À JAZIDA  (Choque o Ovo de Âmbar primeiro ou desça agora)"
 	else:
-		_to_dig_button.text = "⛏️ ▼ IR PARA A ESCAVAÇÃO ▼"
+		_to_dig_button.text = "DESCER À JAZIDA ESTRATIGRÁFICA"
 
 	_on_orange_rock_hp_changed(GameState.orange_rock_hp, GameState.ORANGE_ROCK_MAX_HP)
 	_refresh_rubble_spots()
@@ -121,11 +141,11 @@ func _refresh_all() -> void:
 
 
 func _update_sky_and_ground() -> void:
-	var cp: float = GameState.color_progress
 	var danger: float = GameState.danger_level
-	var sky_calm: Color = Color(0.28, 0.30, 0.35).lerp(Color(0.32, 0.58, 0.85), cp)
-	_sky_rect.color = sky_calm.lerp(Color(0.72, 0.18, 0.14), danger)
-	_ground_rect.color = Color(0.35, 0.33, 0.28).lerp(Color(0.34, 0.66, 0.30), cp)
+	_sky_rect.color = PALETTE.sample_sky_color(GameState.depth, GameState.current_era_index, danger)
+	_horizon_glow.color = PALETTE.sample_horizon_color(GameState.depth, GameState.current_era_index, danger)
+	_ground_rect.color = PALETTE.sample_ground_color(GameState.depth, GameState.current_era_index, danger)
+	_subsoil_strip.color = _ground_rect.color.darkened(0.32)
 
 
 func _on_orange_rock_gui_input(event: InputEvent) -> void:
@@ -134,13 +154,12 @@ func _on_orange_rock_gui_input(event: InputEvent) -> void:
 		_rock_shake = 7.0
 		var hit_pos: Vector2 = _orange_rock_box.get_global_transform_with_canvas() * mb.position
 		Events.orange_rock_hit.emit(GameState.get_click_damage(), hit_pos)
-		Events.dig_hit.emit(0.0, hit_pos, true)  # dispara som/partícula via VfxAudioManager
 
 
 func _on_orange_rock_hp_changed(hp: float, max_hp: float) -> void:
 	_orange_rock_hp_bar.max_value = maxf(max_hp, 1.0)
 	_orange_rock_hp_bar.value = clampf(hp, 0.0, max_hp)
-	_orange_rock_hp_label.text = "🟠 Rocha Laranja: %d / %d  (Clique para quebrar!)" % [
+	_orange_rock_hp_label.text = "Ovo de Âmbar: %d / %d  (Clique ou escove para chocar!)" % [
 		ceili(hp),
 		ceili(max_hp),
 	]
@@ -150,34 +169,47 @@ func _on_orange_rock_hp_changed(hp: float, max_hp: float) -> void:
 func _on_orange_rock_broken() -> void:
 	_orange_rock_box.visible = false
 	_hero_dino_stage.visible = true
-	_hero_speech_label.text = "🦖 Rawr! Estou livre! Vamos escavar rochas lá embaixo para reconstruir os escombros!"
-	_to_dig_button.text = "⛏️ ▼ IR PARA A ESCAVAÇÃO ▼"
+	_hero_speech_label.text = "Compsognato chocado! Desça à jazida para escovar fósseis e reunir Rochas para o Acampamento."
+	_to_dig_button.text = "DESCER À JAZIDA ESTRATIGRÁFICA"
 	_refresh_rubble_spots()
 
 
-## Desenha a Rocha Laranja em estilo pixel/facetado com rachaduras conforme o HP cai.
+## Desenha o Ovo de Âmbar Translúcido com ninho de sedimento, inclusão fóssil e fissuras luminosas.
 func _on_orange_rock_draw() -> void:
 	var sz: Vector2 = _orange_rock_canvas.size
 	var cx: float = sz.x * 0.5
-	var cy: float = sz.y * 0.52
+	var cy: float = sz.y * 0.54
 
-	# Sombra no chão
-	_orange_rock_canvas.draw_rect(Rect2(cx - 72.0, cy + 46.0, 144.0, 18.0), Color(0.12, 0.10, 0.08, 0.55))
-	# Corpo pixelado da Rocha Laranja
-	_orange_rock_canvas.draw_rect(Rect2(cx - 64.0, cy - 36.0, 128.0, 86.0), Color(0.92, 0.46, 0.12))
-	_orange_rock_canvas.draw_rect(Rect2(cx - 52.0, cy - 52.0, 104.0, 20.0), Color(0.98, 0.58, 0.18))
-	_orange_rock_canvas.draw_rect(Rect2(cx - 44.0, cy - 28.0, 42.0, 28.0), Color(1.0, 0.72, 0.28))
-	_orange_rock_canvas.draw_rect(Rect2(cx - 64.0, cy + 30.0, 128.0, 20.0), Color(0.72, 0.32, 0.08))
+	# Sombra e ninho de folhas/sedimento
+	_orange_rock_canvas.draw_rect(Rect2(cx - 88.0, cy + 40.0, 176.0, 20.0), Color(0.14, 0.09, 0.05, 0.65))
+	_orange_rock_canvas.draw_rect(Rect2(cx - 74.0, cy + 32.0, 148.0, 16.0), Color(0.45, 0.29, 0.14, 0.95))
+
+	var pulse: float = 1.0 + sin(_egg_pulse_t * 3.0) * 0.03 + (0.04 if _egg_hover else 0.0)
+	var rx: float = 46.0 * pulse
+	var ry: float = 58.0 * pulse
+
+	# Aura translúcida do âmbar
+	_orange_rock_canvas.draw_circle(Vector2(cx, cy - 6.0), rx * 1.35, Color(1.0, 0.68, 0.20, 0.16))
+	# Casca externa (sépia/dourado pixelado em blocos arredondados de ovo)
+	_orange_rock_canvas.draw_rect(Rect2(cx - rx * 0.85, cy - ry * 0.72, rx * 1.7, ry * 1.42), Color(0.76, 0.40, 0.11, 1.0))
+	_orange_rock_canvas.draw_rect(Rect2(cx - rx * 0.64, cy - ry * 0.92, rx * 1.28, ry * 1.72), Color(0.92, 0.54, 0.16, 1.0))
+	_orange_rock_canvas.draw_rect(Rect2(cx - rx * 0.42, cy - ry * 1.04, rx * 0.84, ry * 0.35), Color(0.98, 0.72, 0.26, 1.0))
+	# Núcleo translúcido interno + embrião silhueta
+	_orange_rock_canvas.draw_rect(Rect2(cx - rx * 0.48, cy - ry * 0.52, rx * 0.96, ry * 1.04), Color(1.0, 0.78, 0.32, 0.82))
+	_orange_rock_canvas.draw_rect(Rect2(cx - 14.0, cy - 18.0, 26.0, 28.0), Color(0.32, 0.16, 0.07, 0.75))
+	_orange_rock_canvas.draw_rect(Rect2(cx - 22.0, cy + 4.0, 20.0, 12.0), Color(0.32, 0.16, 0.07, 0.75))
+	# Brilho especular
+	_orange_rock_canvas.draw_rect(Rect2(cx - rx * 0.45, cy - ry * 0.68, 14.0, 20.0), Color(1.0, 0.96, 0.78, 0.85))
 
 	var dmg_ratio: float = 1.0 - (_orange_rock_hp_bar.value / maxf(_orange_rock_hp_bar.max_value, 1.0))
 	if dmg_ratio > 0.05:
 		var cracks: int = clampi(int(dmg_ratio * 6.0) + 1, 1, 6)
 		for i: int in range(cracks):
-			var p0 := Vector2(cx - 30.0 + float(i) * 12.0, cy - 40.0)
-			var p1 := p0 + Vector2((float(i % 2) - 0.5) * 28.0, 38.0 * dmg_ratio)
-			var p2 := p1 + Vector2((0.5 - float(i % 2)) * 24.0, 36.0 * dmg_ratio)
-			_orange_rock_canvas.draw_line(p0, p1, Color(0.18, 0.08, 0.04), 4.0)
-			_orange_rock_canvas.draw_line(p1, p2, Color(0.18, 0.08, 0.04), 3.0)
+			var p0: Vector2 = Vector2(cx - 24.0 + float(i) * 10.0, cy - 42.0)
+			var p1: Vector2 = p0 + Vector2((float(i % 2) - 0.5) * 24.0, 34.0 * dmg_ratio)
+			var p2: Vector2 = p1 + Vector2((0.5 - float(i % 2)) * 20.0, 32.0 * dmg_ratio)
+			_orange_rock_canvas.draw_line(p0, p1, Color(1.0, 0.94, 0.65, 0.95), 3.0)
+			_orange_rock_canvas.draw_line(p1, p2, Color(0.24, 0.10, 0.04, 0.95), 2.5)
 
 
 func _build_rubble_spots() -> void:
@@ -189,7 +221,7 @@ func _build_rubble_spots() -> void:
 		var def: Dictionary = GameState.RUBBLE_DEFS[rubble_id]
 		var panel := PanelContainer.new()
 		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		panel.custom_minimum_size = Vector2(180.0, 175.0)
+		panel.custom_minimum_size = Vector2(180.0, 180.0)
 
 		var margin := MarginContainer.new()
 		margin.add_theme_constant_override("margin_left", 10)
@@ -203,19 +235,24 @@ func _build_rubble_spots() -> void:
 		margin.add_child(vbox)
 
 		var visual := ColorRect.new()
-		visual.custom_minimum_size = Vector2(0.0, 44.0)
-		visual.color = Color(0.35, 0.33, 0.31)
+		visual.custom_minimum_size = Vector2(0.0, 46.0)
+		visual.color = Color(0.28, 0.19, 0.12)
 		vbox.add_child(visual)
+
+		var canvas := Control.new()
+		canvas.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		visual.add_child(canvas)
 
 		var state_lbl := Label.new()
 		state_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		state_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		state_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		state_lbl.add_theme_font_size_override("font_size", 13)
+		state_lbl.add_theme_font_size_override("font_size", 12)
 		visual.add_child(state_lbl)
 
 		var title_lbl := Label.new()
-		title_lbl.text = String(def["title"])
+		title_lbl.text = _get_station_title(rubble_id, String(def["title"]))
 		title_lbl.add_theme_font_size_override("font_size", 15)
 		title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vbox.add_child(title_lbl)
@@ -223,7 +260,7 @@ func _build_rubble_spots() -> void:
 		var desc_lbl := Label.new()
 		desc_lbl.text = String(def["desc"])
 		desc_lbl.add_theme_font_size_override("font_size", 12)
-		desc_lbl.add_theme_color_override("font_color", Color(0.80, 0.82, 0.85))
+		desc_lbl.add_theme_color_override("font_color", Color(0.86, 0.80, 0.68))
 		desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc_lbl.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -232,19 +269,49 @@ func _build_rubble_spots() -> void:
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(0.0, 36.0)
 		btn.focus_mode = Control.FOCUS_NONE
+		btn.icon = AmberTheme.get_icon(&"rocks")
 		var captured_id: StringName = rubble_id
 		btn.pressed.connect(func() -> void:
 			Events.rubble_rebuild_requested.emit(captured_id)
 		)
 		vbox.add_child(btn)
 
+		canvas.draw.connect(func() -> void:
+			_draw_station_art(canvas, captured_id, def["color"] as Color)
+		)
+
 		_rubble_grid.add_child(panel)
 		_rubble_cards[rubble_id] = {
 			"visual": visual,
+			"canvas": canvas,
 			"state_lbl": state_lbl,
 			"title_lbl": title_lbl,
 			"btn": btn,
 		}
+
+
+func _draw_station_art(canvas: Control, rubble_id: StringName, accent: Color) -> void:
+	var lvl: int = GameState.get_rubble_level(rubble_id)
+	var w: float = canvas.size.x
+	var h: float = canvas.size.y
+	if lvl <= 0:
+		# Lona dobrada + estacas no terreno
+		canvas.draw_rect(Rect2(14.0, h - 12.0, w - 28.0, 6.0), Color(0.45, 0.30, 0.16, 0.7))
+		canvas.draw_rect(Rect2(w * 0.5 - 26.0, h - 20.0, 52.0, 10.0), Color(0.55, 0.40, 0.24, 0.65))
+	else:
+		# Tenda / estação armada no acampamento
+		var tent_col: Color = accent.lerp(Color(0.95, 0.82, 0.52), 0.35)
+		var pts := PackedVector2Array([
+			Vector2(w * 0.18, h - 6.0),
+			Vector2(w * 0.50, 6.0),
+			Vector2(w * 0.82, h - 6.0),
+		])
+		canvas.draw_colored_polygon(pts, tent_col.darkened(0.35))
+		canvas.draw_rect(Rect2(w * 0.45, 16.0, 14.0, h - 22.0), Color(0.18, 0.10, 0.05, 0.85))
+
+
+static func _get_station_title(rubble_id: StringName, fallback: String) -> String:
+	return String(CAMP_STATION_NAMES.get(rubble_id, fallback))
 
 
 func _refresh_rubble_spots() -> void:
@@ -258,20 +325,22 @@ func _refresh_rubble_spots() -> void:
 		var can_buy: bool = GameState.can_rebuild_rubble(rubble_id)
 
 		var visual: ColorRect = card["visual"] as ColorRect
+		var canvas: Control = card["canvas"] as Control
 		var state_lbl: Label = card["state_lbl"] as Label
 		var title_lbl: Label = card["title_lbl"] as Label
 		var btn: Button = card["btn"] as Button
 
-		title_lbl.text = "%s (Nv. %d)" % [String(def["title"]), lvl]
+		title_lbl.text = "%s (Nv. %d)" % [_get_station_title(rubble_id, String(def["title"])), lvl]
 		if lvl == 0:
-			visual.color = Color(0.32, 0.30, 0.28)
-			state_lbl.text = "🪨 [ ESCOMBROS DE PEDRA ]"
-			btn.text = "Reconstruir · 🪨 %s" % GameState.format_number(cost)
+			visual.color = Color(0.28, 0.19, 0.12)
+			state_lbl.text = "[ ACAMPAMENTO · LOTE VAZIO ]"
+			btn.text = "Montar · %s Rochas" % GameState.format_number(cost)
 		else:
-			visual.color = (def["color"] as Color).darkened(0.25)
-			state_lbl.text = "🏛️ [ RECONSTRUÍDO · Nv.%d ]" % lvl
-			btn.text = "Melhorar · 🪨 %s" % GameState.format_number(cost)
+			visual.color = (def["color"] as Color).darkened(0.45)
+			state_lbl.text = "[ ESTAÇÃO ATIVA · NV.%d ]" % lvl
+			btn.text = "Expandir · %s Rochas" % GameState.format_number(cost)
 		btn.disabled = not can_buy
+		canvas.queue_redraw()
 
 
 func _on_rubble_rebuilt(_rubble_id: StringName, _new_level: int) -> void:
@@ -291,20 +360,26 @@ func _on_danger_level_changed(_level: float) -> void:
 	_update_sky_and_ground()
 
 
+func _on_era_changed(_idx: int) -> void:
+	_update_sky_and_ground()
+
+
+func _on_layer_broken(_era_idx: int, _layer_idx: int, _depth: int) -> void:
+	_update_sky_and_ground()
+
+
 func _on_run_started(_run: int) -> void:
 	_refresh_all()
 
 
-## Textura do Dinossauro Principal: usa o sprite do Compsognato (DinoData) e,
-## se ele não existir, recai na versão 16×16 procedural em Pixel Art.
 func _get_hero_texture() -> Texture2D:
 	var data: DinoData = GameState.get_dino(&"compsognathus")
-	if data != null and data.sprite != null:
-		return data.sprite
+	var tex: Texture2D = AmberTheme.get_dino_sprite(&"compsognathus", data.sprite if data != null else null)
+	if tex != null:
+		return tex
 	return _create_pixel_dino_texture()
 
 
-## Cria a textura 16×16 em Pixel Art do Dinossauro Principal (fallback).
 static func _create_pixel_dino_texture() -> ImageTexture:
 	var img: Image = Image.create(16, 16, false, Image.FORMAT_RGBA8)
 	var body_col := Color(0.32, 0.82, 0.36, 1.0)

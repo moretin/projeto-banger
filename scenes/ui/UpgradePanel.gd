@@ -24,10 +24,14 @@ const DINO_CARD_SCENE: PackedScene = preload("res://scenes/ui/DinoCard.tscn")
 
 
 func _ready() -> void:
-	_tab_container.set_tab_title(0, "⛏️ Ferramentas")
-	_tab_container.set_tab_title(1, "🦖 Dinos")
-	_tab_container.set_tab_title(2, "🏭 Máquinas")
-	_tab_container.set_tab_title(3, "🛡️ Defesa")
+	_tab_container.set_tab_title(0, "Ferramentas")
+	_tab_container.set_tab_icon(0, AmberTheme.get_icon(&"tools"))
+	_tab_container.set_tab_title(1, "Dinos")
+	_tab_container.set_tab_icon(1, AmberTheme.get_icon(&"egg"))
+	_tab_container.set_tab_title(2, "Máquinas")
+	_tab_container.set_tab_icon(2, AmberTheme.get_icon(&"machines"))
+	_tab_container.set_tab_title(3, "Defesa")
+	_tab_container.set_tab_icon(3, AmberTheme.get_icon(&"shield"))
 
 	_btn_1x.pressed.connect(func() -> void: GameState.set_buy_multiplier(1))
 	_btn_10x.pressed.connect(func() -> void: GameState.set_buy_multiplier(10))

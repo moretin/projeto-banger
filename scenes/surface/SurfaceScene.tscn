@@ -23,7 +23,21 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.28, 0.3, 0.35, 1)
+color = Color(0.231373, 0.141176, 0.0784314, 1)
+
+[node name="HorizonGlow" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -760.0
+offset_bottom = -620.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.431373, 0.266667, 0.117647, 1)
 
 [node name="SurfaceGround" type="ColorRect" parent="."]
 unique_name_in_owner = true
@@ -36,9 +50,10 @@ offset_top = -620.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-color = Color(0.35, 0.33, 0.28, 1)
+color = Color(0.321569, 0.203922, 0.101961, 1)
 
 [node name="SubSoilStrip" type="ColorRect" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -48,7 +63,7 @@ offset_top = -590.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-color = Color(0.24, 0.21, 0.18, 1)
+color = Color(0.23, 0.15, 0.09, 1)
 
 [node name="MainMargin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -66,10 +81,26 @@ theme_override_constants/margin_bottom = 18
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="HeaderLabel" type="Label" parent="MainMargin/VBox"]
+[node name="HeaderHBox" type="HBoxContainer" parent="MainMargin/VBox"]
 layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="HeaderIcon" type="TextureRect" parent="MainMargin/VBox/HeaderHBox"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HeaderLabel" type="Label" parent="MainMargin/VBox/HeaderHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.97, 0.9, 0.74, 1)
 theme_override_font_sizes/font_size = 22
-text = "🏕️ SUPERFÍCIE — Acampamento Primordial"
+text = "SUPERFÍCIE — Acampamento de Campo"
 horizontal_alignment = 1
 
 [node name="CenterStage" type="Control" parent="MainMargin/VBox"]
@@ -100,16 +131,16 @@ mouse_filter = 2
 
 [node name="OrangeRockHpBar" type="ProgressBar" parent="MainMargin/VBox/CenterStage/OrangeRockBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 28)
+custom_minimum_size = Vector2(400, 28)
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -210.0
+offset_left = -220.0
 offset_top = -36.0
-offset_right = 210.0
+offset_right = 220.0
 offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 0
@@ -127,7 +158,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_font_sizes/font_size = 14
-text = "🟠 Rocha Laranja: 10 / 10 (Clique para quebrar!)"
+text = "Ovo de Âmbar: 10 / 10 (Clique para chocar!)"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -144,6 +175,7 @@ mouse_filter = 2
 
 [node name="HeroDinoSprite" type="TextureRect" parent="MainMargin/VBox/CenterStage/HeroDinoStage"]
 unique_name_in_owner = true
+texture_filter = 1
 custom_minimum_size = Vector2(96, 96)
 layout_mode = 0
 offset_left = 420.0
@@ -164,16 +196,30 @@ anchor_bottom = 1.0
 offset_top = -42.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_colors/font_color = Color(0.95, 0.92, 0.72, 1)
+theme_override_colors/font_color = Color(0.97, 0.91, 0.72, 1)
 theme_override_font_sizes/font_size = 16
-text = "🦖 Seu Dinossauro Principal guarda o acampamento! Use Rochas (🪨) para reconstruir os escombros abaixo."
+text = "Seu Compsognato guarda o acampamento! Use Rochas da escavação para erguer as estações abaixo."
 horizontal_alignment = 1
 
-[node name="RubbleSectionLabel" type="Label" parent="MainMargin/VBox"]
+[node name="RubbleHeaderHBox" type="HBoxContainer" parent="MainMargin/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.84, 0.62, 1)
+theme_override_constants/separation = 8
+
+[node name="RubbleSectionIcon" type="TextureRect" parent="MainMargin/VBox/RubbleHeaderHBox"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="RubbleSectionLabel" type="Label" parent="MainMargin/VBox/RubbleHeaderHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.85, 0.62, 1)
 theme_override_font_sizes/font_size = 16
-text = "🪨 Escombros de Pedra da Superfície (Reconstrua usando Rochas da Escavação):"
+text = "Acampamento de Campo (Expanda as tendas usando Rochas da Escavação):"
 
 [node name="RubbleRow" type="HBoxContainer" parent="MainMargin/VBox"]
 unique_name_in_owner = true
@@ -186,9 +232,10 @@ alignment = 1
 
 [node name="ToDigSiteButton" type="Button" parent="MainMargin/VBox/BottomNavHBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 48)
+texture_filter = 1
+custom_minimum_size = Vector2(460, 48)
 layout_mode = 2
 focus_mode = 0
 theme_override_colors/font_color = Color(1, 0.88, 0.45, 1)
 theme_override_font_sizes/font_size = 18
-text = "⛏️ ▼ ESCAVAÇÃO ▼"
+text = "DESCER À JAZIDA"

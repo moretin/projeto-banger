@@ -25,8 +25,6 @@ signal fragments_changed(dino_id: StringName, new_amount: int)
 signal stats_recalculated()
 ## Emissor: GameState. Recursos estruturais provenientes de uma camada da Terra foram extraídos ao quebrá-la.
 signal layer_resources_extracted(era_index: int, bones_bonus: float, minerals_bonus: float)
-## Emissor: GameState. A primeira camada da Terra (Crosta) resistiu à quebra por estar nas primeiras runs.
-signal layer_break_blocked_by_crust(era_index: int, required_run: int)
 ## Emissor: GameState. Quantidade X do fóssil específico de um dinossauro foi completada na escavação.
 signal dino_fossil_completed(dino_id: StringName, current_fragments: int, required_fragments: int)
 #endregion
@@ -43,8 +41,12 @@ signal buy_multiplier_changed(multiplier: int)
 signal notification_requested(text: String, icon: Texture2D)
 ## Emissor: HUD. Abre o modal da árvore de Âmbar / Prestígio.
 signal prestige_modal_requested()
+## Emissor: MeteorOverlay. Informa se o modal da árvore de Âmbar / Prestígio está aberto.
+signal prestige_modal_visibility_changed(is_open: bool)
 ## Emissor: HUD. Abre o modal de Save / Configurações.
 signal settings_modal_requested()
+## Emissor: HUD ou Laudo. Abre a galeria do Museu Paleontológico.
+signal museum_modal_requested()
 #endregion
 
 
@@ -75,6 +77,14 @@ signal orange_rock_broken()
 signal rubble_rebuild_requested(rubble_id: StringName)
 ## Emissor: GameState. Escombro de pedra reconstruído/melhorado.
 signal rubble_rebuilt(rubble_id: StringName, new_level: int)
+## Emissor: Superfície ou Escavação. Jogador escovou o sedimento da jazida por arrasto.
+signal brush_stroke(world_position: Vector2)
+## Emissor: GameState. Fóssil encontrado e catalogado no Museu com raridade (0=Comum..3=Lendário).
+signal fossil_found(dino_id: StringName, rarity: int)
+## Emissor: GameState. Sismógrafo de Golpe Preciso resolvido (&"perfect", &"good", &"miss").
+signal precise_strike_resolved(result: StringName, bonus_damage: float)
+## Emissor: GameState. Jogador quebrou um veio especial na rocha.
+signal vein_cracked(bonus_bones: float, bonus_minerals: float, dino_id: StringName)
 #endregion
 
 
@@ -102,6 +112,8 @@ signal meteor_impact_started()
 signal prestige_completed(amber_gained: float, run_number: int)
 ## Emissor: GameState. Uma nova run começou.
 signal run_started(run_number: int)
+## Emissor: GameState. Projeto Arca concluído e ativado contra o meteoro.
+signal ark_victory_achieved(run_number: int, total_amber_earned: float)
 #endregion
 
 

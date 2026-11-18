@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/Main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="2_hud"]
@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/SaveModals.tscn" id="6_smodals"]
 [ext_resource type="PackedScene" path="res://scenes/dig_site/VfxAudioManager.tscn" id="7_vfx"]
 [ext_resource type="PackedScene" path="res://scenes/surface/SurfaceScene.tscn" id="8_surface"]
+[ext_resource type="Theme" path="res://scenes/ui/ui_theme.tres" id="9_theme"]
+[ext_resource type="PackedScene" path="res://scenes/ui/FossilMuseum.tscn" id="10_museum"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -16,6 +18,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("9_theme")
 script = ExtResource("1_main")
 
 [node name="RootVBox" type="VBoxContainer" parent="."]
@@ -66,8 +69,14 @@ layout_mode = 2
 
 [node name="VfxAudioManager" parent="." instance=ExtResource("7_vfx")]
 
+[node name="FossilMuseum" parent="." instance=ExtResource("10_museum")]
+z_index = 20
+layout_mode = 1
+
 [node name="MeteorOverlay" parent="." instance=ExtResource("5_meteor")]
+z_index = 22
 layout_mode = 1
 
 [node name="SaveModals" parent="." instance=ExtResource("6_smodals")]
+z_index = 24
 layout_mode = 1

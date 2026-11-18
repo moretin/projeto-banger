@@ -54,9 +54,10 @@ autowrap_mode = 2
 
 [node name="BuyButton" type="Button" parent="Margin/HBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(135, 48)
+texture_filter = 1
+custom_minimum_size = Vector2(138, 48)
 layout_mode = 2
 size_flags_vertical = 4
 focus_mode = 2
 theme_override_font_sizes/font_size = 15
-text = "🦴 10"
+text = "10"
