@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scenes/ui/UpgradePanel.gd" id="1_upanel"]
 
 [node name="UpgradePanel" type="PanelContainer"]
-custom_minimum_size = Vector2(540, 0)
+custom_minimum_size = Vector2(560, 0)
 size_flags_vertical = 3
 script = ExtResource("1_upanel")
 
@@ -23,14 +23,15 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="HeaderLabel" type="Label" parent="Margin/VBox/MultiplierBar"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
-text = "Compra Rápida:"
+text = "UPGRADES"
 
 [node name="Btn1x" type="Button" parent="Margin/VBox/MultiplierBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(58, 32)
+custom_minimum_size = Vector2(54, 34)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
@@ -39,7 +40,7 @@ text = "1x"
 
 [node name="Btn10x" type="Button" parent="Margin/VBox/MultiplierBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(58, 32)
+custom_minimum_size = Vector2(54, 34)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
@@ -47,7 +48,7 @@ text = "10x"
 
 [node name="Btn100x" type="Button" parent="Margin/VBox/MultiplierBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(58, 32)
+custom_minimum_size = Vector2(58, 34)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
@@ -55,11 +56,19 @@ text = "100x"
 
 [node name="BtnMax" type="Button" parent="Margin/VBox/MultiplierBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(68, 32)
+custom_minimum_size = Vector2(64, 34)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
 text = "Máx"
+
+[node name="BtnClose" type="Button" parent="Margin/VBox/MultiplierBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(42, 34)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "✕"
 
 [node name="TabContainer" type="TabContainer" parent="Margin/VBox"]
 unique_name_in_owner = true

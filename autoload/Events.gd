@@ -55,6 +55,10 @@ signal era_changed(era_index: int)
 signal loot_dropped(resource_id: StringName, amount: float, world_position: Vector2)
 ## Emissor: GameState. Um fragmento de fóssil caiu.
 signal fragment_dropped(dino_id: StringName, world_position: Vector2)
+## Emissor: DigSite. Um veio especial apareceu na rocha.
+signal vein_spawned(world_position: Vector2)
+## Emissor: GameState. Jogador quebrou um veio especial na rocha.
+signal vein_cracked(bonus_bones: float, bonus_minerals: float, dino_id: StringName)
 #endregion
 
 
@@ -82,6 +86,8 @@ signal meteor_impact_started()
 signal prestige_completed(amber_gained: float, run_number: int)
 ## Emissor: GameState. Uma nova run começou.
 signal run_started(run_number: int)
+## Emissor: GameState. Projeto Arca concluído e ativado contra o meteoro.
+signal ark_victory_achieved(run_number: int, total_amber_earned: float)
 #endregion
 
 
@@ -90,6 +96,8 @@ signal run_started(run_number: int)
 signal color_progress_changed(progress: float)
 ## Emissor: GameState. 0.0 = céu calmo, 1.0 = céu vermelho (meteoro iminente).
 signal danger_level_changed(level: float)
+## Emissor: HUD. Estado de mudo do áudio foi alternado.
+signal audio_mute_toggled(muted: bool)
 #endregion
 
 

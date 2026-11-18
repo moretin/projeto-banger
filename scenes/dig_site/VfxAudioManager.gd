@@ -16,9 +16,11 @@ var _audio_player: AudioStreamPlayer
 var _playback: AudioStreamGeneratorPlayback
 var _active_tones: Array[Dictionary] = []
 var _sfx_cooldown: float = 0.0
+var _muted: bool = false
 
 
 func _ready() -> void:
+	_muted = UITheme.audio_muted
 	_setup_particle_pool()
 	_setup_procedural_audio()
 
@@ -27,12 +29,14 @@ func _ready() -> void:
 	Events.upgrade_purchased.connect(_on_upgrade_purchased)
 	Events.dino_unlocked.connect(_on_dino_unlocked)
 	Events.meteor_impact_started.connect(_on_meteor_impact_started)
+	Events.audio_mute_toggled.connect(func(m: bool) -> void: _muted = m)
 
 
 func _exit_tree() -> void:
+	_playback = null
 	if _audio_player != null:
 		_audio_player.stop()
-	_playback = null
+		_audio_player.stream = null
 
 
 func _process(delta: float) -> void:
@@ -75,6 +79,8 @@ func _emit_burst(world_pos: Vector2, color: Color, scale_mult: float = 1.0) -> v
 
 
 func _setup_procedural_audio() -> void:
+	if AudioServer.get_driver_name() == "Dummy":
+		return
 	_audio_player = AudioStreamPlayer.new()
 	var stream := AudioStreamGenerator.new()
 	stream.mix_rate = SAMPLE_RATE
@@ -87,7 +93,7 @@ func _setup_procedural_audio() -> void:
 
 
 func _play_tone(freq_start: float, freq_end: float, duration: float, amp: float = 0.22) -> void:
-	if _active_tones.size() >= 6:
+	if _muted or _active_tones.size() >= 6:
 		return
 	_active_tones.append({
 		"f0": freq_start,
@@ -133,9 +139,17 @@ func _fill_audio_buffer() -> void:
 		_playback.push_frame(Vector2(sample, sample))
 
 
+func _default_rock_pos() -> Vector2:
+	var vp: Rect2 = get_viewport_rect()
+	if vp.size.x <= 10.0:
+		return Vector2(1200.0, 680.0)
+	return Vector2(vp.size.x * 0.76, vp.size.y - 160.0)
+
+
 func _on_dig_hit(_damage: float, world_pos: Vector2, is_crit: bool) -> void:
 	var col: Color = Color(1.0, 0.85, 0.35) if is_crit else Color(0.88, 0.82, 0.72)
-	_emit_burst(world_pos, col, 1.35 if is_crit else 1.0)
+	var pos: Vector2 = world_pos if world_pos != Vector2.ZERO else _default_rock_pos()
+	_emit_burst(pos, col, 1.35 if is_crit else 1.0)
 	if _sfx_cooldown <= 0.0:
 		_sfx_cooldown = 0.045
 		var pitch: float = randf_range(240.0, 320.0) if not is_crit else 440.0
@@ -143,7 +157,7 @@ func _on_dig_hit(_damage: float, world_pos: Vector2, is_crit: bool) -> void:
 
 
 func _on_layer_broken(_era_idx: int, _layer_idx: int, _depth: int) -> void:
-	_emit_burst(Vector2(480.0, 420.0), Color(0.95, 0.72, 0.38), 2.2)
+	_emit_burst(_default_rock_pos(), Color(0.95, 0.72, 0.38), 2.2)
 	_play_tone(140.0, 55.0, 0.22, 0.30)
 
 
@@ -152,7 +166,9 @@ func _on_upgrade_purchased(_upg_id: StringName, _new_level: int) -> void:
 
 
 func _on_dino_unlocked(_dino_id: StringName) -> void:
-	_emit_burst(Vector2(480.0, 300.0), Color(0.55, 0.95, 0.45), 2.5)
+	var vp: Rect2 = get_viewport_rect()
+	var hatchery_pos := Vector2(vp.size.x * 0.28, vp.size.y - 110.0) if vp.size.x > 10.0 else Vector2(400.0, 600.0)
+	_emit_burst(hatchery_pos, Color(0.55, 0.95, 0.45), 2.5)
 	_play_tone(330.0, 660.0, 0.25, 0.28)
 
 

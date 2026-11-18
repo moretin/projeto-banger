@@ -3,15 +3,15 @@
 [ext_resource type="Script" path="res://scenes/ui/DinoCard.gd" id="1_dcard"]
 
 [node name="DinoCard" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 108)
+custom_minimum_size = Vector2(0, 112)
 size_flags_horizontal = 3
 script = ExtResource("1_dcard")
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 2
-theme_override_constants/margin_left = 12
+theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 12
+theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 8
 
 [node name="HBox" type="HBoxContainer" parent="Margin"]
@@ -20,9 +20,17 @@ theme_override_constants/separation = 10
 
 [node name="ColorPip" type="ColorRect" parent="Margin/HBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(8, 0)
+custom_minimum_size = Vector2(6, 0)
 layout_mode = 2
 color = Color(0.55, 0.82, 0.35, 1)
+
+[node name="DinoIcon" type="TextureRect" parent="Margin/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(68, 56)
+layout_mode = 2
+size_flags_vertical = 4
+expand_mode = 1
+stretch_mode = 5
 
 [node name="InfoVBox" type="VBoxContainer" parent="Margin/HBox"]
 layout_mode = 2
@@ -84,9 +92,10 @@ vertical_alignment = 1
 
 [node name="AssembleButton" type="Button" parent="Margin/HBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(140, 56)
+custom_minimum_size = Vector2(138, 56)
 layout_mode = 2
 size_flags_vertical = 4
 focus_mode = 0
+mouse_default_cursor_shape = 2
 theme_override_font_sizes/font_size = 14
 text = "Reviver"

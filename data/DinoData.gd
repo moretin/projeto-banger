@@ -68,8 +68,8 @@ enum Role {
 @export_group("Marcos")
 ## Quantidades que disparam bônus.
 @export var milestones: Array[int] = [25, 50, 100, 200, 400]
-## Multiplicador aplicado a CADA marco atingido (2.0 = dobra).
-@export var milestone_multiplier: float = 2.0
+## Multiplicador aplicado a CADA marco atingido (1.5 = +50%).
+@export var milestone_multiplier: float = 1.5
 
 
 ## Custo em ossos da próxima unidade, tendo `owned` unidades.
@@ -78,6 +78,38 @@ func get_unit_cost(owned: int) -> float:
 	if owned <= 0:
 		return assembly_cost
 	return unit_base_cost * pow(unit_cost_growth, float(owned - 1))
+
+
+## Custo em ossos de comprar `amount` unidades a partir de `owned`.
+## Se `owned == 0`, somente a 1ª unidade (reviver) é considerada.
+func get_bulk_unit_cost(owned: int, amount: int) -> float:
+	if amount <= 0:
+		return 0.0
+	if owned <= 0:
+		return assembly_cost
+	var first: float = get_unit_cost(owned)
+	if is_equal_approx(unit_cost_growth, 1.0):
+		return first * float(amount)
+	return first * (pow(unit_cost_growth, float(amount)) - 1.0) / (unit_cost_growth - 1.0)
+
+
+## Quantas unidades cabem em `budget` ossos a partir de `owned`.
+func get_max_affordable_units(owned: int, budget: float) -> int:
+	if owned <= 0:
+		return 1 if budget >= assembly_cost else 0
+	var first: float = get_unit_cost(owned)
+	if budget < first or first <= 0.0:
+		return 0
+	var n: int
+	if is_equal_approx(unit_cost_growth, 1.0):
+		n = floori(budget / first)
+	else:
+		var ratio: float = budget * (unit_cost_growth - 1.0) / first + 1.0
+		n = floori(log(ratio) / log(unit_cost_growth))
+	n = mini(n, 10000)
+	while n > 0 and get_bulk_unit_cost(owned, n) > budget:
+		n -= 1
+	return n
 
 
 ## Dano por segundo de UMA unidade, sem multiplicadores externos.

@@ -2,119 +2,245 @@
 
 [ext_resource type="Script" path="res://scenes/ui/HUD.gd" id="1_hud"]
 
-[node name="HUD" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 74)
-size_flags_horizontal = 3
+[node name="HUD" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("1_hud")
 
-[node name="Margin" type="MarginContainer" parent="."]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 8
+[node name="TopCenterVBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -380.0
+offset_top = 10.0
+offset_right = 380.0
+offset_bottom = 82.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+alignment = 1
 
-[node name="VBox" type="VBoxContainer" parent="Margin"]
+[node name="ResRow" type="HBoxContainer" parent="TopCenterVBox"]
 layout_mode = 2
-theme_override_constants/separation = 4
+mouse_filter = 2
+theme_override_constants/separation = 22
+alignment = 1
 
-[node name="TopRow" type="HBoxContainer" parent="Margin/VBox"]
-layout_mode = 2
-theme_override_constants/separation = 24
-
-[node name="BonesLabel" type="Label" parent="Margin/VBox/TopRow"]
+[node name="BonesLabel" type="Label" parent="TopCenterVBox/ResRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.84, 1)
-theme_override_font_sizes/font_size = 18
-text = "🦴 0  (+0/s)"
+text = "0 ossos"
 
-[node name="MineralsLabel" type="Label" parent="Margin/VBox/TopRow"]
+[node name="MineralsLabel" type="Label" parent="TopCenterVBox/ResRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.85, 0.98, 1)
-theme_override_font_sizes/font_size = 18
-text = "💎 0"
+text = "0 min"
 
-[node name="DnaLabel" type="Label" parent="Margin/VBox/TopRow"]
+[node name="DnaLabel" type="Label" parent="TopCenterVBox/ResRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.65, 0.95, 0.65, 1)
-theme_override_font_sizes/font_size = 18
-text = "🧬 0  (+0/s)"
+text = "0 dna"
 
-[node name="AmberLabel" type="Label" parent="Margin/VBox/TopRow"]
+[node name="AmberLabel" type="Label" parent="TopCenterVBox/ResRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.72, 0.25, 1)
-theme_override_font_sizes/font_size = 18
-text = "🟠 0"
+text = "0 âmbar"
 
-[node name="Spacer" type="Control" parent="Margin/VBox/TopRow"]
+[node name="MetaRow" type="HBoxContainer" parent="TopCenterVBox"]
 layout_mode = 2
-size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 14
+alignment = 1
 
-[node name="MeteorBar" type="ProgressBar" parent="Margin/VBox/TopRow"]
+[node name="PrestigeButton" type="Button" parent="TopCenterVBox/MetaRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(240, 26)
+custom_minimum_size = Vector2(92, 26)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "ARCA?"
+
+[node name="EraLabel" type="Label" parent="TopCenterVBox/MetaRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "run #1 · holoceno"
+
+[node name="MeteorBar" type="ProgressBar" parent="TopCenterVBox/MetaRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 12)
 layout_mode = 2
 size_flags_vertical = 4
 max_value = 900.0
 value = 900.0
 show_percentage = false
 
-[node name="MeteorLabel" type="Label" parent="Margin/VBox/TopRow/MeteorBar"]
+[node name="MeteorLabel" type="Label" parent="TopCenterVBox/MetaRow"]
 unique_name_in_owner = true
+layout_mode = 2
+text = "15:00 (+0)"
+
+[node name="TopRightControls" type="HBoxContainer" parent="."]
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 1
+anchor_left = 1.0
 anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_font_sizes/font_size = 13
-text = "☄️ Impacto em 15:00"
-horizontal_alignment = 1
-vertical_alignment = 1
+offset_left = -180.0
+offset_top = 12.0
+offset_right = -16.0
+offset_bottom = 46.0
+grow_horizontal = 0
+mouse_filter = 2
+theme_override_constants/separation = 6
+alignment = 2
 
-[node name="PrestigeButton" type="Button" parent="Margin/VBox/TopRow"]
+[node name="MuteButton" type="Button" parent="TopRightControls"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(140, 32)
+custom_minimum_size = Vector2(34, 30)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 14
-text = "🟠 Âmbar / Arca"
+mouse_default_cursor_shape = 2
+tooltip_text = "Silenciar / Ativar áudio"
+text = "♪"
 
-[node name="SettingsButton" type="Button" parent="Margin/VBox/TopRow"]
+[node name="SaveQuickButton" type="Button" parent="TopRightControls"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(95, 32)
+custom_minimum_size = Vector2(34, 30)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 14
-text = "⚙️ Save"
+mouse_default_cursor_shape = 2
+tooltip_text = "Salvar agora"
+text = "💾"
 
-[node name="BottomRow" type="HBoxContainer" parent="Margin/VBox"]
-layout_mode = 2
-theme_override_constants/separation = 20
-
-[node name="EraLabel" type="Label" parent="Margin/VBox/BottomRow"]
+[node name="SettingsButton" type="Button" parent="TopRightControls"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 30)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.82, 0.78, 0.72, 1)
-theme_override_font_sizes/font_size = 14
-text = "⛏️ Holoceno · Profundidade: 0m · Run #1"
+focus_mode = 0
+mouse_default_cursor_shape = 2
+tooltip_text = "Save / Exportar / Configurações"
+text = "⚙"
 
-[node name="DpsLabel" type="Label" parent="Margin/VBox/BottomRow"]
+[node name="MenuButton" type="Button" parent="TopRightControls"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 30)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.82, 0.88, 0.78, 1)
-theme_override_font_sizes/font_size = 14
-text = "⚡ Clique: 1 · DPS: 0/s · 🛡️ Escudo: 0%"
+focus_mode = 0
+mouse_default_cursor_shape = 2
+tooltip_text = "Tela Inicial"
+text = "⌂"
 
-[node name="ToastLabel" type="Label" parent="Margin/VBox/BottomRow"]
+[node name="TelemetryPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(236, 0)
+layout_mode = 1
+offset_left = 18.0
+offset_top = 74.0
+offset_right = 254.0
+offset_bottom = 228.0
+mouse_filter = 2
+
+[node name="VBox" type="VBoxContainer" parent="TelemetryPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+
+[node name="DmgHeader" type="HBoxContainer" parent="TelemetryPanel/VBox"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="DmgTitle" type="Label" parent="TelemetryPanel/VBox/DmgHeader"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(1, 0.88, 0.38, 1)
-theme_override_font_sizes/font_size = 14
-text = ""
+text = "Dano"
+
+[node name="TotalDpsLabel" type="Label" parent="TelemetryPanel/VBox/DmgHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Σ 0/s"
 horizontal_alignment = 2
+
+[node name="DinosDpsBar" type="ProgressBar" parent="TelemetryPanel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 7)
+layout_mode = 2
+mouse_filter = 2
+max_value = 1.0
+value = 0.0
+show_percentage = false
+
+[node name="MachinesDpsBar" type="ProgressBar" parent="TelemetryPanel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 7)
+layout_mode = 2
+mouse_filter = 2
+max_value = 1.0
+value = 0.0
+show_percentage = false
+
+[node name="ClickInfoLabel" type="Label" parent="TelemetryPanel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "clique: 1 · crit: 5%"
+
+[node name="Divider" type="ColorRect" parent="TelemetryPanel/VBox"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.95, 0.95, 0.95, 1)
+
+[node name="ColHeader" type="HBoxContainer" parent="TelemetryPanel/VBox"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ColTitle" type="Label" parent="TelemetryPanel/VBox/ColHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Coleta"
+
+[node name="TotalBpsLabel" type="Label" parent="TelemetryPanel/VBox/ColHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Σ 0/s"
+horizontal_alignment = 2
+
+[node name="BonesRateBar" type="ProgressBar" parent="TelemetryPanel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 7)
+layout_mode = 2
+mouse_filter = 2
+max_value = 1.0
+value = 0.0
+show_percentage = false
+
+[node name="DnaShieldLabel" type="Label" parent="TelemetryPanel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "dna: +0/s · escudo: 0%"
+
+[node name="ToastBadge" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = -126.0
+offset_right = 560.0
+offset_bottom = -82.0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="ToastLabel" type="Label" parent="ToastBadge"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+vertical_alignment = 1

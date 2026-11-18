@@ -1,9 +1,7 @@
 class_name UpgradeCard
 extends PanelContainer
-## Card individual de um upgrade dentro das abas do painel lateral.
-##
-## Totalmente desacoplado: lê dados de UpgradeData/GameState e emite
-## Events.upgrade_purchase_requested ao clicar no botão.
+## Card individual de um upgrade dentro das abas do painel lateral,
+## estilizado no padrão "Click the Button".
 
 var upgrade_id: StringName = &""
 
@@ -20,6 +18,12 @@ func setup(data: UpgradeData) -> void:
 
 
 func _ready() -> void:
+	UITheme.style_badge(self, UITheme.COLOR_CARD_BG)
+	UITheme.style_label(_title_label, 16, Color.WHITE, 5)
+	UITheme.style_label(_level_label, 14, Color("#FFD54F"), 4)
+	UITheme.style_label(_desc_label, 13, Color("#CFD8DC"), 4)
+	UITheme.style_button(_buy_button, UITheme.COLOR_BLUE_TOP, 14)
+
 	_buy_button.pressed.connect(_on_buy_pressed)
 	Events.resource_changed.connect(_on_state_changed_res)
 	Events.upgrade_purchased.connect(_on_upgrade_purchased)
@@ -68,7 +72,7 @@ func refresh() -> void:
 
 	_buy_button.text = "%s%s %s" % [amount_prefix, res_icon, GameState.format_number(cost)]
 	_buy_button.disabled = not can_buy
-	modulate = Color.WHITE if can_buy else Color(0.75, 0.75, 0.75, 0.92)
+	modulate = Color.WHITE if can_buy else Color(0.82, 0.82, 0.85, 0.95)
 
 
 static func _get_resource_icon(res_id: StringName) -> String:

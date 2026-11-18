@@ -32,8 +32,11 @@ func _ready() -> void:
 	_autosave_timer.autostart = true
 	_autosave_timer.timeout.connect(_on_autosave_timeout)
 	add_child(_autosave_timer)
-	# Salva logo após um prestígio (momento importante).
-	Events.prestige_completed.connect(func(_amber: float, _run: int) -> void: save_game())
+	# Salva logo após um prestígio (momento importante), respeitando flag de testes.
+	Events.prestige_completed.connect(func(_amber: float, _run: int) -> void:
+		if autosave_enabled:
+			save_game()
+	)
 	# Deferred: dá tempo da cena principal entrar na árvore e conectar em Events.game_loaded.
 	load_game.call_deferred()
 
@@ -41,7 +44,8 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	match what:
 		NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT:
-			save_game()
+			if autosave_enabled:
+				save_game()
 
 
 #region Salvar
@@ -187,6 +191,7 @@ func import_save_string(encoded: String) -> bool:
 	payload.erase("saved_at")  # não conceder progresso offline em saves importados
 	if not _apply_payload(payload):
 		return false
-	save_game()
+	if autosave_enabled:
+		save_game()
 	return true
 #endregion

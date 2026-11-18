@@ -1,19 +1,23 @@
 class_name UpgradePanel
 extends PanelContainer
-## Painel lateral direito de upgrades com seletor de multiplicador (1x, 10x, 100x, Máx)
-## e 4 abas:
+## Gaveta de Upgrades estilo "Click the Button" (acionada pelo botão "Upgrades" no canto inferior direito).
+## Possui seletor de multiplicador (1x, 10x, 100x, Máx), botão de fechar e 4 abas:
 ##   0: ⛏️ Ferramentas
 ##   1: 🦖 Dinos (Montagem de Espécies + Upgrades de Dinos)
 ##   2: 🏭 Máquinas
 ##   3: 🛡️ Defesa
 
+signal close_requested
+
 const UPGRADE_CARD_SCENE: PackedScene = preload("res://scenes/ui/UpgradeCard.tscn")
 const DINO_CARD_SCENE: PackedScene = preload("res://scenes/ui/DinoCard.tscn")
 
+@onready var _header_label: Label = %HeaderLabel
 @onready var _btn_1x: Button = %Btn1x
 @onready var _btn_10x: Button = %Btn10x
 @onready var _btn_100x: Button = %Btn100x
 @onready var _btn_max: Button = %BtnMax
+@onready var _btn_close: Button = %BtnClose
 @onready var _tab_container: TabContainer = %TabContainer
 
 @onready var _tools_list: VBoxContainer = %ToolsList
@@ -24,6 +28,17 @@ const DINO_CARD_SCENE: PackedScene = preload("res://scenes/ui/DinoCard.tscn")
 
 
 func _ready() -> void:
+	UITheme.style_badge(self, UITheme.COLOR_PANEL_BG)
+	UITheme.style_label(_header_label, 18, Color("#FFD54F"), 6)
+	for b: Button in [_btn_1x, _btn_10x, _btn_100x, _btn_max]:
+		UITheme.style_button(b, UITheme.COLOR_BLUE_TOP, 14)
+	if _btn_close != null:
+		UITheme.style_button(_btn_close, UITheme.COLOR_RED_BTN, 15)
+		_btn_close.pressed.connect(func() -> void:
+			visible = false
+			close_requested.emit()
+		)
+
 	_tab_container.set_tab_title(0, "⛏️ Ferramentas")
 	_tab_container.set_tab_title(1, "🦖 Dinos")
 	_tab_container.set_tab_title(2, "🏭 Máquinas")

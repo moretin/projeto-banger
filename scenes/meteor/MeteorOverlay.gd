@@ -18,11 +18,17 @@ const UPGRADE_CARD_SCENE: PackedScene = preload("res://scenes/ui/UpgradeCard.tsc
 @onready var _close_button: Button = %CloseButton
 @onready var _amber_upgrades_list: VBoxContainer = %AmberUpgradesList
 
+var _ark_status_label: Label
+var _ark_button: Button
+
 
 func _ready() -> void:
 	_modal_backdrop.visible = false
+	_sky_canvas.visible = false
 	_impact_flash.color = Color(1.0, 0.95, 0.85, 0.0)
-	_sky_canvas.draw.connect(_on_sky_canvas_draw)
+	_setup_ark_section()
+	_apply_gnorp_styles()
+
 	_early_impact_button.pressed.connect(_on_early_impact_pressed)
 	_close_button.pressed.connect(func() -> void: _modal_backdrop.visible = false)
 
@@ -31,10 +37,40 @@ func _ready() -> void:
 	Events.prestige_modal_requested.connect(open_prestige_modal)
 	Events.resource_changed.connect(_on_resource_changed)
 	Events.upgrade_purchased.connect(_on_upgrade_purchased)
+	Events.ark_victory_achieved.connect(func(_r: int, _a: float) -> void: _refresh_modal())
 	Events.game_loaded.connect(_refresh_modal)
 
 	_populate_amber_upgrades()
 	_refresh_modal()
+
+
+func _setup_ark_section() -> void:
+	var vbox: Node = _early_impact_button.get_parent()
+	if vbox == null:
+		return
+	var idx: int = _early_impact_button.get_index()
+	_ark_status_label = Label.new()
+	_ark_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(_ark_status_label)
+	vbox.move_child(_ark_status_label, idx + 1)
+
+	_ark_button = Button.new()
+	_ark_button.custom_minimum_size = Vector2(0, 40)
+	_ark_button.focus_mode = Control.FOCUS_NONE
+	_ark_button.pressed.connect(_on_ark_victory_pressed)
+	vbox.add_child(_ark_button)
+	vbox.move_child(_ark_button, idx + 2)
+
+
+func _apply_gnorp_styles() -> void:
+	UITheme.style_gnorp_label(_amber_balance_label, 17, UITheme.G_AMBER)
+	UITheme.style_gnorp_label(_run_summary_label, 14, UITheme.G_DIM)
+	UITheme.style_gnorp_button(_early_impact_button, 15, UITheme.G_WARN)
+	UITheme.style_gnorp_button(_close_button, 14)
+	if _ark_status_label != null:
+		UITheme.style_gnorp_label(_ark_status_label, 14, UITheme.G_FG)
+	if _ark_button != null:
+		UITheme.style_gnorp_button(_ark_button, 15, UITheme.G_GOOD)
 
 
 func open_prestige_modal() -> void:
@@ -67,6 +103,36 @@ func _refresh_modal() -> void:
 	]
 	_early_impact_button.text = "☄️ Antecipar Impacto do Meteoro (+%s 🟠)" % GameState.format_number(reward)
 	_early_impact_button.disabled = GameState.is_impacting
+
+	if _ark_status_label != null and _ark_button != null:
+		var prog: Dictionary = GameState.get_ark_progress()
+		var ark_lvl: int = int(prog["ark_level"])
+		var ark_req: int = int(prog["ark_required"])
+		var sh_pct: int = roundi(float(prog["shield_ratio"]) * 100.0)
+		var sh_req: int = roundi(float(prog["shield_required"]) * 100.0)
+		var era_ok: bool = int(prog["era_index"]) >= int(prog["era_required"])
+		var era_txt: String = "OK" if era_ok else "chegue ao Triássico"
+		_ark_status_label.text = "Projeto Arca (Final): Nv %d/%d · Escudo %d%%/%d%% · Era: %s" % [
+			ark_lvl, ark_req, sh_pct, sh_req, era_txt
+		]
+		var can_win: bool = bool(prog["ready"])
+		_ark_button.disabled = not can_win
+		if bool(prog["completed"]):
+			_ark_button.text = "✦ ARCA ATIVADA (Modo Infinito — Reativar Defesa)"
+		elif can_win:
+			_ark_button.text = "✦ ATIVAR PROJETO ARCA (VITÓRIA · +25 Âmbar!)"
+		else:
+			_ark_button.text = "✦ Projeto Arca Bloqueado (complete os requisitos)"
+
+
+func _on_ark_victory_pressed() -> void:
+	if not GameState.activate_ark_victory():
+		return
+	var tw: Tween = create_tween()
+	_impact_flash.color = Color(0.75, 1.0, 0.80, 0.0)
+	tw.tween_property(_impact_flash, "color:a", 0.75, 0.25)
+	tw.tween_property(_impact_flash, "color:a", 0.0, 0.65)
+	_refresh_modal()
 
 
 func _on_early_impact_pressed() -> void:

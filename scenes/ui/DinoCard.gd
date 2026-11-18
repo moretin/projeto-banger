@@ -1,16 +1,12 @@
 class_name DinoCard
 extends PanelContainer
-## Card de uma espécie na aba 🦖 Dinos.
-##
-## Exibe:
-##   • Nome, papel, cor de destaque e quantidade de unidades vivas.
-##   • Progresso de fragmentos (🧩 X / Y) para reviver o 1º esqueleto.
-##   • DPS atual da espécie e barra de progresso rumo ao próximo marco (25, 50, 100...).
-##   • Botão de Montar Esqueleto (1ª vez) / Clonar Unidade (+1).
+## Card de uma espécie na aba 🦖 Dinos, estilizado no padrão "Click the Button"
+## com o sprite em pixel-art da espécie.
 
 var dino_id: StringName = &""
 
 @onready var _color_Pip: ColorRect = %ColorPip
+@onready var _dino_icon: TextureRect = %DinoIcon
 @onready var _name_label: Label = %NameLabel
 @onready var _count_label: Label = %CountLabel
 @onready var _desc_label: Label = %DescLabel
@@ -27,6 +23,15 @@ func setup(data: DinoData) -> void:
 
 
 func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	UITheme.style_badge(self, UITheme.COLOR_CARD_BG)
+	UITheme.style_label(_name_label, 16, Color.WHITE, 5)
+	UITheme.style_label(_count_label, 16, Color("#76FF03"), 5)
+	UITheme.style_label(_desc_label, 12, Color("#CFD8DC"), 4)
+	UITheme.style_label(_stats_label, 13, Color("#FFD54F"), 4)
+	UITheme.style_label(_milestone_label, 11, Color.WHITE, 4)
+	UITheme.style_button(_assemble_button, UITheme.COLOR_BLUE_TOP, 13)
+
 	_assemble_button.pressed.connect(_on_assemble_pressed)
 	Events.resource_changed.connect(_on_resource_changed)
 	Events.fragments_changed.connect(_on_fragments_changed)
@@ -46,12 +51,15 @@ func refresh() -> void:
 
 	var count: int = GameState.get_dino_count(dino_id)
 	var frags: int = GameState.get_fragments(dino_id)
-	# Mostra se a era já foi alcançada, se já tem fragmentos ou se já desbloqueou.
 	visible = GameState.current_era_index >= data.unlock_era_index or frags > 0 or count > 0
 	if not visible:
 		return
 
 	_color_Pip.color = data.accent_color
+	if _dino_icon != null:
+		_dino_icon.texture = UITheme.get_dino_sprite(dino_id)
+		_dino_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
 	_name_label.text = "%s  [%s]" % [data.display_name, _role_name(data.role)]
 	_count_label.text = "×%d" % count
 	_desc_label.text = data.description

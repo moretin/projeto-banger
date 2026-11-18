@@ -46,6 +46,10 @@ const BUY_MULTIPLIERS: Array[int] = [1, 10, 100, BUY_MAX]
 const BASE_METEOR_TIME: float = 900.0
 ## A partir de qual run o meteoro aparece (1 = desde a primeira).
 const METEOR_FIRST_RUN: int = 1
+## Requisitos do Projeto Arca (condição de vitória do GDD §7).
+const ARK_REQUIRED_LEVEL: int = 5
+const ARK_REQUIRED_SHIELD: float = 0.75
+const ARK_REQUIRED_ERA: int = 3
 
 const DINOS_DIR: String = "res://data/dinos"
 const UPGRADES_DIR: String = "res://data/upgrades"
@@ -91,6 +95,7 @@ var lifetime_bones: float = 0.0
 var total_amber_earned: float = 0.0
 ## Espécies já revividas alguma vez (para bestiário e progressão de cor).
 var discovered_dinos: Dictionary[StringName, bool] = {}
+var ark_completed: bool = false
 #endregion
 
 
@@ -132,6 +137,7 @@ func _connect_events() -> void:
 func start_new_game() -> void:
 	permanent_upgrade_levels.clear()
 	discovered_dinos.clear()
+	ark_completed = false
 	run_number = 1
 	max_depth_ever = 0
 	lifetime_bones = 0.0
@@ -351,20 +357,85 @@ func get_multiplier(stat_id: StringName) -> float:
 
 
 func get_click_damage() -> float:
-	return get_stat(STAT_CLICK_DAMAGE, 1.0)
+	return get_stat(STAT_CLICK_DAMAGE, 1.0) * get_area_tremor_multiplier()
 
 
-## Multiplicador de aura de todos os dinos SUPPORT vivos (ex.: Braquiossauro).
+## Coleta em bando (Compsognato): +1.5% de ossos ganhos por unidade (máx 30 = +45%).
+func get_collector_bones_multiplier() -> float:
+	return 1.0 + 0.015 * float(mini(get_dino_count(&"compsognathus"), 30))
+
+
+## Tremor de impacto (Tricerátopo): +1.5% de dano de clique e máquinas por unidade (máx 30 = +45%).
+func get_area_tremor_multiplier() -> float:
+	return 1.0 + 0.015 * float(mini(get_dino_count(&"triceratops"), 30))
+
+
+## Logística aérea (Pterodáctilo): +3% na chance de extrair minérios por unidade (máx 25 = +75%).
+func get_mineral_rate_multiplier() -> float:
+	return get_multiplier(STAT_MINERAL_CHANCE) * (1.0 + 0.03 * float(mini(get_dino_count(&"pterodactyl"), 25)))
+
+
+## Multiplicador de aura de todos os dinos SUPPORT vivos (ex.: Braquiossauro, máx 20 unidades).
 func get_support_aura_multiplier() -> float:
 	var bonus: float = 0.0
 	for dino_id: StringName in dino_counts:
 		var data: DinoData = get_dino(dino_id)
 		if data != null and data.aura_bonus > 0.0:
-			bonus += data.aura_bonus * float(get_dino_count(dino_id))
+			bonus += data.aura_bonus * float(mini(get_dino_count(dino_id), 20))
 	return 1.0 + bonus
 
 
-## Dano final por golpe de uma unidade de `dino_id` (com upgrades, marcos e aura de suporte).
+func _get_role_damage_synergy(data: DinoData) -> float:
+	match data.role:
+		DinoData.Role.FAST:
+			return 1.0 + 0.02 * float(mini(get_dino_count(data.id), 30))
+		DinoData.Role.BREAKER:
+			return 1.0 + 0.20 * float(current_era_index)
+		DinoData.Role.DEFENSE:
+			return 1.0 + get_shield_ratio() * 0.40
+	return 1.0
+
+
+## Dano corrosivo passivo por segundo do Dilofossauro (% do HP da camada com teto seguro).
+func get_acid_dot_dps() -> float:
+	var count: int = get_dino_count(&"dilophosaurus")
+	if count <= 0:
+		return 0.0
+	var pct_dps: float = minf(0.002 * float(count), 0.04) * layer_max_hp
+	var cap_dps: float = get_dino_damage(&"dilophosaurus") * float(count) * 0.35
+	return minf(pct_dps, cap_dps)
+
+
+## Descrição legível da sinergia única de cada espécie (para tooltips).
+func get_dino_synergy_description(dino_id: StringName) -> String:
+	var data: DinoData = get_dino(dino_id)
+	if data == null:
+		return ""
+	var count: int = get_dino_count(dino_id)
+	match data.role:
+		DinoData.Role.COLLECTOR:
+			return "Coleta em bando: +%d%% ossos totais (+1.5%%/unid, máx +45%%)" % roundi((get_collector_bones_multiplier() - 1.0) * 100.0)
+		DinoData.Role.FAST:
+			return "Matilha veloz: +%d%% dano próprio (+2%%/unid, máx +60%%)" % (mini(count, 30) * 2)
+		DinoData.Role.AREA:
+			return "Tremor em área: +%d%% clique e máquinas (+1.5%%/unid, máx +45%%)" % roundi((get_area_tremor_multiplier() - 1.0) * 100.0)
+		DinoData.Role.BREAKER:
+			return "Mandíbula abissal: +%d%% dano na era atual (+20%%/era)" % (current_era_index * 20)
+		DinoData.Role.TRANSPORT:
+			return "Transporte aéreo: +%d%% chance de minério (+3%%/unid, máx +75%%)" % (mini(count, 25) * 3)
+		DinoData.Role.SUPPORT:
+			return "Aura colossal: +%d%% dano para todos dinos (+4%%/unid, máx +80%%)" % roundi((get_support_aura_multiplier() - 1.0) * 100.0)
+		DinoData.Role.DEFENSE:
+			return "Bastião: +%d%% escudo (+2%%/unid) e +%d%% dano pelo escudo" % [
+				roundi(data.meteor_damage_reduction * float(count) * 100.0),
+				roundi(get_shield_ratio() * 40.0),
+			]
+		DinoData.Role.ELEMENTAL:
+			return "Ácido corrosivo: +%s/s de corrosão na rocha" % format_number(get_acid_dot_dps())
+	return ""
+
+
+## Dano final por golpe de uma unidade de `dino_id` (com upgrades, marcos, aura e sinergia de papel).
 func get_dino_damage(dino_id: StringName) -> float:
 	var data: DinoData = get_dino(dino_id)
 	if data == null:
@@ -373,10 +444,11 @@ func get_dino_damage(dino_id: StringName) -> float:
 		* get_multiplier(STAT_DINO_DAMAGE) \
 		* get_multiplier(data.get_damage_stat_id()) \
 		* data.get_milestone_multiplier(get_dino_count(dino_id)) \
-		* get_support_aura_multiplier()
+		* get_support_aura_multiplier() \
+		* _get_role_damage_synergy(data)
 
 
-## DPS total de todos os dinos.
+## DPS total de todos os dinos (incluindo corrosão elemental).
 func get_total_dino_dps() -> float:
 	var total: float = 0.0
 	for dino_id: StringName in dino_counts:
@@ -386,12 +458,12 @@ func get_total_dino_dps() -> float:
 			continue
 		var crit_factor: float = 1.0 + data.crit_chance * (data.crit_multiplier - 1.0)
 		total += get_dino_damage(dino_id) * crit_factor / data.attack_interval * float(count)
-	return total
+	return total + get_acid_dot_dps()
 
 
-## DPS automático das máquinas (aba 🏭 Máquinas).
+## DPS automático das máquinas (aba 🏭 Máquinas), amplificado por Tricerátopos.
 func get_auto_dps() -> float:
-	return get_stat(STAT_AUTO_DPS, 0.0)
+	return get_stat(STAT_AUTO_DPS, 0.0) * get_area_tremor_multiplier()
 
 
 ## DPS combinado (dinos + máquinas).
@@ -403,7 +475,7 @@ func get_bones_per_second() -> float:
 	var era: EraData = get_current_era()
 	if era == null:
 		return 0.0
-	return get_total_dps() * era.bones_per_damage * get_multiplier(STAT_BONES_MULT)
+	return get_total_dps() * era.bones_per_damage * get_multiplier(STAT_BONES_MULT) * get_collector_bones_multiplier()
 
 
 func get_dna_per_second() -> float:
@@ -442,26 +514,56 @@ func is_dino_unlocked(dino_id: StringName) -> bool:
 	return get_dino_count(dino_id) > 0
 
 
-## Pode montar o 1º esqueleto ou comprar mais uma unidade?
-func can_assemble_dino(dino_id: StringName) -> bool:
+## Resolve quantas unidades de um dino serão compradas para `multiplier` (1, 10, 100 ou BUY_MAX).
+## Para reviver a 1ª unidade (count == 0), sempre resolve para 1.
+func resolve_dino_purchase_amount(dino_id: StringName, multiplier: int = buy_multiplier) -> int:
+	var data: DinoData = get_dino(dino_id)
+	if data == null:
+		return 0
+	var count: int = get_dino_count(dino_id)
+	if count == 0:
+		return 1
+	if multiplier == BUY_MAX:
+		return data.get_max_affordable_units(count, get_resource(RES_BONES))
+	return maxi(multiplier, 1)
+
+
+func get_dino_purchase_cost(dino_id: StringName, multiplier: int = buy_multiplier) -> float:
+	var data: DinoData = get_dino(dino_id)
+	if data == null:
+		return 0.0
+	var count: int = get_dino_count(dino_id)
+	var amount: int = resolve_dino_purchase_amount(dino_id, multiplier)
+	if amount <= 0:
+		return data.get_unit_cost(count)
+	return data.get_bulk_unit_cost(count, amount)
+
+
+## Pode montar o 1º esqueleto ou clonar `multiplier` unidades?
+func can_assemble_dino(dino_id: StringName, multiplier: int = buy_multiplier) -> bool:
 	var data: DinoData = get_dino(dino_id)
 	if data == null:
 		return false
 	var count: int = get_dino_count(dino_id)
 	if count == 0 and get_fragments(dino_id) < data.fragments_required:
 		return false
-	return can_afford(RES_BONES, data.get_unit_cost(count))
+	var amount: int = resolve_dino_purchase_amount(dino_id, multiplier)
+	if amount <= 0:
+		return false
+	return can_afford(RES_BONES, data.get_bulk_unit_cost(count, amount))
 
 
-func assemble_dino(dino_id: StringName) -> bool:
-	if not can_assemble_dino(dino_id):
+func assemble_dino(dino_id: StringName, multiplier: int = 1) -> bool:
+	if not can_assemble_dino(dino_id, multiplier):
 		return false
 	var data: DinoData = get_dino(dino_id)
 	var old_count: int = get_dino_count(dino_id)
-	spend(RES_BONES, data.get_unit_cost(old_count))
+	var amount: int = resolve_dino_purchase_amount(dino_id, multiplier)
+	if not spend(RES_BONES, data.get_bulk_unit_cost(old_count, amount)):
+		return false
 	if old_count == 0:
 		add_fragments(dino_id, -data.fragments_required)
-	var new_count: int = old_count + 1
+	var new_count: int = old_count + amount
 	dino_counts[dino_id] = new_count
 
 	if old_count == 0:
@@ -469,14 +571,19 @@ func assemble_dino(dino_id: StringName) -> bool:
 		Events.dino_unlocked.emit(dino_id)
 		_update_color_progress()
 	if data.get_milestones_reached(new_count) > data.get_milestones_reached(old_count):
-		Events.dino_milestone_reached.emit(dino_id, new_count)
-		Events.stats_recalculated.emit()
+		var crossed: int = new_count
+		for m: int in data.milestones:
+			if old_count < m and new_count >= m:
+				crossed = m
+		Events.dino_milestone_reached.emit(dino_id, crossed)
 	Events.dino_count_changed.emit(dino_id, new_count)
+	Events.stats_recalculated.emit()
 	return true
 
 
 func _on_dino_assembly_requested(dino_id: StringName) -> void:
-	assemble_dino(dino_id)
+	var mult: int = buy_multiplier if get_dino_count(dino_id) >= 1 else 1
+	assemble_dino(dino_id, mult)
 #endregion
 
 
@@ -494,42 +601,75 @@ func _setup_layer() -> void:
 	Events.layer_hp_changed.emit(layer_hp, layer_max_hp)
 
 
-## Aplica dano na camada atual e gera loot. Chamado via Events.dig_hit.
+## Aplica dano na camada atual (com carryover de overkill até trocar de era) e gera loot.
 func apply_dig_damage(damage: float, world_position: Vector2 = Vector2.ZERO) -> void:
-	var era: EraData = get_current_era()
-	if era == null or damage <= 0.0 or is_impacting:
+	if damage <= 0.0 or is_impacting:
 		return
-	var effective: float = minf(damage, layer_hp)
+	var remaining: float = damage
+	var loops: int = 0
+	var bones_mult: float = get_multiplier(STAT_BONES_MULT) * get_collector_bones_multiplier()
+	var total_bones_dropped: float = 0.0
+	var total_minerals_dropped: float = 0.0
 
-	# Ossos proporcionais ao dano causado.
-	var bones: float = effective * era.bones_per_damage * get_multiplier(STAT_BONES_MULT)
-	add_resource(RES_BONES, bones)
-	Events.loot_dropped.emit(RES_BONES, bones, world_position)
+	while remaining > 0.0 and loops < 8 and not is_impacting:
+		var era: EraData = get_current_era()
+		if era == null:
+			break
+		var start_era: int = current_era_index
+		var effective: float = minf(remaining, layer_hp)
+		remaining -= effective
+		loops += 1
 
-	# Minério (chance por golpe).
-	if randf() < era.mineral_chance * get_multiplier(STAT_MINERAL_CHANCE):
-		add_resource(RES_MINERALS, era.mineral_amount)
-		Events.loot_dropped.emit(RES_MINERALS, era.mineral_amount, world_position)
+		# Ossos proporcionais ao dano causado (+ bônus de coletores).
+		var bones: float = effective * era.bones_per_damage * bones_mult
+		add_resource(RES_BONES, bones)
+		total_bones_dropped += bones
 
-	# Fragmento de fóssil (chance por golpe).
-	if randf() < era.fragment_chance * get_multiplier(STAT_FRAGMENT_CHANCE):
-		var dino: DinoData = era.pick_random_fragment()
-		if dino != null:
-			add_fragments(dino.id, 1)
-			Events.fragment_dropped.emit(dino.id, world_position)
+		# Normaliza chance de drop pelo tamanho do golpe para não penalizar cliques fortes ou lotes.
+		var hit_equiv: float = clampf(effective / maxf(layer_max_hp * 0.06, 1.0), 0.35, 6.0)
+		var min_rolls: int = maxi(1, ceili(hit_equiv))
+		var min_p: float = clampf(era.mineral_chance * get_mineral_rate_multiplier() * (hit_equiv / float(min_rolls)), 0.0, 0.95)
+		for _m: int in range(min_rolls):
+			if randf() < min_p:
+				add_resource(RES_MINERALS, era.mineral_amount)
+				total_minerals_dropped += era.mineral_amount
 
-	layer_hp -= effective
-	Events.layer_hp_changed.emit(layer_hp, layer_max_hp)
-	if layer_hp <= 0.0:
-		_break_layer()
+		var frag_p: float = clampf(era.fragment_chance * get_multiplier(STAT_FRAGMENT_CHANCE) * hit_equiv, 0.0, 0.95)
+		if randf() < frag_p:
+			var dino: DinoData = era.pick_random_fragment()
+			if dino != null:
+				add_fragments(dino.id, 1)
+				Events.fragment_dropped.emit(dino.id, world_position)
+
+		layer_hp -= effective
+		Events.layer_hp_changed.emit(layer_hp, layer_max_hp)
+		if layer_hp <= 0.0:
+			_break_layer(world_position)
+			if current_era_index != start_era:
+				break
+
+	if total_bones_dropped > 0.0:
+		Events.loot_dropped.emit(RES_BONES, total_bones_dropped, world_position)
+	if total_minerals_dropped > 0.0:
+		Events.loot_dropped.emit(RES_MINERALS, total_minerals_dropped, world_position)
 
 
-func _break_layer() -> void:
+func _break_layer(world_position: Vector2 = Vector2.ZERO) -> void:
+	var era: EraData = get_current_era()
+	if era != null:
+		if era.mineral_chance > 0.0:
+			add_resource(RES_MINERALS, era.mineral_amount)
+			Events.loot_dropped.emit(RES_MINERALS, era.mineral_amount, world_position)
+		if randf() < clampf(0.35 * get_multiplier(STAT_FRAGMENT_CHANCE), 0.0, 0.95):
+			var bonus_dino: DinoData = era.pick_random_fragment()
+			if bonus_dino != null:
+				add_fragments(bonus_dino.id, 1)
+				Events.fragment_dropped.emit(bonus_dino.id, world_position)
+
 	depth += 1
 	max_depth_ever = maxi(max_depth_ever, depth)
 	Events.layer_broken.emit(current_era_index, current_layer_index, depth)
 
-	var era: EraData = get_current_era()
 	current_layer_index += 1
 	var is_last_era: bool = current_era_index >= eras.size() - 1
 	if era != null and current_layer_index >= era.layers_count and not is_last_era:
@@ -538,6 +678,26 @@ func _break_layer() -> void:
 		Events.era_changed.emit(current_era_index)
 		_update_color_progress()
 	_setup_layer()
+
+
+## Recompensa ao quebrar um veio especial na rocha (GDD §3).
+func crack_rock_vein(world_position: Vector2 = Vector2.ZERO) -> void:
+	var era: EraData = get_current_era()
+	var bpd: float = era.bones_per_damage if era != null else 1.0
+	var bonus_bones: float = (get_click_damage() * 12.0 * bpd + get_bones_per_second() * 5.0) * get_multiplier(STAT_BONES_MULT) * get_collector_bones_multiplier()
+	var bonus_minerals: float = 2.0 * (era.mineral_amount if era != null else 1.0)
+	add_resource(RES_BONES, bonus_bones)
+	add_resource(RES_MINERALS, bonus_minerals)
+	var dropped_dino: StringName = &""
+	if era != null and randf() < 0.50:
+		var dino: DinoData = era.pick_random_fragment()
+		if dino != null:
+			add_fragments(dino.id, 1)
+			dropped_dino = dino.id
+			Events.fragment_dropped.emit(dino.id, world_position)
+	Events.loot_dropped.emit(RES_BONES, bonus_bones, world_position)
+	Events.loot_dropped.emit(RES_MINERALS, bonus_minerals, world_position)
+	Events.vein_cracked.emit(bonus_bones, bonus_minerals, dropped_dino)
 
 
 func _on_dig_hit(damage: float, world_position: Vector2, _is_crit: bool) -> void:
@@ -579,8 +739,8 @@ func trigger_meteor_impact() -> void:
 func calculate_amber_reward(shield_ratio: float = -1.0) -> float:
 	if shield_ratio < 0.0:
 		shield_ratio = get_shield_ratio()
-	var from_bones: float = sqrt(run_total_bones / 1000.0)
-	var depth_factor: float = 1.0 + float(depth) * 0.1
+	var from_bones: float = pow(maxf(run_total_bones / 6000.0, 0.0), 0.19)
+	var depth_factor: float = 1.0 + float(depth) * 0.04
 	var survival_factor: float = 1.0 + clampf(shield_ratio, 0.0, 1.0)
 	return floorf(from_bones * depth_factor * survival_factor * get_multiplier(STAT_AMBER_MULT))
 
@@ -614,6 +774,43 @@ func _set_danger_level(level: float) -> void:
 		return
 	danger_level = level
 	Events.danger_level_changed.emit(danger_level)
+
+
+## Progresso rumo à condição de vitória do Projeto Arca (GDD §7).
+func get_ark_progress() -> Dictionary:
+	var ark_lvl: int = get_upgrade_level(&"amber_ark_project")
+	var shield: float = get_shield_ratio()
+	var ready: bool = ark_lvl >= ARK_REQUIRED_LEVEL and shield >= ARK_REQUIRED_SHIELD and current_era_index >= ARK_REQUIRED_ERA
+	return {
+		"ark_level": ark_lvl,
+		"ark_required": ARK_REQUIRED_LEVEL,
+		"shield_ratio": shield,
+		"shield_required": ARK_REQUIRED_SHIELD,
+		"era_index": current_era_index,
+		"era_required": ARK_REQUIRED_ERA,
+		"ready": ready,
+		"completed": ark_completed,
+	}
+
+
+func can_activate_ark_victory() -> bool:
+	var prog: Dictionary = get_ark_progress()
+	return bool(prog["ready"])
+
+
+func activate_ark_victory() -> bool:
+	if not can_activate_ark_victory():
+		return false
+	var first_time: bool = not ark_completed
+	ark_completed = true
+	meteor_time_left = meteor_total_time
+	_set_danger_level(0.0)
+	Events.meteor_timer_changed.emit(meteor_time_left, meteor_total_time)
+	if first_time:
+		add_resource(RES_AMBER, 25.0)
+		total_amber_earned += 25.0
+	Events.ark_victory_achieved.emit(run_number, total_amber_earned)
+	return true
 #endregion
 
 
@@ -638,13 +835,13 @@ func _tick_passive_income(delta: float) -> void:
 	var dna_rate: float = get_dna_per_second()
 	if dna_rate > 0.0:
 		add_resource(RES_DNA, dna_rate * delta)
-	var auto_dps: float = get_auto_dps()
-	if auto_dps > 0.0:
+	var passive_dps: float = get_auto_dps() + get_acid_dot_dps()
+	if passive_dps > 0.0:
 		_auto_dig_accum += delta
 		if _auto_dig_accum >= 0.5:
 			var step: float = _auto_dig_accum
 			_auto_dig_accum = 0.0
-			apply_dig_damage(auto_dps * step, Vector2(360.0, 420.0))
+			apply_dig_damage(passive_dps * step, Vector2.ZERO)
 
 
 ## Aplica ganhos offline de forma simplificada (sem simular camadas). Retorna os ganhos.
@@ -686,6 +883,7 @@ func to_save_dict() -> Dictionary:
 		"lifetime_bones": lifetime_bones,
 		"total_amber_earned": total_amber_earned,
 		"buy_multiplier": buy_multiplier,
+		"ark_completed": ark_completed,
 	}
 
 
@@ -719,6 +917,7 @@ func load_save_dict(data: Dictionary) -> void:
 	current_layer_index = int(data.get("current_layer_index", 0))
 	var saved_buy: int = int(data.get("buy_multiplier", 1))
 	buy_multiplier = saved_buy if saved_buy in BUY_MULTIPLIERS else 1
+	ark_completed = bool(data.get("ark_completed", false))
 	is_impacting = false
 
 	recalculate_stats()
