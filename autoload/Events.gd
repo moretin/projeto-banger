@@ -77,6 +77,8 @@ signal orange_rock_broken()
 signal rubble_rebuild_requested(rubble_id: StringName)
 ## Emissor: GameState. Escombro de pedra reconstruído/melhorado.
 signal rubble_rebuilt(rubble_id: StringName, new_level: int)
+## Abre a bancada permanente no prédio da Universidade.
+signal station_research_requested()
 ## Emissor: Superfície ou Escavação. Jogador escovou o sedimento da jazida por arrasto.
 signal brush_stroke(world_position: Vector2)
 ## Emissor: GameState. Fóssil encontrado e catalogado no Museu com raridade (0=Comum..3=Lendário).

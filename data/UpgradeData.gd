@@ -8,8 +8,8 @@ extends Resource
 ## Custo:   custo(n) = base_cost * cost_growth ^ n
 ## Efeito:  aplicado sobre a estatística `stat_id` (ver constantes STAT_* em GameState).
 
-## Abas do painel lateral (AMBER = árvore permanente de prestígio).
-enum Category { TOOLS, DINOS, MACHINES, DEFENSE, AMBER }
+## Famílias de equipamentos. Os índices fazem parte dos recursos .tres.
+enum Category { TOOLS, DINOS, MACHINES, DEFENSE, AMBER, FIELD }
 
 ## Como o efeito se acumula por nível.
 enum EffectType {
@@ -44,6 +44,7 @@ enum EffectType {
 @export var effect_value: float = 1.0
 
 @export_group("Requisitos")
+@export var required_station: StringName = &""
 ## Upgrade que precisa estar no nível `required_level` para este aparecer.
 @export var required_upgrade: StringName = &""
 @export var required_level: int = 1

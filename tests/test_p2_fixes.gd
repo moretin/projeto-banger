@@ -18,11 +18,8 @@ func test_orange_rock_click_does_not_emit_fake_crit_dig_hit() -> void:
 	await get_tree().process_frame
 
 	watch_signals(Events)
-	var mb := InputEventMouseButton.new()
-	mb.button_index = MOUSE_BUTTON_LEFT
-	mb.pressed = true
-	mb.position = Vector2(16.0, 16.0)
-	surface._on_orange_rock_gui_input(mb)
+	var egg: Button = surface.get_node("%Map/egg") as Button
+	egg.pressed.emit()
 
 	assert_signal_emitted(Events, "orange_rock_hit", "Clique na Rocha Laranja deve emitir orange_rock_hit")
 	assert_signal_not_emitted(Events, "dig_hit", "Clique na Rocha Laranja não pode disparar dig_hit falso sempre crítico")

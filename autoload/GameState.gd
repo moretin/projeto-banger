@@ -20,12 +20,20 @@ const RES_ROCKS: StringName = &"rocks"
 const RES_MINERALS: StringName = &"minerals"
 const RES_DNA: StringName = &"dna"
 const RES_AMBER: StringName = &"amber"
+const RES_FISH: StringName = &"fish"
+const RES_FEATHERS: StringName = &"feathers"
+const RES_SCIENCE: StringName = &"science"
+const RESOURCE_NAMES: Dictionary = {
+	RES_BONES: "ossos", RES_ROCKS: "rochas", RES_MINERALS: "minérios", RES_DNA: "DNA",
+	RES_AMBER: "âmbar", RES_FISH: "peixes", RES_FEATHERS: "penas", RES_SCIENCE: "ciência",
+}
 ## Recursos zerados a cada run (âmbar é permanente).
-const RUN_RESOURCES: Array[StringName] = [RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA]
-const ALL_RESOURCES: Array[StringName] = [RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA, RES_AMBER]
+const RUN_RESOURCES: Array[StringName] = [RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA, RES_FISH, RES_FEATHERS, RES_SCIENCE]
+const ALL_RESOURCES: Array[StringName] = [RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA, RES_AMBER, RES_FISH, RES_FEATHERS, RES_SCIENCE]
 
 ## Vida inicial da Rocha Laranja na Superfície.
 const ORANGE_ROCK_MAX_HP: float = 10.0
+const FIELD_GEAR_YIELD_BONUS: float = 0.25
 
 ## Escombros de pedra reconstruíveis na Superfície (custam RES_ROCKS).
 const RUBBLE_ORDER: Array[StringName] = [
@@ -36,7 +44,12 @@ const RUBBLE_ORDER: Array[StringName] = [
 ]
 const RUBBLE_DEFS: Dictionary = {
 	&"rubble_forge": {
-		"title": "Forja de Pedra",
+		"title": "Pedreira do Casco",
+		"worker": "Paquicefalossauro",
+		"product": RES_ROCKS,
+		"rate": 0.5,
+		"gear": &"field_helmet",
+		"category": UpgradeData.Category.TOOLS,
 		"desc": "+50% de Dano de Clique por nível",
 		"base_cost": 15.0,
 		"cost_growth": 2.1,
@@ -45,7 +58,12 @@ const RUBBLE_DEFS: Dictionary = {
 		"color": Color(0.92, 0.52, 0.24),
 	},
 	&"rubble_nest": {
-		"title": "Ninho Aquecido",
+		"title": "Pesqueiro do Junco",
+		"worker": "Bariônix",
+		"product": RES_FISH,
+		"rate": 0.5,
+		"gear": &"field_fins",
+		"category": UpgradeData.Category.DINOS,
 		"desc": "+50% de Dano dos Dinos por nível",
 		"base_cost": 30.0,
 		"cost_growth": 2.2,
@@ -54,7 +72,12 @@ const RUBBLE_DEFS: Dictionary = {
 		"color": Color(0.52, 0.85, 0.38),
 	},
 	&"rubble_silo": {
-		"title": "Silo Geológico",
+		"title": "Torre dos Ventos",
+		"worker": "Pterodáctilo",
+		"product": RES_FEATHERS,
+		"rate": 0.4,
+		"gear": &"field_goggles",
+		"category": UpgradeData.Category.MACHINES,
 		"desc": "+45% de Ossos e Rochas por nível",
 		"base_cost": 60.0,
 		"cost_growth": 2.3,
@@ -63,7 +86,12 @@ const RUBBLE_DEFS: Dictionary = {
 		"color": Color(0.42, 0.75, 0.92),
 	},
 	&"rubble_bunker": {
-		"title": "Bastião de Rocha",
+		"title": "Universidade da Arca",
+		"worker": "Troodonte",
+		"product": RES_SCIENCE,
+		"rate": 0.3,
+		"gear": &"field_lens",
+		"category": UpgradeData.Category.DEFENSE,
 		"desc": "+8% de Escudo Anti-Meteoro por nível",
 		"base_cost": 100.0,
 		"cost_growth": 2.4,
@@ -236,6 +264,7 @@ func start_new_game() -> void:
 
 ## Reseta apenas o estado da run (chamado pelo prestígio).
 func _reset_run_state() -> void:
+	_field_elapsed = 0.0
 	for res_id: StringName in RUN_RESOURCES:
 		resources[res_id] = 0.0
 	fragments.clear()
@@ -353,6 +382,8 @@ func get_upgrades_by_category(category: UpgradeData.Category) -> Array[UpgradeDa
 func is_upgrade_unlocked(upgrade_id: StringName) -> bool:
 	var data: UpgradeData = get_upgrade(upgrade_id)
 	if data == null:
+		return false
+	if data.required_station != &"" and get_rubble_level(data.required_station) == 0:
 		return false
 	if current_era_index < data.required_era_index and not data.is_permanent:
 		return false
@@ -1255,9 +1286,29 @@ func _update_color_progress() -> void:
 
 #region Renda passiva / offline
 var _auto_dig_accum: float = 0.0
+var _field_elapsed: float = 0.0
+
+
+func get_station_rate(station: StringName) -> float:
+	var site: Dictionary = RUBBLE_DEFS[station]
+	var gear_level: int = get_upgrade_level(site["gear"])
+	return float(site["rate"]) * get_rubble_level(station) * (1.0 + FIELD_GEAR_YIELD_BONUS * gear_level)
+
+
+func _harvest_stations(seconds: float, gains: Dictionary) -> void:
+	for station: StringName in RUBBLE_ORDER:
+		var amount: float = seconds * get_station_rate(station)
+		if amount > 0.0:
+			var product: StringName = RUBBLE_DEFS[station]["product"]
+			add_resource(product, amount)
+			gains[product] = amount
 
 
 func _tick_passive_income(delta: float) -> void:
+	_field_elapsed += delta
+	if _field_elapsed >= 1.0:
+		_harvest_stations(_field_elapsed, {})
+		_field_elapsed = 0.0
 	var dna_rate: float = get_dna_per_second()
 	if dna_rate > 0.0:
 		add_resource(RES_DNA, dna_rate * delta)
@@ -1286,6 +1337,7 @@ func apply_offline_progress(seconds: float) -> Dictionary:
 	var max_hours: float = balance.offline_max_hours if balance != null else 8.0
 	var capped_seconds: float = minf(seconds, max_hours * 3600.0)
 	var eff: float = get_offline_efficiency()
+	_harvest_stations(capped_seconds * eff, gains)
 	var bones: float = get_bones_per_second() * capped_seconds * eff
 	var dna: float = get_dna_per_second() * capped_seconds * eff
 	if bones > 0.0:
@@ -1416,6 +1468,7 @@ func to_save_dict() -> Dictionary:
 
 
 func load_save_dict(data: Dictionary) -> void:
+	_field_elapsed = 0.0
 	last_evaluated_fossil.clear()
 	resources.clear()
 	for res_id: StringName in ALL_RESOURCES:

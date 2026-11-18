@@ -3,7 +3,6 @@ extends Control
 ## Controlador visual do Meteoro relativo à câmera, Manchete Pré-Histórica ("Gazeta do Cratera")
 ## e Bancada do Laboratório da Arca (investimento permanente de Âmbar).
 
-const UPGRADE_CARD_SCENE: PackedScene = preload("res://scenes/ui/UpgradeCard.tscn")
 const MAX_METEOR_EMBERS: int = 28
 
 @onready var _sky_canvas: Control = %MeteorSkyCanvas
@@ -24,7 +23,7 @@ const MAX_METEOR_EMBERS: int = 28
 @onready var _run_summary_label: Label = %RunSummaryLabel
 @onready var _early_impact_button: Button = %EarlyImpactButton
 @onready var _close_button: Button = %CloseButton
-@onready var _amber_upgrades_list: VBoxContainer = %AmberUpgradesList
+@onready var _visit_lab: Button = %VisitLab
 
 var _current_scenario: StringName = &"surface"
 var _embers: Array[Dictionary] = []
@@ -49,7 +48,11 @@ func _ready() -> void:
 	_close_button.pressed.connect(func() -> void: _modal_backdrop.visible = false)
 	_open_arca_lab_button.pressed.connect(func() -> void:
 		_newspaper_backdrop.visible = false
-		open_prestige_modal()
+		Events.station_research_requested.emit()
+	)
+	_visit_lab.pressed.connect(func() -> void:
+		_modal_backdrop.visible = false
+		Events.station_research_requested.emit()
 	)
 	_news_close_button.pressed.connect(func() -> void:
 		_newspaper_backdrop.visible = false
@@ -63,7 +66,6 @@ func _ready() -> void:
 	Events.upgrade_purchased.connect(_on_upgrade_purchased)
 	Events.game_loaded.connect(_refresh_modal)
 
-	_populate_amber_upgrades()
 	_refresh_modal()
 
 
@@ -81,7 +83,7 @@ func _process(delta: float) -> void:
 	_sky_pulse_t += delta
 	var d: float = clampf(GameState.danger_level, 0.0, 1.0)
 	if d > 0.15 or not _embers.is_empty():
-		var play_w: float = maxf(size.x - 540.0, 640.0)
+		var play_w: float = size.x
 		if d > 0.15:
 			_ember_spawn_accum += delta * (4.0 + d * 14.0)
 			while _ember_spawn_accum >= 1.0:
@@ -151,15 +153,6 @@ func show_prehistoric_newspaper(gained_amber: float, snapshot_depth: int, snapsh
 	_newspaper_backdrop.visible = true
 
 
-func _populate_amber_upgrades() -> void:
-	for child: Node in _amber_upgrades_list.get_children():
-		child.queue_free()
-	for data: UpgradeData in GameState.get_upgrades_by_category(UpgradeData.Category.AMBER):
-		var card: UpgradeCard = UPGRADE_CARD_SCENE.instantiate() as UpgradeCard
-		_amber_upgrades_list.add_child(card)
-		card.setup(data)
-
-
 func _refresh_modal() -> void:
 	var amber: float = GameState.get_resource(GameState.RES_AMBER)
 	var reward: float = GameState.calculate_amber_reward()
@@ -221,7 +214,7 @@ func _on_upgrade_purchased(_upg_id: StringName, _new_level: int) -> void:
 ## Desenha o meteoro em coordenadas relativas ao ScenarioViewport e à profundidade da câmera.
 func _on_sky_canvas_draw() -> void:
 	var d: float = clampf(GameState.danger_level, 0.0, 1.0)
-	var play_w: float = maxf(size.x - 540.0, 640.0)
+	var play_w: float = size.x
 
 	# Clarão térmico no topo da tela proporcional ao perigo
 	if d > 0.10:

@@ -96,7 +96,7 @@ func test_save_v2_round_trip() -> void:
 	var raw_text: String = FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
 	var parsed: Variant = JSON.parse_string(raw_text)
 	assert_true(parsed is Dictionary, "Arquivo salvo deve ser JSON válido")
-	assert_eq(int((parsed as Dictionary).get("version", 0)), 3, "Versão do save deve ser 3")
+	assert_eq(int((parsed as Dictionary).get("version", 0)), SaveManager.SAVE_VERSION)
 
 	var exported: String = SaveManager.export_save_string()
 	GameState.start_new_game()
@@ -316,4 +316,4 @@ func test_v2_save_migrates_to_v3_preserving_progress_with_empty_museum() -> void
 
 	assert_true(SaveManager.save_game())
 	var re_parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
-	assert_eq(int((re_parsed as Dictionary).get("version", 0)), 3, "Após re-salvar, versão em disco deve ser 3")
+	assert_eq(int((re_parsed as Dictionary).get("version", 0)), SaveManager.SAVE_VERSION)

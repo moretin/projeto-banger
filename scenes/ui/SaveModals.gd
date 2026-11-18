@@ -54,10 +54,8 @@ func _on_offline_progress_applied(seconds: float, gains: Dictionary) -> void:
 		"Tempo ausente: %s\n" % GameState.format_time(seconds),
 		"Sua equipe de dinossauros e máquinas coletou:",
 	]
-	if gains.has(GameState.RES_BONES):
-		lines.append("• +%s Ossos" % GameState.format_number(float(gains[GameState.RES_BONES])))
-	if gains.has(GameState.RES_DNA):
-		lines.append("• +%s DNA" % GameState.format_number(float(gains[GameState.RES_DNA])))
+	for resource_id: Variant in gains:
+		lines.append("• +%s %s" % [GameState.format_number(float(gains[resource_id])), GameState.RESOURCE_NAMES[resource_id]])
 	_offline_summary_label.text = "\n".join(lines)
 	_offline_backdrop.visible = true
 

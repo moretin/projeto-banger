@@ -12,7 +12,7 @@ const SAVE_PATH: String = "user://savegame.json"
 const BACKUP_PATH: String = "user://savegame.bak.json"
 const TEMP_PATH: String = "user://savegame.tmp"
 
-const SAVE_VERSION: int = 3
+const SAVE_VERSION: int = 4
 const AUTOSAVE_INTERVAL: float = 30.0
 ## Limite de tempo offline recompensado (8 horas).
 const MAX_OFFLINE_SECONDS: float = 8.0 * 3600.0
@@ -168,6 +168,17 @@ func _migrate(payload: Dictionary) -> Dictionary:
 			game_dict["total_legendary_fossils"] = 0
 		payload["game"] = game_dict
 		version = 3
+	if version == 3:
+		# Os quatro lotes conservam seus IDs. Só os estoques locais começam vazios.
+		var saved_game: Variant = payload.get("game", {})
+		if saved_game is Dictionary:
+			var game: Dictionary = saved_game as Dictionary
+			var raw_stock: Variant = game.get("resources", {})
+			var stock: Dictionary = raw_stock as Dictionary if raw_stock is Dictionary else {}
+			stock.merge({"fish": 0.0, "feathers": 0.0, "science": 0.0})
+			game["resources"] = stock
+			payload["game"] = game
+		version = 4
 	if version > SAVE_VERSION:
 		push_warning("[SaveManager] Save de versão mais nova (%d > %d)." % [version, SAVE_VERSION])
 	payload["version"] = SAVE_VERSION

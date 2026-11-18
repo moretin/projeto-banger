@@ -8,7 +8,11 @@
 > 3. **Não implemente automaticamente ideias do arquivo `IDEIAS.md`**: o `IDEIAS.md` é apenas um bloco de notas de design para consulta futura e só deve ser codificado quando solicitado explicitamente.
 
 ## 1. Regras Obrigatórias de GDScript e Versão da Engine
-- **Engine Oficial**: **Godot 4.7.2** (`config/features=PackedStringArray("4.7", "GL Compatibility")` no `project.godot`).
+- **Engine Oficial**: **Godot 4.7+** (`config/features=PackedStringArray("4.7", "GL Compatibility")` no `project.godot`).
+  - O projeto **não compila** em versões anteriores (4.2–4.6):
+    - `@warning_ignore_start("unused_signal")` em `autoload/Events.gd` quebra no Godot ≤ 4.3;
+    - `offset_transform_enabled` / `offset_transform_scale` em `scenes/ui/UpgradeCard.gd` e `scenes/ui/DinoCard.gd` só existem a partir do Godot 4.7;
+    - Arquivos `.uid` dos scripts/recursos (padrão Godot 4.4+) devem ser **sempre versionados** no Git (não ignorar `*.uid`).
 - **Tipagem Estática Estrita (`project.godot`)**:
   - `untyped_declaration=1`, `unsafe_property_access=1`, `unsafe_method_access=1`.
   - Sempre declare tipos explícitos em variáveis, parâmetros, retornos de função e loops (`for item: Tipo in lista:`).
@@ -37,8 +41,14 @@
 - `[B7]` `feat/vfx-audio` → `scenes/dig_site/VfxAudioManager.*`
 
 ## 4. Validação antes de Commit / PR
-Sempre valide se não há erros de compilação ou layout antes de concluir:
+Sempre valide se não há erros de compilação, regressões nos testes ou problemas de layout antes de concluir:
 ```bash
-godot --headless --path . --quit-after 2
+# Suíte completa headless (GUT + layout UI + smoke 600 frames):
+powershell -NoProfile -ExecutionPolicy Bypass -File ./tools/run_tests.ps1   # Windows PowerShell
+./tools/run_tests.sh                                                          # Linux / macOS / Git Bash
+
+# Ou comandos individuais:
+godot --headless --path . --quit-after 600
+godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
 godot --headless --path . -s res://scenes/ui/test_ui_layout.gd
 ```

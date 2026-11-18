@@ -61,6 +61,10 @@ var _last_era_name: String = "Terra (Crosta)"
 
 
 func _ready() -> void:
+	Events.scenario_changed.connect(func(scenario: StringName) -> void:
+		if scenario == &"dig_site":
+			(%ToSurfaceButton as Button).grab_focus()
+	)
 	_brush_tex = AmberTheme.get_icon(&"brush")
 	_to_surface_button.icon = AmberTheme.get_icon(&"camp")
 	_rock_button.gui_input.connect(_on_rock_gui_input)

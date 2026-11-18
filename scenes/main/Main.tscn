@@ -3,7 +3,6 @@
 [ext_resource type="Script" path="res://scenes/main/Main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="2_hud"]
 [ext_resource type="PackedScene" path="res://scenes/dig_site/DigSite.tscn" id="3_digsite"]
-[ext_resource type="PackedScene" path="res://scenes/ui/UpgradePanel.tscn" id="4_upanel"]
 [ext_resource type="PackedScene" path="res://scenes/meteor/MeteorOverlay.tscn" id="5_meteor"]
 [ext_resource type="PackedScene" path="res://scenes/ui/SaveModals.tscn" id="6_smodals"]
 [ext_resource type="PackedScene" path="res://scenes/dig_site/VfxAudioManager.tscn" id="7_vfx"]
@@ -63,9 +62,6 @@ anchor_bottom = 0.0
 offset_top = 1000.0
 offset_right = 1360.0
 offset_bottom = 2000.0
-
-[node name="UpgradePanel" parent="RootVBox/BodySplit" instance=ExtResource("4_upanel")]
-layout_mode = 2
 
 [node name="VfxAudioManager" parent="." instance=ExtResource("7_vfx")]
 
