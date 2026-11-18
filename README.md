@@ -21,3 +21,6 @@ O jogo possui 2 cenários verticais conectados por transição suave em [`scenes
 godot --headless --path . --quit-after 2
 godot --headless --path . -s res://scenes/ui/test_ui_layout.gd
 ```
+
+## 💡 Ideias e Planejamento Futuro
+Consulte [`IDEIAS.md`](IDEIAS.md) para o banco de ideias de design, novos recursos, estruturas e especializações de dinossauros planejados para futuras atualizações.
