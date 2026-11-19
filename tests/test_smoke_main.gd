@@ -27,3 +27,36 @@ func test_main_scene_runs_600_frames_without_errors() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	SaveManager.autosave_enabled = prev_autosave
+
+
+func test_hud_updates_balances_rates_and_forecast_with_the_meteor_paused() -> void:
+	GameState.start_new_game()
+	var hud_scene: PackedScene = preload("res://scenes/ui/HUD.tscn")
+	var hud: HUD = hud_scene.instantiate() as HUD
+	add_child_autofree(hud)
+	var bones: Label = hud.get_node("%BonesLabel") as Label
+	var dna_rate: Label = hud.get_node("%DnaRate") as Label
+	var forecast: Label = hud.get_node("%AmberForecast") as Label
+	var countdown: Label = hud.get_node("%MeteorLabel") as Label
+	var start_countdown: String = countdown.text
+	var start_forecast: String = forecast.text
+
+	Events.prestige_modal_visibility_changed.emit(true)
+	Events.orange_rock_hit.emit(20000.0, Vector2.ZERO)
+	GameState.add_resource(GameState.RES_BONES, 1000000000.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	assert_eq(bones.text, GameState.format_number(GameState.get_resource(GameState.RES_BONES)))
+	assert_eq(dna_rate.text, "+%s/s" % GameState.format_number(GameState.get_dna_per_second()))
+	assert_ne(dna_rate.text, "+0/s", "O nascimento do primeiro dino deve atualizar a produção")
+	assert_eq(forecast.text, "Previsão: +%s Âmbar" % GameState.format_number(GameState.calculate_amber_reward()))
+	assert_ne(forecast.text, start_forecast, "O ganho de ossos atualiza a previsão com o cronômetro pausado")
+	assert_eq(countdown.text, start_countdown)
+
+	GameState.start_new_game()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_eq(bones.text, "0")
+	assert_eq(dna_rate.text, "+0/s")
+	assert_eq(forecast.text, "Previsão: +0 Âmbar")
