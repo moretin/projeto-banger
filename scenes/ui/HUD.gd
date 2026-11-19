@@ -12,20 +12,27 @@ extends PanelContainer
 @onready var _dps_icon: TextureRect = %DpsIcon
 
 @onready var _bones_label: Label = %BonesLabel
+@onready var _bones_rate: Label = %BonesRate
 @onready var _rocks_label: Label = %RocksLabel
 @onready var _minerals_label: Label = %MineralsLabel
 @onready var _dna_label: Label = %DnaLabel
+@onready var _dna_rate: Label = %DnaRate
 @onready var _amber_label: Label = %AmberLabel
 @onready var _era_label: Label = %EraLabel
 @onready var _dps_label: Label = %DpsLabel
 @onready var _meteor_bar: ProgressBar = %MeteorBar
 @onready var _meteor_label: Label = %MeteorLabel
+@onready var _amber_forecast: Label = %AmberForecast
 @onready var _toast_label: Label = %ToastLabel
 @onready var _museum_button: Button = %MuseumButton
 @onready var _prestige_button: Button = %PrestigeButton
 @onready var _settings_button: Button = %SettingsButton
 
 var _toast_timer: float = 0.0
+var _last_meteor_second: int = -1
+var _refresh_pending: bool = false
+var _stats_dirty: bool = false
+var _forecast_dirty: bool = false
 
 
 func _ready() -> void:
@@ -47,9 +54,11 @@ func _ready() -> void:
 	_settings_button.pressed.connect(func() -> void: Events.settings_modal_requested.emit())
 
 	Events.resource_changed.connect(_on_resource_changed)
-	Events.stats_recalculated.connect(_refresh_all)
+	Events.stats_recalculated.connect(_queue_stats_refresh)
+	Events.dino_count_changed.connect(_queue_stats_refresh.unbind(2))
 	Events.era_changed.connect(_on_era_changed)
-	Events.layer_broken.connect(_on_layer_broken)
+	Events.layer_broken.connect(_queue_stats_refresh.unbind(3))
+	Events.layer_hp_changed.connect(_queue_forecast_refresh.unbind(2))
 	Events.layer_resources_extracted.connect(_on_layer_resources_extracted)
 	Events.meteor_timer_changed.connect(_on_meteor_timer_changed)
 	Events.dino_unlocked.connect(_on_dino_unlocked)
@@ -58,8 +67,12 @@ func _ready() -> void:
 	Events.vein_cracked.connect(_on_vein_cracked)
 	Events.ark_victory_achieved.connect(_on_ark_victory_achieved)
 	Events.notification_requested.connect(_on_notification_requested)
-	Events.game_loaded.connect(_refresh_all)
-	_refresh_all()
+	Events.game_loaded.connect(_queue_stats_refresh)
+	for res_id: StringName in GameState.ALL_RESOURCES:
+		_on_resource_changed(res_id, GameState.get_resource(res_id), 0.0)
+	_refresh_stats()
+	_refresh_amber_forecast()
+	_on_meteor_timer_changed(GameState.meteor_time_left, GameState.meteor_total_time)
 
 
 func _process(delta: float) -> void:
@@ -69,51 +82,77 @@ func _process(delta: float) -> void:
 			_toast_label.text = ""
 
 
-func _refresh_all() -> void:
-	var bones: float = GameState.get_resource(GameState.RES_BONES)
-	var bps: float = GameState.get_bones_per_second()
-	_bones_label.text = "%s (+%s/s)" % [GameState.format_number(bones), GameState.format_number(bps)]
-	_rocks_label.text = GameState.format_number(GameState.get_resource(GameState.RES_ROCKS))
-	_minerals_label.text = GameState.format_number(GameState.get_resource(GameState.RES_MINERALS))
-	var dna: float = GameState.get_resource(GameState.RES_DNA)
-	var dps_dna: float = GameState.get_dna_per_second()
-	_dna_label.text = "%s (+%s/s)" % [GameState.format_number(dna), GameState.format_number(dps_dna)]
-	_amber_label.text = GameState.format_number(GameState.get_resource(GameState.RES_AMBER))
+func _queue_stats_refresh() -> void:
+	_stats_dirty = true
+	_queue_forecast_refresh()
+
+
+func _queue_forecast_refresh() -> void:
+	_forecast_dirty = true
+	if not _refresh_pending:
+		_refresh_pending = true
+		_flush_readouts.call_deferred()
+
+
+func _flush_readouts() -> void:
+	_refresh_pending = false
+	# A quebra de camada e o reset emitem sinais antes de terminar de atualizar o estado.
+	if _stats_dirty:
+		_stats_dirty = false
+		_refresh_stats()
+	if _forecast_dirty:
+		_forecast_dirty = false
+		_refresh_amber_forecast()
+
+
+func _refresh_stats() -> void:
+	_bones_rate.text = "+%s/s" % GameState.format_number(GameState.get_bones_per_second())
+	_dna_rate.text = "+%s/s" % GameState.format_number(GameState.get_dna_per_second())
 
 	var era: EraData = GameState.get_current_era()
 	var era_name: String = era.display_name if era != null else "—"
-	_era_label.text = "%s · Profundidade: %dm · Run #%d" % [era_name, GameState.depth, GameState.run_number]
+	_era_label.text = "%s · Profundidade: %dm · Expedição #%d" % [era_name, GameState.depth, GameState.run_number]
 	_dps_label.text = "Clique: %s · DPS: %s/s · Escudo: %d%%" % [
 		GameState.format_number(GameState.get_click_damage()),
 		GameState.format_number(GameState.get_total_dps()),
 		roundi(GameState.get_shield_ratio() * 100.0),
 	]
-	_on_meteor_timer_changed(GameState.meteor_time_left, GameState.meteor_total_time)
 
 
-func _on_resource_changed(_res_id: StringName, _amount: float, _delta: float) -> void:
-	_refresh_all()
+func _refresh_amber_forecast() -> void:
+	_amber_forecast.text = "Previsão: +%s Âmbar" % GameState.format_number(GameState.calculate_amber_reward())
+
+
+func _on_resource_changed(res_id: StringName, amount: float, delta: float) -> void:
+	match res_id:
+		GameState.RES_BONES:
+			_bones_label.text = GameState.format_number(amount)
+			if delta > 0.0:
+				_queue_forecast_refresh()
+		GameState.RES_ROCKS:
+			_rocks_label.text = GameState.format_number(amount)
+		GameState.RES_MINERALS:
+			_minerals_label.text = GameState.format_number(amount)
+		GameState.RES_DNA:
+			_dna_label.text = GameState.format_number(amount)
+		GameState.RES_AMBER:
+			_amber_label.text = GameState.format_number(amount)
 
 
 func _on_era_changed(era_idx: int) -> void:
-	_refresh_all()
+	_queue_stats_refresh()
 	var era: EraData = GameState.get_current_era()
 	if era != null and era_idx > 0:
 		show_toast("Nova Era Desbloqueada: %s!" % era.display_name)
 
 
-func _on_layer_broken(_era_idx: int, _layer_idx: int, _depth: int) -> void:
-	_refresh_all()
-
-
 func _on_meteor_timer_changed(time_left: float, total_time: float) -> void:
 	_meteor_bar.max_value = maxf(total_time, 1.0)
 	_meteor_bar.value = time_left
-	var preview_amber: float = GameState.calculate_amber_reward()
-	_meteor_label.text = "Impacto %s (+%s)" % [
-		GameState.format_time(time_left),
-		GameState.format_number(preview_amber),
-	]
+	var second: int = maxi(ceili(time_left), 0)
+	if second != _last_meteor_second:
+		_last_meteor_second = second
+		_meteor_label.text = "Impacto em %s" % GameState.format_time(time_left)
 
 
 func _on_dino_unlocked(dino_id: StringName) -> void:

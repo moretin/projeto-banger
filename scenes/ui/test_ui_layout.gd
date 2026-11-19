@@ -1,5 +1,5 @@
 extends SceneTree
-## Exercita a cena real e suas bancadas nos três formatos de janela suportados.
+## Exercita o HUD e as bancadas da cena real nos três formatos de janela suportados.
 
 const SIZES: Array[Vector2i] = [Vector2i(1920, 1080), Vector2i(2560, 1080), Vector2i(1920, 1440)]
 var _failures: int = 0
@@ -19,6 +19,14 @@ func _run() -> void:
 		viewport.add_child(main)
 		await process_frame
 		await process_frame
+		var screen: Rect2 = Rect2(Vector2.ZERO, dimensions)
+		var hud: Control = main.get_node_or_null("RootVBox/HUD") as Control
+		_check(hud != null, "HUD ausente em %s" % dimensions)
+		if hud != null:
+			for node: Node in hud.find_children("*", "Control", true, false):
+				var control: Control = node as Control
+				if control.is_visible_in_tree():
+					_check(screen.encloses(control.get_global_rect()), "HUD/%s fora da tela em %s" % [control.name, dimensions])
 		var surface: Control = main.get_node("%SurfaceScene") as Control
 		var map: Control = surface.get_node("%Map") as Control
 		var previous: Rect2 = Rect2()
@@ -41,10 +49,10 @@ func _run() -> void:
 				for control: Node in surface.find_children("*", "Button", true, false):
 					var button: Button = control as Button
 					if button.is_visible_in_tree():
-						_check(Rect2(Vector2.ZERO, dimensions).encloses(button.get_global_rect()), "%s fora da tela em %s" % [button.name, dimensions])
+						_check(screen.encloses(button.get_global_rect()), "%s fora da tela em %s" % [button.name, dimensions])
 		_check(viewport.gui_get_focus_owner() != null, "Sem foco inicial em %s" % dimensions)
 		viewport.free()
-	print("Layout das bancadas: %d falhas" % _failures)
+	print("Layout do HUD e das bancadas: %d falhas" % _failures)
 	quit(1 if _failures > 0 else 0)
 
 
