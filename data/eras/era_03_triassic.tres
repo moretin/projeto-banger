@@ -4,26 +4,27 @@
 [ext_resource type="Resource" path="res://data/dinos/pterodactyl.tres" id="2_5el8n"]
 [ext_resource type="Resource" path="res://data/dinos/brachiosaurus.tres" id="3_8bvu2"]
 [ext_resource type="Resource" path="res://data/dinos/ankylosaurus.tres" id="4_mhrpc"]
+[ext_resource type="Resource" path="res://data/dinos/dilophosaurus.tres" id="5_jsbm2"]
 [ext_resource type="Script" path="res://data/EraData.gd" id="6_e55mn"]
 
 [resource]
 script = ExtResource("6_e55mn")
 id = &"magma"
 display_name = "Magma"
-description = "Quarta camada da Terra: manto de magma pressurizado e basalto fundido onde repousa a couraça do Anquilossauro."
+description = "Quarta camada da Terra: manto de magma pressurizado onde repousam o Anquilossauro e o Dilofossauro."
 index = 3
-layers_count = 8
-base_layer_hp = 750000000.0
-layer_hp_growth = 2.0
-min_run_to_break = 6
+layers_count = 18
+base_layer_hp = 160000000.0
+layer_hp_growth = 1.15
+min_run_to_break = 1
 layer_resource_name = "Magma"
-bones_per_damage = 0.75
-layer_break_bonus_bones = 4500000.0
-layer_break_bonus_minerals = 600.0
+bones_per_damage = 1.60
+layer_break_bonus_bones = 25000.0
+layer_break_bonus_minerals = 8.0
 fossil_damage_threshold = 850000.0
-mineral_chance = 0.045
-mineral_amount = 12.0
-fragment_chance = 0.018
-fragment_pool = Array[ExtResource("1_ev618")]([ExtResource("2_5el8n"), ExtResource("3_8bvu2"), ExtResource("4_mhrpc")])
+mineral_chance = 0.12
+mineral_amount = 4.0
+fragment_chance = 0.09
+fragment_pool = Array[ExtResource("1_ev618")]([ExtResource("2_5el8n"), ExtResource("3_8bvu2"), ExtResource("4_mhrpc"), ExtResource("5_jsbm2")])
 rock_color_muted = Color(0.35, 0.28, 0.26, 1)
 rock_color_vivid = Color(0.92, 0.3, 0.16, 1)

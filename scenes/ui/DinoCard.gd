@@ -54,12 +54,12 @@ func refresh() -> void:
 		return
 
 	_color_Pip.color = data.accent_color
-	var tex: Texture2D = data.icon if data.icon != null else data.sprite
+	var tex: Texture2D = AmberTheme.get_dino_sprite(dino_id, data.icon if data.icon != null else data.sprite)
 	_sprite_icon.texture = tex
 	_sprite_icon.visible = (tex != null)
 
-	_name_label.text = "%s  [%s]" % [data.display_name, _role_name(data.role)]
-	_count_label.text = "×%d" % count
+	_name_label.text = "%s [%s]" % [data.display_name, _role_name(data.role)]
+	_count_label.text = "x%d" % count
 	_desc_label.text = data.description
 
 	var unit_dmg: float = GameState.get_dino_damage(dino_id)
@@ -68,17 +68,17 @@ func refresh() -> void:
 	var mult_reached: float = data.get_milestone_multiplier(count)
 
 	if count == 0:
-		_stats_label.text = "🧩 Fragmentos: %d / %d   ·   DPS base: %s/s" % [
+		_stats_label.text = "Fósseis: %d / %d · DPS base: %s/s" % [
 			frags,
 			data.fragments_required,
 			GameState.format_number(unit_dps),
 		]
 		_milestone_bar.max_value = float(maxi(data.fragments_required, 1))
 		_milestone_bar.value = float(mini(frags, data.fragments_required))
-		_milestone_label.text = "Junte %d fragmentos para reviver" % data.fragments_required
+		_milestone_label.text = "Reúna %d fósseis para reviver" % data.fragments_required
 	else:
 		var next_m: int = data.get_next_milestone(count)
-		_stats_label.text = "DPS Total: %s/s   ·   🧬 +%s/s   ·   Marcos: ×%s" % [
+		_stats_label.text = "DPS: %s/s · DNA +%s/s · Marco x%s" % [
 			GameState.format_number(total_dps),
 			GameState.format_number(data.dna_per_second * float(count)),
 			GameState.format_number(mult_reached),
@@ -86,22 +86,24 @@ func refresh() -> void:
 		if next_m > 0:
 			_milestone_bar.max_value = float(next_m)
 			_milestone_bar.value = float(count)
-			_milestone_label.text = "Próximo marco (×2): %d / %d unidades" % [count, next_m]
+			_milestone_label.text = "Marco x%s: %d / %d" % [GameState.format_number(data.milestone_multiplier), count, next_m]
 		else:
 			_milestone_bar.max_value = 1.0
 			_milestone_bar.value = 1.0
-			_milestone_label.text = "Todos os marcos alcançados! (×%s)" % GameState.format_number(mult_reached)
+			_milestone_label.text = "Marcos completos (x%s)" % GameState.format_number(mult_reached)
 
 	var cost: float = data.get_unit_cost(count)
 	var can_buy: bool = GameState.can_assemble_dino(dino_id)
 	if count == 0:
-		_assemble_button.text = "Reviver\n🧩 %d/%d · 🦴 %s" % [
+		_assemble_button.icon = AmberTheme.get_icon(&"fragment")
+		_assemble_button.text = "Reviver\n%d/%d · %s" % [
 			frags,
 			data.fragments_required,
 			GameState.format_number(cost),
 		]
 	else:
-		_assemble_button.text = "+1 Dino\n🦴 %s" % GameState.format_number(cost)
+		_assemble_button.icon = AmberTheme.get_icon(&"bones")
+		_assemble_button.text = "+1 Dino\n%s" % GameState.format_number(cost)
 	_assemble_button.disabled = not can_buy
 
 

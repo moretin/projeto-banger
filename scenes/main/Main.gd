@@ -2,9 +2,9 @@ extends Control
 ## Main — cena raiz do Fóssil Rush.
 ##
 ## Gerencia os 2 cenários verticais na área esquerda/centro (`ScenarioViewport`):
-##   • Cenário 1 (Topo): `SurfaceScene` — Onde o jogo começa (Rocha Laranja, Dinossauro Principal
-##     em Pixel Art e Escombros de Pedra reconstruíveis com Rochas).
-##   • Cenário 2 (Abaixo): `DigSite` — Corte lateral do solo para escavação de camadas e eras.
+##   • Cenário 1 (Topo): `SurfaceScene` — Acampamento de Campo (Ovo de Âmbar, Compsognato Principal
+##     em Pixel Art e estações reconstruíveis com Rochas).
+##   • Cenário 2 (Abaixo): `DigSite` — Corte Geológico Vertical com escovação, silhuetas e câmera móvel.
 ## A transição entre `surface` e `dig_site` é feita suavemente via Tween vertical ao receber
 ## `Events.scenario_transition_requested`.
 
@@ -30,16 +30,31 @@ func _ready() -> void:
 	_sync_scenario_layout.call_deferred()
 
 
+func _process(_delta: float) -> void:
+	if _transition_tween != null and _transition_tween.is_running():
+		return
+	var d: float = GameState.danger_level
+	if d >= 0.45 and not GameState.is_impacting:
+		var amp: float = pow((d - 0.45) / 0.55, 1.4) * 2.8
+		var jitter_x: float = randf_range(-amp, amp)
+		_surface_scene.position.x = jitter_x
+		_dig_site.position.x = jitter_x
+	else:
+		_surface_scene.position.x = 0.0
+		_dig_site.position.x = 0.0
+
+
 func transition_to_scenario(target: StringName) -> void:
 	if target != &"surface" and target != &"dig_site":
 		return
 	if target == _current_scenario:
 		return
 	_current_scenario = target
-	var h: float = maxf(_scenario_viewport.size.y, 600.0)
-	var w: float = maxf(_scenario_viewport.size.x, 800.0)
-	_surface_scene.size = Vector2(w, h)
-	_dig_site.size = Vector2(w, h)
+	var h: float = _scenario_viewport.size.y
+	_surface_scene.show()
+	_dig_site.show()
+	_surface_scene.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_ENABLED if target == &"surface" else Control.FOCUS_BEHAVIOR_DISABLED
+	_dig_site.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_ENABLED if target == &"dig_site" else Control.FOCUS_BEHAVIOR_DISABLED
 
 	var surface_target_y: float = 0.0 if target == &"surface" else -h
 	var dig_target_y: float = h if target == &"surface" else 0.0
@@ -49,6 +64,7 @@ func transition_to_scenario(target: StringName) -> void:
 	_transition_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	_transition_tween.tween_property(_surface_scene, "position:y", surface_target_y, 0.55)
 	_transition_tween.tween_property(_dig_site, "position:y", dig_target_y, 0.55)
+	_transition_tween.finished.connect(_sync_scenario_layout)
 	Events.scenario_changed.emit(_current_scenario)
 
 
@@ -60,6 +76,8 @@ func _sync_scenario_layout() -> void:
 		return
 	_surface_scene.size = sz
 	_dig_site.size = sz
+	_surface_scene.visible = _current_scenario == &"surface"
+	_dig_site.visible = _current_scenario == &"dig_site"
 	if _current_scenario == &"surface":
 		_surface_scene.position = Vector2.ZERO
 		_dig_site.position = Vector2(0.0, sz.y)

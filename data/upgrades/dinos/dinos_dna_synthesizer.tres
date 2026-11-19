@@ -6,12 +6,13 @@
 script = ExtResource("1_orst1")
 id = &"dinos_dna_synthesizer"
 display_name = "Sintetizador de DNA"
-description = "+25% de geração passiva de DNA."
+description = "+20% de geração passiva de DNA."
 category = 1
 sort_order = 3
 cost_resource = &"dna"
-base_cost = 5.0
-cost_growth = 1.25
+base_cost = 10.0
+cost_growth = 1.55
+max_level = 15
 stat_id = &"dna_mult"
 effect_type = 1
-effect_value = 0.25
+effect_value = 0.20

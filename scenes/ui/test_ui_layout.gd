@@ -1,79 +1,54 @@
 extends SceneTree
-## Teste headless de layout e foco da UI [B2] em múltiplas resoluções (godot-ui-control Pattern 4).
-##
-## Execução:
-##   godot --headless --path . --script res://scenes/ui/test_ui_layout.gd
-##
-## Com viewport base 1920x1080, stretch mode `canvas_items` e aspect `expand`:
-##   • 16:9  → 1920x1080
-##   • 21:9  → 2560x1080
-##   • 4:3   → 1920x1440
+## Exercita a cena real e suas bancadas nos três formatos de janela suportados.
 
-const SIZES: Array[Vector2i] = [
-	Vector2i(1920, 1080),
-	Vector2i(2560, 1080),
-	Vector2i(1920, 1440),
-]
+const SIZES: Array[Vector2i] = [Vector2i(1920, 1080), Vector2i(2560, 1080), Vector2i(1920, 1440)]
+var _failures: int = 0
+
 
 func _initialize() -> void:
-	var hud_scene: PackedScene = load("res://scenes/ui/HUD.tscn") as PackedScene
-	var upgrade_panel_scene: PackedScene = load("res://scenes/ui/UpgradePanel.tscn") as PackedScene
-	var failed: int = 0
-	for size: Vector2i in SIZES:
-		var vp: SubViewport = SubViewport.new()
-		vp.size = size
-		root.add_child(vp)
+	_run.call_deferred()
 
-		var ui_root: VBoxContainer = VBoxContainer.new()
-		ui_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		ui_root.add_theme_constant_override("separation", 0)
-		vp.add_child(ui_root)
 
-		var hud: Control = hud_scene.instantiate() as Control
-		ui_root.add_child(hud)
-
-		var body_split: HBoxContainer = HBoxContainer.new()
-		body_split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		body_split.add_theme_constant_override("separation", 0)
-		ui_root.add_child(body_split)
-
-		var dig_placeholder: Control = Control.new()
-		dig_placeholder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		dig_placeholder.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		dig_placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		body_split.add_child(dig_placeholder)
-
-		var panel: Control = upgrade_panel_scene.instantiate() as Control
-		body_split.add_child(panel)
-
+func _run() -> void:
+	var scene: PackedScene = load("res://scenes/main/Main.tscn") as PackedScene
+	for dimensions: Vector2i in SIZES:
+		var viewport: SubViewport = SubViewport.new()
+		viewport.size = dimensions
+		root.add_child(viewport)
+		var main: Control = scene.instantiate() as Control
+		viewport.add_child(main)
 		await process_frame
 		await process_frame
-
-		var screen: Rect2 = Rect2(Vector2.ZERO, Vector2(size))
-		for node: Node in ui_root.find_children("*", "Control", true, false):
-			var c: Control = node as Control
-			if c == null or not c.is_visible_in_tree():
+		var surface: Control = main.get_node("%SurfaceScene") as Control
+		var map: Control = surface.get_node("%Map") as Control
+		var previous: Rect2 = Rect2()
+		for child: Node in map.get_children():
+			var location: Button = child as Button
+			if location == null:
 				continue
-			if _is_inside_scroll_container(c, ui_root):
+			var bounds: Rect2 = location.get_global_rect()
+			_check(map.get_global_rect().encloses(bounds), "%s fora do mapa em %s" % [location.name, dimensions])
+			_check(not bounds.intersects(previous), "Alvos sobrepostos em %s" % dimensions)
+			previous = bounds
+			if location.name == &"egg":
 				continue
-			if not screen.encloses(c.get_global_rect()):
-				failed += 1
-				push_error("%s off-screen at %s: %s" % [ui_root.get_path_to(c), size, c.get_global_rect()])
+			location.pressed.emit()
+			await process_frame
+			var groups: HBoxContainer = surface.get_node("%Groups") as HBoxContainer
+			for group: Node in groups.get_children():
+				(group as Button).pressed.emit()
+				await process_frame
+				for control: Node in surface.find_children("*", "Button", true, false):
+					var button: Button = control as Button
+					if button.is_visible_in_tree():
+						_check(Rect2(Vector2.ZERO, dimensions).encloses(button.get_global_rect()), "%s fora da tela em %s" % [button.name, dimensions])
+		_check(viewport.gui_get_focus_owner() != null, "Sem foco inicial em %s" % dimensions)
+		viewport.free()
+	print("Layout das bancadas: %d falhas" % _failures)
+	quit(1 if _failures > 0 else 0)
 
-		if vp.gui_get_focus_owner() == null:
-			failed += 1
-			push_error("nothing has focus at %s, so a gamepad cannot navigate" % size)
 
-		vp.free()
-
-	print("Results: %d failed" % failed)
-	quit(1 if failed > 0 else 0)
-
-
-static func _is_inside_scroll_container(node: Control, stop_at: Node) -> bool:
-	var p: Node = node.get_parent()
-	while p != null and p != stop_at:
-		if p is ScrollContainer:
-			return true
-		p = p.get_parent()
-	return false
+func _check(condition: bool, message: String) -> void:
+	if not condition:
+		_failures += 1
+		push_error(message)

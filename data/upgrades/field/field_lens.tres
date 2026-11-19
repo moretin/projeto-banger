@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"field_lens"
+display_name = "Lupa de bancada"
+description = "O Troodonte decifra amostras. +10% de produção de DNA por nível."
+category = 5
+required_station = &"rubble_bunker"
+cost_resource = &"science"
+base_cost = 3.0
+cost_growth = 1.65
+max_level = 12
+stat_id = &"dna_mult"
+effect_type = 1
+effect_value = 0.1

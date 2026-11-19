@@ -6,9 +6,11 @@
 script = ExtResource("1_kjd5h")
 id = &"machines_pneumatic_drill"
 display_name = "Britadeira Pneumática"
-description = "+4 de DPS automático contínuo na rocha."
+description = "+3.8 de DPS automático contínuo na rocha."
 category = 2
-base_cost = 60.0
-cost_growth = 1.16
+base_cost = 141.0
+cost_growth = 1.28
 stat_id = &"auto_dps"
-effect_value = 4.0
+effect_value = 3.8
+required_upgrade = &"tools_sharp_pickaxe"
+required_level = 2

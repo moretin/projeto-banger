@@ -6,11 +6,12 @@
 script = ExtResource("1_dg256")
 id = &"dinos_raptor_claws"
 display_name = "Garras Afiadas"
-description = "+35% de dano para Velociraptors."
+description = "+20% de dano para Velociraptors."
 category = 1
 sort_order = 1
-base_cost = 400.0
-cost_growth = 1.2
+base_cost = 1900.0
+cost_growth = 1.38
+max_level = 0
 stat_id = &"dino_damage:velociraptor"
 effect_type = 1
-effect_value = 0.35
+effect_value = 0.20

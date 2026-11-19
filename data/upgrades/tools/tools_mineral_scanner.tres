@@ -6,11 +6,11 @@
 script = ExtResource("1_ootea")
 id = &"tools_mineral_scanner"
 display_name = "Scanner de Veios"
-description = "+30% de chance de extrair minérios raros."
+description = "+20% de chance de extrair minérios raros."
 sort_order = 4
-base_cost = 1500.0
-cost_growth = 1.25
-max_level = 20
+base_cost = 380.0
+cost_growth = 1.40
+max_level = 15
 stat_id = &"mineral_chance"
 effect_type = 1
-effect_value = 0.3
+effect_value = 0.20

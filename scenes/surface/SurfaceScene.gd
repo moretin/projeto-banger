@@ -1,327 +1,271 @@
 class_name SurfaceScene
 extends Control
-## Cenário 1: Superfície (onde o jogo começa).
-##
-## • Rocha Laranja inicial no centro: o jogador clica para quebrar e despertar o
-##   Dinossauro Principal em Pixel Art.
-## • Personagem Principal (HeroDino): sprite 16×16 em Pixel Art nítido (filtro NEAREST)
-##   que patrulha e anima na superfície após nascer.
-## • Escombros de Pedra: 4 estruturas em ruínas na superfície que usam Rochas (🪨,
-##   obtidas escavando no cenário abaixo) para serem reconstruídas e funcionam como
-##   upgrades permanentes da run para cada área.
-## • Botão inferior "▼ ESCAVAÇÃO": transiciona suavemente para o cenário da Escavação.
 
-const PIXEL_DINO_ROWS: PackedStringArray = [
-	"......GGGGGG....",
-	".....GGGGGGGG...",
-	".....GGWGGGGGG..",
-	".....GGGGGGGGGG.",
-	".....GGGGGGGG...",
-	".....GGGGLL.....",
-	"...GGGGGGGG.....",
-	"..GGGGGGGGGGG...",
-	".GGGGGGGGGG.G...",
-	"GGGGGGGGGGG.....",
-	"GG.GGGGGGGG.....",
-	"...GGGGGGGG.....",
-	"....GGG..GGG....",
-	"....GG....GG....",
-	"....LL....LL....",
-	"................",
-]
+const LANDMARK: Script = preload("res://scenes/surface/FieldLandmark.gd")
+# Coordenadas dos pés de cada marco no atlas de 480 × 240.
+const SITES: Dictionary = {
+	&"rubble_forge": Vector2(55, 128), &"rubble_nest": Vector2(157, 168),
+	&"egg": Vector2(236, 135), &"rubble_silo": Vector2(317, 121),
+	&"rubble_bunker": Vector2(416, 144),
+}
+const WORKBENCH_NAMES: Dictionary = {
+	UpgradeData.Category.TOOLS: "Ferramentas", UpgradeData.Category.DINOS: "Bando",
+	UpgradeData.Category.MACHINES: "Máquinas", UpgradeData.Category.DEFENSE: "Defesa",
+}
 
-@onready var _sky_rect: ColorRect = %SurfaceSky
-@onready var _ground_rect: ColorRect = %SurfaceGround
-@onready var _orange_rock_box: Control = %OrangeRockBox
-@onready var _orange_rock_canvas: Control = %OrangeRockCanvas
-@onready var _orange_rock_hp_bar: ProgressBar = %OrangeRockHpBar
-@onready var _orange_rock_hp_label: Label = %OrangeRockHpLabel
-@onready var _hero_dino_stage: Control = %HeroDinoStage
-@onready var _hero_sprite: TextureRect = %HeroDinoSprite
-@onready var _hero_speech_label: Label = %HeroSpeechLabel
-@onready var _rubble_grid: HBoxContainer = %RubbleRow
-@onready var _to_dig_button: Button = %ToDigSiteButton
+@onready var _map: Control = %Map
+@onready var _site_name: Label = %SiteName
+@onready var _stock: Label = %Stock
+@onready var _groups: HBoxContainer = %Groups
+@onready var _item_title: Label = %ItemTitle
+@onready var _details: Label = %Details
+@onready var _actions: HBoxContainer = %ActionRow
+@onready var _prev: Button = %Prev
+@onready var _next: Button = %Next
+@onready var _page_label: Label = %Page
+@onready var _quantity: Button = %Quantity
+@onready var _buy: Button = %Buy
+@onready var _descend: Button = %ToDigSiteButton
 
-var _rock_shake: float = 0.0
-var _hero_x: float = 420.0
-var _hero_dir: float = 1.0
-var _hero_phase: float = 0.0
-var _rubble_cards: Dictionary = {}
+var _landmarks: Dictionary = {}
+var _site: StringName = &""
+var _section: StringName = &""
+var _items: Array[StringName] = []
+var _page: int = 0
+var _refresh_pending: bool = false
 
 
 func _ready() -> void:
-	_hero_sprite.texture = _get_hero_texture()
-	_hero_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	for id: Variant in SITES:
+		var spot: FieldLandmark = LANDMARK.new() as FieldLandmark
+		spot.station = id
+		spot.name = String(id)
+		_map.add_child(spot)
+		_landmarks[id] = spot
+		spot.pressed.connect(_visit.bind(StringName(id)))
+	_map.resized.connect(_layout_landmarks)
+	_prev.pressed.connect(_turn.bind(-1))
+	_next.pressed.connect(_turn.bind(1))
+	_quantity.pressed.connect(GameState.cycle_buy_multiplier)
+	_buy.pressed.connect(_purchase)
+	_descend.pressed.connect(func() -> void: Events.scenario_transition_requested.emit(&"dig_site"))
+	Events.scenario_changed.connect(_on_scenario_changed)
+	Events.station_research_requested.connect(_visit_lab)
+	Events.resource_changed.connect(_queue_refresh.unbind(3))
+	Events.buy_multiplier_changed.connect(_queue_refresh.unbind(1))
+	Events.rubble_rebuilt.connect(_queue_refresh.unbind(2))
+	Events.upgrade_purchased.connect(_queue_refresh.unbind(2))
+	Events.dino_count_changed.connect(_queue_refresh.unbind(2))
+	Events.fragments_changed.connect(_queue_refresh.unbind(2))
+	Events.era_changed.connect(_queue_refresh.unbind(1))
+	Events.orange_rock_hp_changed.connect(_refresh_egg.unbind(2))
+	Events.orange_rock_broken.connect(_refresh_egg)
+	Events.run_started.connect(_reset_visit.unbind(1))
+	Events.game_loaded.connect(_reset_visit)
+	_layout_landmarks()
+	_reset_visit()
+	(_landmarks[&"egg"] as Button).grab_focus.call_deferred()
 
-	_orange_rock_box.gui_input.connect(_on_orange_rock_gui_input)
-	_orange_rock_canvas.draw.connect(_on_orange_rock_draw)
-	_to_dig_button.pressed.connect(func() -> void:
-		Events.scenario_transition_requested.emit(&"dig_site")
-	)
 
-	_build_rubble_spots()
-
-	Events.orange_rock_hp_changed.connect(_on_orange_rock_hp_changed)
-	Events.orange_rock_broken.connect(_on_orange_rock_broken)
-	Events.rubble_rebuilt.connect(_on_rubble_rebuilt)
-	Events.resource_changed.connect(_on_resource_changed)
-	Events.color_progress_changed.connect(_on_color_progress_changed)
-	Events.danger_level_changed.connect(_on_danger_level_changed)
-	Events.run_started.connect(_on_run_started)
-	Events.game_loaded.connect(_refresh_all)
-
-	_refresh_all()
+func _layout_landmarks() -> void:
+	for id: Variant in _landmarks:
+		var button: Control = _landmarks[id]
+		var foot: Vector2 = (SITES[id] as Vector2) / Vector2(480, 240) * _map.size
+		var width: float = _map.size.x * (0.13 if id == &"egg" else 0.187)
+		var art_height: float = minf(width * 0.76, _map.size.y * 0.30)
+		button.size = Vector2(width, art_height + 35)
+		button.position = (foot - Vector2(width * 0.5, art_height * 0.92)).round()
 
 
-func _process(delta: float) -> void:
-	if _rock_shake > 0.01:
-		_rock_shake = lerpf(_rock_shake, 0.0, minf(delta * 15.0, 1.0))
-		_orange_rock_canvas.position = Vector2(
-			randf_range(-_rock_shake, _rock_shake),
-			randf_range(-_rock_shake, _rock_shake)
-		)
+func _on_scenario_changed(scenario: StringName) -> void:
+	if scenario == &"surface":
+		var target: Button = _landmarks.get(_site, _landmarks[&"egg"]) as Button
+		target.grab_focus()
+
+
+func _reset_visit() -> void:
+	_site = &""
+	_section = &""
+	_items.clear()
+	_page = 0
+	_refresh_egg()
+	_refresh()
+
+
+func _visit(id: StringName) -> void:
+	if id == &"egg":
+		var egg: FieldLandmark = _landmarks[id]
+		if not GameState.orange_rock_broken:
+			egg.pulse = 1.0
+			Events.orange_rock_hit.emit(GameState.get_click_damage(), egg.get_global_rect().get_center())
+		_reset_visit()
+		return
+	_site = id
+	_build_groups()
+	_select_section(&"site")
+
+
+func _visit_lab() -> void:
+	Events.scenario_transition_requested.emit(&"surface")
+	_visit(&"rubble_bunker")
+	_select_section(&"amber")
+	(_landmarks[_site] as Button).grab_focus()
+
+
+func _build_groups() -> void:
+	for child: Node in _groups.get_children():
+		child.free()
+	_add_group(&"site", "Ofício")
+	var site_data: Dictionary = GameState.RUBBLE_DEFS[_site]
+	_add_group(&"upgrades", WORKBENCH_NAMES[site_data["category"]])
+	if _site == &"rubble_nest":
+		_add_group(&"species", "Incubadora")
+	if _site == &"rubble_bunker":
+		_add_group(&"amber", "Âmbar")
+
+
+func _add_group(id: StringName, title: String) -> void:
+	var button: Button = Button.new()
+	button.name = String(id)
+	button.text = title
+	button.toggle_mode = true
+	button.pressed.connect(_select_section.bind(id))
+	_groups.add_child(button)
+
+
+func _select_section(section: StringName) -> void:
+	_section = section
+	_page = 0
+	_items.clear()
+	var def: Dictionary = GameState.RUBBLE_DEFS[_site]
+	match section:
+		&"site":
+			_items.append(_site)
+			_items.append(def["gear"])
+		&"species":
+			for dino: DinoData in GameState.get_dinos_sorted():
+				_items.append(dino.id)
+		_:
+			var category: UpgradeData.Category = UpgradeData.Category.AMBER if section == &"amber" else def["category"]
+			for upgrade: UpgradeData in GameState.get_upgrades_by_category(category):
+				_items.append(upgrade.id)
+	for child: Node in _groups.get_children():
+		(child as Button).set_pressed_no_signal(child.name == section)
+	_refresh()
+
+
+func _turn(direction: int) -> void:
+	if not _items.is_empty():
+		_page = wrapi(_page + direction, 0, _items.size())
+		_refresh()
+
+
+func _refresh_egg() -> void:
+	(_landmarks[&"egg"] as FieldLandmark).refresh()
+
+
+func _queue_refresh() -> void:
+	if not _refresh_pending and _site != &"":
+		_refresh_pending = true
+		_refresh.call_deferred()
+
+
+func _refresh() -> void:
+	_refresh_pending = false
+	for key: Variant in _landmarks:
+		var spot: FieldLandmark = _landmarks[key]
+		spot.selected = (key == _site)
+		spot.queue_redraw()
+	_groups.visible = _site != &""
+	_actions.visible = not _items.is_empty()
+	if _site == &"":
+		_site_name.text = "Acampamento"
+		_stock.text = "Superfície"
+		_item_title.text = "Seu primeiro escavador" if not GameState.orange_rock_broken else "O bando está a postos"
+		_details.text = "Clique no ovo de âmbar até a casca se abrir." if not GameState.orange_rock_broken else "Desça à jazida para reunir rochas. Com 15, você instala a pedreira."
+		if GameState.orange_rock_broken and GameState.get_rubble_level(&"rubble_forge") > 0:
+			_details.text = "Escolha um posto para equipar o especialista. No pesqueiro, a incubadora revive os fósseis da jazida."
+		return
+	var def: Dictionary = GameState.RUBBLE_DEFS[_site]
+	var product: StringName = def["product"]
+	_site_name.text = def["title"]
+	_stock.text = "%s · %s %s · +%.1f/s" % [def["worker"], GameState.format_number(GameState.get_resource(product)), GameState.RESOURCE_NAMES[product], GameState.get_station_rate(_site)]
+	if _items.is_empty():
+		return
+	var item: StringName = _items[_page]
+	_page_label.text = "%d / %d" % [_page + 1, _items.size()]
+	_quantity.visible = item != _site
+	_quantity.text = "Lote ×%d" % GameState.buy_multiplier if GameState.buy_multiplier > 0 else "Lote máx."
+	if item == _site:
+		var level: int = GameState.get_rubble_level(_site)
+		_item_title.text = "Instalar posto de trabalho" if level == 0 else "Ampliar posto · Nv. %d" % level
+		_details.text = "%s. Produção local +%.1f %s/s." % [def["desc"], float(def["rate"]), GameState.RESOURCE_NAMES[product]]
+		_price("Construir" if level == 0 else "Ampliar", GameState.RES_ROCKS, GameState.get_rubble_cost(_site), GameState.can_rebuild_rubble(_site))
+	elif _section == &"species":
+		_show_species(item)
 	else:
-		_rock_shake = 0.0
-		_orange_rock_canvas.position = Vector2.ZERO
-
-	if GameState.orange_rock_broken:
-		_animate_hero_dino(delta)
+		_show_upgrade(item)
 
 
-func _animate_hero_dino(delta: float) -> void:
-	var stage_w: float = maxf(_hero_dino_stage.size.x, 500.0)
-	_hero_phase += delta * 7.5
-	_hero_x += _hero_dir * 75.0 * delta
-	if _hero_x < 60.0:
-		_hero_x = 60.0
-		_hero_dir = 1.0
-	elif _hero_x > stage_w - 140.0:
-		_hero_x = stage_w - 140.0
-		_hero_dir = -1.0
-
-	var hop: float = absf(sin(_hero_phase)) * 10.0
-	_hero_sprite.position = Vector2(_hero_x, 24.0 - hop)
-	# O PNG do Compsognato olha para a esquerda: inverte quando anda para a direita.
-	_hero_sprite.flip_h = (_hero_dir > 0.0)
-
-
-func _refresh_all() -> void:
-	var broken: bool = GameState.orange_rock_broken
-	_orange_rock_box.visible = not broken
-	_hero_dino_stage.visible = broken
-	_to_dig_button.disabled = false
-	if not broken:
-		_to_dig_button.text = "▼ ESCAVAÇÃO  (Quebre a Rocha Laranja primeiro ou desça agora)"
-	else:
-		_to_dig_button.text = "⛏️ ▼ IR PARA A ESCAVAÇÃO ▼"
-
-	_on_orange_rock_hp_changed(GameState.orange_rock_hp, GameState.ORANGE_ROCK_MAX_HP)
-	_refresh_rubble_spots()
-	_update_sky_and_ground()
-
-
-func _update_sky_and_ground() -> void:
-	var cp: float = GameState.color_progress
-	var danger: float = GameState.danger_level
-	var sky_calm: Color = Color(0.28, 0.30, 0.35).lerp(Color(0.32, 0.58, 0.85), cp)
-	_sky_rect.color = sky_calm.lerp(Color(0.72, 0.18, 0.14), danger)
-	_ground_rect.color = Color(0.35, 0.33, 0.28).lerp(Color(0.34, 0.66, 0.30), cp)
-
-
-func _on_orange_rock_gui_input(event: InputEvent) -> void:
-	var mb: InputEventMouseButton = event as InputEventMouseButton
-	if mb != null and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
-		_rock_shake = 7.0
-		var hit_pos: Vector2 = _orange_rock_box.get_global_transform_with_canvas() * mb.position
-		Events.orange_rock_hit.emit(GameState.get_click_damage(), hit_pos)
-		Events.dig_hit.emit(0.0, hit_pos, true)  # dispara som/partícula via VfxAudioManager
-
-
-func _on_orange_rock_hp_changed(hp: float, max_hp: float) -> void:
-	_orange_rock_hp_bar.max_value = maxf(max_hp, 1.0)
-	_orange_rock_hp_bar.value = clampf(hp, 0.0, max_hp)
-	_orange_rock_hp_label.text = "🟠 Rocha Laranja: %d / %d  (Clique para quebrar!)" % [
-		ceili(hp),
-		ceili(max_hp),
-	]
-	_orange_rock_canvas.queue_redraw()
-
-
-func _on_orange_rock_broken() -> void:
-	_orange_rock_box.visible = false
-	_hero_dino_stage.visible = true
-	_hero_speech_label.text = "🦖 Rawr! Estou livre! Vamos escavar rochas lá embaixo para reconstruir os escombros!"
-	_to_dig_button.text = "⛏️ ▼ IR PARA A ESCAVAÇÃO ▼"
-	_refresh_rubble_spots()
-
-
-## Desenha a Rocha Laranja em estilo pixel/facetado com rachaduras conforme o HP cai.
-func _on_orange_rock_draw() -> void:
-	var sz: Vector2 = _orange_rock_canvas.size
-	var cx: float = sz.x * 0.5
-	var cy: float = sz.y * 0.52
-
-	# Sombra no chão
-	_orange_rock_canvas.draw_rect(Rect2(cx - 72.0, cy + 46.0, 144.0, 18.0), Color(0.12, 0.10, 0.08, 0.55))
-	# Corpo pixelado da Rocha Laranja
-	_orange_rock_canvas.draw_rect(Rect2(cx - 64.0, cy - 36.0, 128.0, 86.0), Color(0.92, 0.46, 0.12))
-	_orange_rock_canvas.draw_rect(Rect2(cx - 52.0, cy - 52.0, 104.0, 20.0), Color(0.98, 0.58, 0.18))
-	_orange_rock_canvas.draw_rect(Rect2(cx - 44.0, cy - 28.0, 42.0, 28.0), Color(1.0, 0.72, 0.28))
-	_orange_rock_canvas.draw_rect(Rect2(cx - 64.0, cy + 30.0, 128.0, 20.0), Color(0.72, 0.32, 0.08))
-
-	var dmg_ratio: float = 1.0 - (_orange_rock_hp_bar.value / maxf(_orange_rock_hp_bar.max_value, 1.0))
-	if dmg_ratio > 0.05:
-		var cracks: int = clampi(int(dmg_ratio * 6.0) + 1, 1, 6)
-		for i: int in range(cracks):
-			var p0 := Vector2(cx - 30.0 + float(i) * 12.0, cy - 40.0)
-			var p1 := p0 + Vector2((float(i % 2) - 0.5) * 28.0, 38.0 * dmg_ratio)
-			var p2 := p1 + Vector2((0.5 - float(i % 2)) * 24.0, 36.0 * dmg_ratio)
-			_orange_rock_canvas.draw_line(p0, p1, Color(0.18, 0.08, 0.04), 4.0)
-			_orange_rock_canvas.draw_line(p1, p2, Color(0.18, 0.08, 0.04), 3.0)
-
-
-func _build_rubble_spots() -> void:
-	for child: Node in _rubble_grid.get_children():
-		child.queue_free()
-	_rubble_cards.clear()
-
-	for rubble_id: StringName in GameState.RUBBLE_ORDER:
-		var def: Dictionary = GameState.RUBBLE_DEFS[rubble_id]
-		var panel := PanelContainer.new()
-		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		panel.custom_minimum_size = Vector2(180.0, 175.0)
-
-		var margin := MarginContainer.new()
-		margin.add_theme_constant_override("margin_left", 10)
-		margin.add_theme_constant_override("margin_top", 8)
-		margin.add_theme_constant_override("margin_right", 10)
-		margin.add_theme_constant_override("margin_bottom", 8)
-		panel.add_child(margin)
-
-		var vbox := VBoxContainer.new()
-		vbox.add_theme_constant_override("separation", 5)
-		margin.add_child(vbox)
-
-		var visual := ColorRect.new()
-		visual.custom_minimum_size = Vector2(0.0, 44.0)
-		visual.color = Color(0.35, 0.33, 0.31)
-		vbox.add_child(visual)
-
-		var state_lbl := Label.new()
-		state_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		state_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		state_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		state_lbl.add_theme_font_size_override("font_size", 13)
-		visual.add_child(state_lbl)
-
-		var title_lbl := Label.new()
-		title_lbl.text = String(def["title"])
-		title_lbl.add_theme_font_size_override("font_size", 15)
-		title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		vbox.add_child(title_lbl)
-
-		var desc_lbl := Label.new()
-		desc_lbl.text = String(def["desc"])
-		desc_lbl.add_theme_font_size_override("font_size", 12)
-		desc_lbl.add_theme_color_override("font_color", Color(0.80, 0.82, 0.85))
-		desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		desc_lbl.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		vbox.add_child(desc_lbl)
-
-		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(0.0, 36.0)
-		btn.focus_mode = Control.FOCUS_NONE
-		var captured_id: StringName = rubble_id
-		btn.pressed.connect(func() -> void:
-			Events.rubble_rebuild_requested.emit(captured_id)
-		)
-		vbox.add_child(btn)
-
-		_rubble_grid.add_child(panel)
-		_rubble_cards[rubble_id] = {
-			"visual": visual,
-			"state_lbl": state_lbl,
-			"title_lbl": title_lbl,
-			"btn": btn,
-		}
-
-
-func _refresh_rubble_spots() -> void:
-	for rubble_id: StringName in GameState.RUBBLE_ORDER:
-		if not _rubble_cards.has(rubble_id):
-			continue
-		var def: Dictionary = GameState.RUBBLE_DEFS[rubble_id]
-		var card: Dictionary = _rubble_cards[rubble_id]
-		var lvl: int = GameState.get_rubble_level(rubble_id)
-		var cost: float = GameState.get_rubble_cost(rubble_id)
-		var can_buy: bool = GameState.can_rebuild_rubble(rubble_id)
-
-		var visual: ColorRect = card["visual"] as ColorRect
-		var state_lbl: Label = card["state_lbl"] as Label
-		var title_lbl: Label = card["title_lbl"] as Label
-		var btn: Button = card["btn"] as Button
-
-		title_lbl.text = "%s (Nv. %d)" % [String(def["title"]), lvl]
-		if lvl == 0:
-			visual.color = Color(0.32, 0.30, 0.28)
-			state_lbl.text = "🪨 [ ESCOMBROS DE PEDRA ]"
-			btn.text = "Reconstruir · 🪨 %s" % GameState.format_number(cost)
+func _show_upgrade(id: StringName) -> void:
+	var data: UpgradeData = GameState.get_upgrade(id)
+	var level: int = GameState.get_upgrade_level(id)
+	_item_title.text = "%s · Nv. %d" % [data.display_name, level]
+	_details.text = data.description
+	if data.required_station != &"":
+		_details.text += " Produção local +%d%% por nível." % roundi(GameState.FIELD_GEAR_YIELD_BONUS * 100)
+	if data.is_maxed(level):
+		_unavailable("Nível máximo")
+	elif not GameState.is_upgrade_unlocked(id):
+		if data.required_station != &"":
+			_unavailable("Instale o posto primeiro")
+		elif GameState.current_era_index < data.required_era_index:
+			_unavailable("Alcance %s" % GameState.eras[data.required_era_index].display_name)
 		else:
-			visual.color = (def["color"] as Color).darkened(0.25)
-			state_lbl.text = "🏛️ [ RECONSTRUÍDO · Nv.%d ]" % lvl
-			btn.text = "Melhorar · 🪨 %s" % GameState.format_number(cost)
-		btn.disabled = not can_buy
+			_unavailable("Requer %s · Nv. %d" % [GameState.get_upgrade(data.required_upgrade).display_name, data.required_level])
+	else:
+		var count: int = maxi(1, GameState.resolve_purchase_amount(id))
+		_price("Equipar +%d" % count, data.cost_resource, GameState.get_purchase_cost(id), GameState.can_purchase_upgrade(id))
 
 
-func _on_rubble_rebuilt(_rubble_id: StringName, _new_level: int) -> void:
-	_refresh_rubble_spots()
+func _show_species(id: StringName) -> void:
+	var data: DinoData = GameState.get_dino(id)
+	var count: int = GameState.get_dino_count(id)
+	_item_title.text = "%s · %d no bando" % [data.display_name, count]
+	_details.text = data.description
+	var needed: int = GameState.get_required_fragments_for_dino(id) if count == 0 or data.fragments_growth_per_unit > 0 else 0
+	if GameState.current_era_index < data.unlock_era_index and GameState.get_fragments(id) == 0 and count == 0:
+		_unavailable("Procure fósseis em %s" % GameState.eras[data.unlock_era_index].display_name)
+	elif not data.can_spawn_more(count):
+		_unavailable("Bando completo")
+	else:
+		if needed > 0:
+			_details.text += "  Fósseis: %d/%d." % [GameState.get_fragments(id), needed]
+		var action: String = "Reviver" if count == 0 else "Clonar +%d" % maxi(1, GameState.resolve_dino_purchase_amount(id))
+		_price(action, GameState.RES_BONES, GameState.get_dino_purchase_cost(id), GameState.can_assemble_dino(id))
 
 
-func _on_resource_changed(res_id: StringName, _amount: float, _delta: float) -> void:
-	if res_id == GameState.RES_ROCKS:
-		_refresh_rubble_spots()
+func _price(action: String, currency: StringName, cost: float, affordable: bool) -> void:
+	_buy.text = "%s · %s %s" % [action, GameState.format_number(cost), GameState.RESOURCE_NAMES[currency]]
+	_buy.disabled = not affordable
+	_buy.tooltip_text = "Saldo: %s %s" % [GameState.format_number(GameState.get_resource(currency)), GameState.RESOURCE_NAMES[currency]]
 
 
-func _on_color_progress_changed(_progress: float) -> void:
-	_update_sky_and_ground()
+func _unavailable(reason: String) -> void:
+	_buy.text = reason
+	_buy.tooltip_text = reason
+	_buy.disabled = true
 
 
-func _on_danger_level_changed(_level: float) -> void:
-	_update_sky_and_ground()
-
-
-func _on_run_started(_run: int) -> void:
-	_refresh_all()
-
-
-## Textura do Dinossauro Principal: usa o sprite do Compsognato (DinoData) e,
-## se ele não existir, recai na versão 16×16 procedural em Pixel Art.
-func _get_hero_texture() -> Texture2D:
-	var data: DinoData = GameState.get_dino(&"compsognathus")
-	if data != null and data.sprite != null:
-		return data.sprite
-	return _create_pixel_dino_texture()
-
-
-## Cria a textura 16×16 em Pixel Art do Dinossauro Principal (fallback).
-static func _create_pixel_dino_texture() -> ImageTexture:
-	var img: Image = Image.create(16, 16, false, Image.FORMAT_RGBA8)
-	var body_col := Color(0.32, 0.82, 0.36, 1.0)
-	var belly_col := Color(0.78, 0.95, 0.58, 1.0)
-	var eye_col := Color(0.98, 0.98, 0.98, 1.0)
-
-	for y: int in range(PIXEL_DINO_ROWS.size()):
-		var row: String = PIXEL_DINO_ROWS[y]
-		for x: int in range(mini(row.length(), 16)):
-			var ch: String = row.substr(x, 1)
-			match ch:
-				"G":
-					img.set_pixel(x, y, body_col)
-				"L":
-					img.set_pixel(x, y, belly_col)
-				"W":
-					img.set_pixel(x, y, eye_col)
-				_:
-					img.set_pixel(x, y, Color(0, 0, 0, 0))
-	return ImageTexture.create_from_image(img)
+func _purchase() -> void:
+	if _items.is_empty() or _buy.disabled:
+		return
+	var id: StringName = _items[_page]
+	if id == _site:
+		Events.rubble_rebuild_requested.emit(id)
+	elif _section == &"species":
+		Events.dino_assembly_requested.emit(id)
+	else:
+		Events.upgrade_purchase_requested.emit(id, GameState.buy_multiplier)
+	(_landmarks[_site] as FieldLandmark).pulse = 1.0
+	_refresh()
