@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"dinos_beak_talons"
+display_name = "Bicos & Garras de Caça"
+description = "Bicos afiados da Torre ajudam a desenterrar fósseis (+80% sorte de achar fósseis brutos por nível)."
+category = 2
+sort_order = 10
+cost_resource = &"beaks"
+base_cost = 5.0
+cost_growth = 1.55
+max_level = 15
+stat_id = &"fossil_luck"
+effect_type = 1
+effect_value = 0.80

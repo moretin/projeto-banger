@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"uni_fossil_luck"
+display_name = "Sonda Paleontológica"
+description = "Mapeia veios raros nas estruturas e aumenta a sorte de achar fósseis brutos (+120% por nível)."
+category = 3
+sort_order = 2
+cost_resource = &"science"
+base_cost = 14.0
+cost_growth = 1.50
+max_level = 15
+stat_id = &"fossil_luck"
+effect_type = 1
+effect_value = 1.2

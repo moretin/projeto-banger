@@ -6,11 +6,13 @@
 script = ExtResource("1_ix25t")
 id = &"dinos_pack_instinct"
 display_name = "Instinto de Bando"
-description = "+12% de dano para todas as espécies de dinossauros."
+description = "Peixe fresco fortalece o bando: +15% de força para todos os dinossauros por nível."
 category = 1
-base_cost = 150.0
+sort_order = 0
+cost_resource = &"fish"
+base_cost = 14.0
 cost_growth = 1.36
 max_level = 0
 stat_id = &"dino_damage"
 effect_type = 1
-effect_value = 0.12
+effect_value = 0.15

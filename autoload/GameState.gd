@@ -23,17 +23,37 @@ const RES_AMBER: StringName = &"amber"
 const RES_FISH: StringName = &"fish"
 const RES_FEATHERS: StringName = &"feathers"
 const RES_SCIENCE: StringName = &"science"
+const RES_RAW_FOSSILS: StringName = &"raw_fossils"
+const RES_METAL: StringName = &"metal"
+const RES_SCALES: StringName = &"scales"
+const RES_BEAKS: StringName = &"beaks"
 const RESOURCE_NAMES: Dictionary = {
 	RES_BONES: "ossos", RES_ROCKS: "rochas", RES_MINERALS: "minérios", RES_DNA: "DNA",
 	RES_AMBER: "âmbar", RES_FISH: "peixes", RES_FEATHERS: "penas", RES_SCIENCE: "ciência",
+	RES_RAW_FOSSILS: "fósseis brutos", RES_METAL: "metal", RES_SCALES: "escamas", RES_BEAKS: "bicos de ave",
 }
 ## Recursos zerados a cada run (âmbar é permanente).
-const RUN_RESOURCES: Array[StringName] = [RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA, RES_FISH, RES_FEATHERS, RES_SCIENCE]
-const ALL_RESOURCES: Array[StringName] = [RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA, RES_AMBER, RES_FISH, RES_FEATHERS, RES_SCIENCE]
+const RUN_RESOURCES: Array[StringName] = [
+	RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA, RES_FISH, RES_FEATHERS, RES_SCIENCE,
+	RES_RAW_FOSSILS, RES_METAL, RES_SCALES, RES_BEAKS,
+]
+const ALL_RESOURCES: Array[StringName] = [
+	RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA, RES_AMBER, RES_FISH, RES_FEATHERS, RES_SCIENCE,
+	RES_RAW_FOSSILS, RES_METAL, RES_SCALES, RES_BEAKS,
+]
 
 ## Vida inicial da Rocha Laranja na Superfície.
 const ORANGE_ROCK_MAX_HP: float = 10.0
 const FIELD_GEAR_YIELD_BONUS: float = 0.25
+const HERO_BASE_FARM_RATE: float = 0.45
+const HERO_ASSIST_BONUS_MULT: float = 0.50
+## Probabilidade base de encontrar um fóssil bruto por coleta (1 em 1000).
+const BASE_RAW_FOSSIL_CHANCE: float = 0.001
+## Tempo base (em segundos) para limpar um fóssil bruto na Universidade.
+const BASE_FOSSIL_CLEAN_SECONDS: float = 40.0
+## Quantidade de fósseis limpos necessários para reviver o dinossauro especialista de cada estrutura.
+const STATION_REVIVE_FOSSILS_REQUIRED: int = 10
+const STATION_FOSSIL_FLASH_DURATION: float = 3.2
 
 ## Escombros de pedra reconstruíveis na Superfície (custam RES_ROCKS).
 const RUBBLE_ORDER: Array[StringName] = [
@@ -45,9 +65,13 @@ const RUBBLE_ORDER: Array[StringName] = [
 const RUBBLE_DEFS: Dictionary = {
 	&"rubble_forge": {
 		"title": "Pedreira do Casco",
+		"biome": "Encosta Rochosa",
 		"worker": "Paquicefalossauro",
+		"worker_desc": "Paquicefalossauro coleta Rochas automaticamente (+0.8/s base).",
 		"product": RES_ROCKS,
-		"rate": 0.5,
+		"rate": 0.8,
+		"build_cost": 15.0,
+		"worker_cost": 20.0,
 		"gear": &"field_helmet",
 		"category": UpgradeData.Category.TOOLS,
 		"desc": "+50% de Dano de Clique por nível",
@@ -56,12 +80,21 @@ const RUBBLE_DEFS: Dictionary = {
 		"stat_id": &"click_damage",
 		"mult_per_level": 0.50,
 		"color": Color(0.92, 0.52, 0.24),
+		"fossils": [&"ankylosaurus", &"triceratops", &"trex"],
+		"revive_dino": &"ankylosaurus",
+		"revive_name": "Anquilossauro Minerador",
+		"tier2_product": RES_METAL,
+		"tier2_rate": 0.25,
 	},
 	&"rubble_nest": {
 		"title": "Pesqueiro do Junco",
+		"biome": "Várzea Aluvial",
 		"worker": "Bariônix",
+		"worker_desc": "Bariônix pesca Peixes automaticamente (+0.7/s base).",
 		"product": RES_FISH,
-		"rate": 0.5,
+		"rate": 0.7,
+		"build_cost": 15.0,
+		"worker_cost": 25.0,
 		"gear": &"field_fins",
 		"category": UpgradeData.Category.DINOS,
 		"desc": "+50% de Dano dos Dinos por nível",
@@ -70,26 +103,44 @@ const RUBBLE_DEFS: Dictionary = {
 		"stat_id": &"dino_damage",
 		"mult_per_level": 0.50,
 		"color": Color(0.52, 0.85, 0.38),
+		"fossils": [&"dilophosaurus", &"brachiosaurus"],
+		"revive_dino": &"dilophosaurus",
+		"revive_name": "Dilofossauro Escamoso",
+		"tier2_product": RES_SCALES,
+		"tier2_rate": 0.25,
 	},
 	&"rubble_silo": {
 		"title": "Torre dos Ventos",
+		"biome": "Penhasco das Dunas",
 		"worker": "Pterodáctilo",
+		"worker_desc": "Pterodáctilo coleta Penas automaticamente (+0.6/s base).",
 		"product": RES_FEATHERS,
-		"rate": 0.4,
+		"rate": 0.6,
+		"build_cost": 45.0,
+		"worker_cost": 25.0,
 		"gear": &"field_goggles",
 		"category": UpgradeData.Category.MACHINES,
-		"desc": "+45% de Ossos e Rochas por nível",
+		"desc": "+45% de Produção e Coleta por nível",
 		"base_cost": 60.0,
 		"cost_growth": 2.3,
 		"stat_id": &"bones_mult",
 		"mult_per_level": 0.45,
 		"color": Color(0.42, 0.75, 0.92),
+		"fossils": [&"velociraptor", &"pterodactyl", &"compsognathus"],
+		"revive_dino": &"velociraptor",
+		"revive_name": "Velociraptor Caçador",
+		"tier2_product": RES_BEAKS,
+		"tier2_rate": 0.22,
 	},
 	&"rubble_bunker": {
 		"title": "Universidade da Arca",
+		"biome": "Laboratório Paleontológico",
 		"worker": "Troodonte",
+		"worker_desc": "Troodonte produz Ciência automaticamente (+0.5/s base) e acelera a limpeza de fósseis.",
 		"product": RES_SCIENCE,
-		"rate": 0.3,
+		"rate": 0.5,
+		"build_cost": 90.0,
+		"worker_cost": 25.0,
 		"gear": &"field_lens",
 		"category": UpgradeData.Category.DEFENSE,
 		"desc": "+8% de Escudo Anti-Meteoro por nível",
@@ -98,6 +149,11 @@ const RUBBLE_DEFS: Dictionary = {
 		"stat_id": &"meteor_shield",
 		"add_per_level": 0.08,
 		"color": Color(0.75, 0.65, 0.88),
+		"fossils": [&"brachiosaurus", &"compsognathus", &"velociraptor", &"triceratops", &"trex", &"pterodactyl", &"ankylosaurus", &"dilophosaurus"],
+		"revive_dino": &"brachiosaurus",
+		"revive_name": "Braquiossauro Decano",
+		"tier2_product": RES_SCIENCE,
+		"tier2_rate": 0.8,
 	},
 }
 
@@ -130,7 +186,11 @@ const STAT_METEOR_TIME: StringName = &"meteor_time"        ## Segundos extras (A
 const STAT_METEOR_SHIELD: StringName = &"meteor_shield"    ## 0..1 de proteção
 const STAT_AMBER_MULT: StringName = &"amber_mult"
 const STAT_OFFLINE_MULT: StringName = &"offline_mult"
-const STAT_AUTO_DPS: StringName = &"auto_dps"              ## DPS passivo de máquinas
+const STAT_AUTO_DPS: StringName = &"auto_dps"              ## DPS passivo legado
+const STAT_FOSSIL_LUCK: StringName = &"fossil_luck"
+const STAT_CLEANING_SPEED: StringName = &"cleaning_speed"
+const STAT_CLEAN_DOUBLE_CHANCE: StringName = &"clean_double_chance"
+const STAT_TIER2_YIELD: StringName = &"tier2_yield"
 
 ## Valor de "Máx" no multiplicador de compra.
 const BUY_MAX: int = -1
@@ -167,6 +227,7 @@ var fragments: Dictionary = {}
 var dino_counts: Dictionary = {}
 var upgrade_levels: Dictionary = {}
 var rubble_levels: Dictionary = {}
+var station_worker_unlocked: Dictionary = {}
 
 var orange_rock_hp: float = ORANGE_ROCK_MAX_HP
 var orange_rock_broken: bool = false
@@ -179,12 +240,18 @@ var layer_max_hp: float = 0.0
 ## Total de camadas quebradas nesta run (profundidade).
 var depth: int = 0
 var run_total_bones: float = 0.0
+var run_surface_progress: float = 0.0
 
 var meteor_active: bool = false
 var meteor_time_left: float = 0.0
 var meteor_total_time: float = 0.0
 var is_impacting: bool = false
 var _dig_cycle_damage: float = 0.0
+var hero_station: StringName = &""
+var raw_fossil_queue: Array[StringName] = []
+var fossil_cleaning_progress: float = 0.0
+var station_revived_dinos: Dictionary = {}
+var station_last_fossil_time: Dictionary = {}
 #endregion
 
 
@@ -210,6 +277,8 @@ var buy_multiplier: int = 1
 var color_progress: float = 0.0
 var danger_level: float = 0.0
 var is_prestige_modal_open: bool = false
+var sfx_volume: float = 1.0
+var music_volume: float = 1.0
 #endregion
 
 
@@ -271,17 +340,25 @@ func _reset_run_state() -> void:
 	dino_counts.clear()
 	upgrade_levels.clear()
 	rubble_levels.clear()
+	rubble_levels[&"rubble_forge"] = 1
+	station_worker_unlocked.clear()
 	orange_rock_hp = ORANGE_ROCK_MAX_HP
 	orange_rock_broken = false
 	current_era_index = 0
 	current_layer_index = 0
 	depth = 0
 	run_total_bones = 0.0
+	run_surface_progress = 0.0
 	_dig_roll_accum = 0.0
 	_auto_dig_accum = 0.0
 	meteor_active = false
 	is_impacting = false
 	_dig_cycle_damage = 0.0
+	hero_station = &""
+	raw_fossil_queue.clear()
+	fossil_cleaning_progress = 0.0
+	station_revived_dinos.clear()
+	station_last_fossil_time.clear()
 	recalculate_stats()
 	_setup_layer()
 	_setup_meteor()
@@ -383,8 +460,9 @@ func is_upgrade_unlocked(upgrade_id: StringName) -> bool:
 	var data: UpgradeData = get_upgrade(upgrade_id)
 	if data == null:
 		return false
-	if data.required_station != &"" and get_rubble_level(data.required_station) == 0:
-		return false
+	if data.required_station != &"":
+		if not is_station_built(data.required_station) or not has_station_worker(data.required_station):
+			return false
 	if current_era_index < data.required_era_index and not data.is_permanent:
 		return false
 	if data.required_upgrade != &"":
@@ -594,9 +672,23 @@ func get_fortified_excavation_multiplier() -> float:
 	return 1.0 + get_shield_ratio() * ratio
 
 
-## Multiplicador combinado de ossos: bônus da run × prestígio permanente × coletores.
+## Bônus permanente do Museu Paleontológico (+3% por peça anatômica única e +5% por holótipo lendário, teto +50%).
+func get_museum_collection_multiplier() -> float:
+	if total_fossils_evaluated <= 0:
+		return 1.0
+	var unique_parts: int = 0
+	for rec_val: Variant in fossil_catalog.values():
+		if rec_val is Dictionary:
+			var parts_val: Variant = (rec_val as Dictionary).get("parts", [])
+			if parts_val is Array:
+				unique_parts += (parts_val as Array).size()
+	var legend_bonus: float = minf(float(total_legendary_fossils) * 0.05, 0.50)
+	return 1.0 + float(unique_parts) * 0.03 + legend_bonus
+
+
+## Multiplicador combinado de ossos: bônus da run × prestígio permanente × coletores × acervo do Museu.
 func get_total_bones_multiplier() -> float:
-	return get_multiplier(STAT_BONES_MULT) * get_multiplier(STAT_PRESTIGE_BONES_MULT) * get_collector_bones_multiplier()
+	return get_multiplier(STAT_BONES_MULT) * get_multiplier(STAT_PRESTIGE_BONES_MULT) * get_collector_bones_multiplier() * get_museum_collection_multiplier()
 
 
 ## Parcela da Mestria Paleontológica convertida em poder direto de escavação (evita estagnação pós-prestígio).
@@ -974,8 +1066,14 @@ func apply_dig_damage(damage: float, world_position: Vector2 = Vector2.ZERO) -> 
 
 			var frag_p: float = clampf(era.fragment_chance * frag_rate_mult, 0.0, max_p)
 			var frag_hits: int = _sample_binomial(n_rolls, frag_p)
-			if frag_hits > 0 and not era.fragment_pool.is_empty():
-				_distribute_fragment_drops(era.fragment_pool, frag_hits, world_position)
+			if frag_hits > 0:
+				var active_pool: Array[DinoData] = era.fragment_pool
+				if hero_station != &"":
+					var biome_pool: Array[DinoData] = get_biome_fossil_pool(hero_station, false)
+					if not biome_pool.is_empty():
+						active_pool = biome_pool
+				if not active_pool.is_empty():
+					_distribute_fragment_drops(active_pool, frag_hits, world_position)
 
 		layer_hp -= effective
 		Events.layer_hp_changed.emit(layer_hp, layer_max_hp)
@@ -1009,7 +1107,13 @@ func _break_layer(world_position: Vector2 = Vector2.ZERO) -> void:
 		var break_frag_base: float = balance.layer_break_bonus_fragment_chance if balance != null else 0.35
 		var break_frag_p: float = clampf(break_frag_base * get_multiplier(STAT_FRAGMENT_CHANCE) * get_collector_drop_multiplier(), 0.0, 0.95)
 		if randf() < break_frag_p:
-			var bonus_dino: DinoData = era.pick_random_fragment()
+			var bonus_dino: DinoData = null
+			if hero_station != &"":
+				var biome_pool: Array[DinoData] = get_biome_fossil_pool(hero_station, false)
+				if not biome_pool.is_empty():
+					bonus_dino = biome_pool[randi() % biome_pool.size()]
+			if bonus_dino == null:
+				bonus_dino = era.pick_random_fragment()
 			if bonus_dino != null:
 				add_fragments(bonus_dino.id, 1)
 				register_fossil_found(bonus_dino.id)
@@ -1074,6 +1178,10 @@ func _on_orange_rock_hit(damage: float, world_position: Vector2) -> void:
 
 	if orange_rock_hp <= 0.0:
 		orange_rock_broken = true
+		# Garante ao menos 15 Rochas ao chocar o ovo para construir o Pesqueiro ou avançar na Pedreira.
+		var shell_bonus: float = maxf(5.0, 15.0 - get_resource(RES_ROCKS))
+		add_resource(RES_ROCKS, shell_bonus)
+		Events.loot_dropped.emit(RES_ROCKS, shell_bonus, world_position)
 		# Ao quebrar a Rocha Laranja, nasce o 1º Dinossauro (protagonista)!
 		if get_dino_count(&"compsognathus") == 0:
 			dino_counts[&"compsognathus"] = 1
@@ -1082,7 +1190,390 @@ func _on_orange_rock_hit(damage: float, world_position: Vector2) -> void:
 			Events.dino_count_changed.emit(&"compsognathus", 1)
 			_update_color_progress()
 		Events.orange_rock_broken.emit()
-		Events.notification_requested.emit("🦖 A Rocha Laranja se partiu! Seu Dinossauro despertou!", null)
+		Events.notification_requested.emit("🦖 O Ovo de Âmbar se partiu! Use WASD para mover seu Dinossauro!", null)
+
+
+func set_hero_station(station: StringName) -> void:
+	var normalized: StringName = station if RUBBLE_DEFS.has(station) else &""
+	if hero_station == normalized:
+		return
+	hero_station = normalized
+	Events.stats_recalculated.emit()
+
+
+func is_station_built(station: StringName) -> bool:
+	return get_rubble_level(station) > 0
+
+
+func has_station_worker(station: StringName) -> bool:
+	return bool(station_worker_unlocked.get(station, false))
+
+
+func get_station_worker_cost(station: StringName) -> float:
+	if not RUBBLE_DEFS.has(station):
+		return 0.0
+	return float(RUBBLE_DEFS[station].get("worker_cost", 25.0))
+
+
+func can_hire_station_worker(station: StringName) -> bool:
+	if not RUBBLE_DEFS.has(station):
+		return false
+	if not is_station_built(station) or has_station_worker(station):
+		return false
+	var product: StringName = RUBBLE_DEFS[station]["product"]
+	return can_afford(product, get_station_worker_cost(station))
+
+
+func hire_station_worker(station: StringName) -> bool:
+	if not can_hire_station_worker(station):
+		return false
+	var def: Dictionary = RUBBLE_DEFS[station]
+	var product: StringName = def["product"]
+	var cost: float = get_station_worker_cost(station)
+	if not spend(product, cost):
+		return false
+	station_worker_unlocked[station] = true
+	recalculate_stats()
+	_update_color_progress()
+	Events.rubble_rebuilt.emit(station, get_rubble_level(station))
+	Events.notification_requested.emit(
+		"🦖 %s recrutado em %s!" % [String(def["worker"]), String(def["title"])],
+		null
+	)
+	return true
+
+
+func get_station_for_dino(dino_id: StringName) -> StringName:
+	for station: StringName in RUBBLE_ORDER:
+		if get_station_revive_dino_id(station) == dino_id:
+			return station
+	return &""
+
+
+func get_active_surface_resources() -> Array[StringName]:
+	var active: Array[StringName] = [RES_ROCKS]
+	if is_station_built(&"rubble_nest") or get_resource(RES_FISH) > 0.0:
+		active.append(RES_FISH)
+	if is_station_built(&"rubble_silo") or get_resource(RES_FEATHERS) > 0.0:
+		active.append(RES_FEATHERS)
+	if is_station_built(&"rubble_bunker") or get_resource(RES_SCIENCE) > 0.0:
+		active.append(RES_SCIENCE)
+	if not raw_fossil_queue.is_empty() or get_resource(RES_RAW_FOSSILS) > 0.0:
+		active.append(RES_RAW_FOSSILS)
+	if get_station_revived_count(&"rubble_forge") > 0 or get_resource(RES_METAL) > 0.0:
+		active.append(RES_METAL)
+	if get_station_revived_count(&"rubble_nest") > 0 or get_resource(RES_SCALES) > 0.0:
+		active.append(RES_SCALES)
+	if get_station_revived_count(&"rubble_silo") > 0 or get_resource(RES_BEAKS) > 0.0:
+		active.append(RES_BEAKS)
+	if get_resource(RES_AMBER) > 0.0 or total_amber_earned > 0.0:
+		active.append(RES_AMBER)
+	return active
+
+
+func get_resource_rate(res_id: StringName) -> float:
+	var total: float = 0.0
+	for station: StringName in RUBBLE_ORDER:
+		var def: Dictionary = RUBBLE_DEFS[station]
+		if def["product"] == res_id:
+			total += get_station_effective_rate(station)
+		if def["tier2_product"] == res_id:
+			total += get_station_tier2_rate(station)
+	return total
+
+
+func get_hero_station_bonus_rate(station: StringName) -> float:
+	if not orange_rock_broken or hero_station != station or not is_station_built(station):
+		return 0.0
+	return HERO_BASE_FARM_RATE + get_station_rate(station) * HERO_ASSIST_BONUS_MULT
+
+
+func get_station_effective_rate(station: StringName) -> float:
+	return get_station_rate(station) + get_hero_station_bonus_rate(station)
+
+
+func get_biome_fossil_pool(station: StringName, include_future_fallback: bool = false) -> Array[DinoData]:
+	var pool: Array[DinoData] = []
+	if not RUBBLE_DEFS.has(station):
+		return pool
+	var ids: Variant = RUBBLE_DEFS[station].get("fossils", [])
+	var all_station: Array[DinoData] = []
+	if ids is Array:
+		for raw_id: Variant in (ids as Array):
+			var dino: DinoData = get_dino(StringName(raw_id))
+			if dino != null:
+				all_station.append(dino)
+				if dino.unlock_era_index <= current_era_index:
+					pool.append(dino)
+	if pool.is_empty() and include_future_fallback and not all_station.is_empty():
+		all_station.sort_custom(func(a: DinoData, b: DinoData) -> bool: return a.unlock_era_index < b.unlock_era_index)
+		var min_era: int = all_station[0].unlock_era_index
+		for d: DinoData in all_station:
+			if d.unlock_era_index == min_era:
+				pool.append(d)
+	return pool
+
+
+func get_biome_fossil_names(station: StringName) -> String:
+	if not RUBBLE_DEFS.has(station):
+		return ""
+	var names: PackedStringArray = []
+	var ids: Variant = RUBBLE_DEFS[station].get("fossils", [])
+	if ids is Array:
+		for raw_id: Variant in (ids as Array):
+			var dino: DinoData = get_dino(StringName(raw_id))
+			if dino != null:
+				names.append(dino.display_name)
+	if names.size() > 4:
+		return "Todas as espécies"
+	return ", ".join(names)
+
+
+func extract_biome_fossil(station: StringName, world_position: Vector2 = Vector2.ZERO, guarantee: bool = false) -> StringName:
+	var pool: Array[DinoData] = get_biome_fossil_pool(station, true)
+	if pool.is_empty():
+		return &""
+	var chance: float = clampf(0.28 * get_multiplier(STAT_FRAGMENT_CHANCE) * get_collector_drop_multiplier(), 0.05, 0.90)
+	if not guarantee and randf() >= chance:
+		return &""
+	var candidates: Array[DinoData] = []
+	for d: DinoData in pool:
+		var count: int = get_dino_count(d.id)
+		var req: int = d.get_fragments_required(count)
+		if d.can_spawn_more(count) and (count == 0 or d.fragments_growth_per_unit > 0) and get_fragments(d.id) < req:
+			candidates.append(d)
+	if candidates.is_empty():
+		candidates = pool
+	var picked: DinoData = candidates[randi() % candidates.size()]
+	add_fragments(picked.id, 1)
+	register_fossil_found(picked.id)
+	Events.fragment_dropped.emit(picked.id, world_position)
+	return picked.id
+
+
+func get_raw_fossil_find_chance(station: StringName) -> float:
+	if not RUBBLE_DEFS.has(station):
+		return BASE_RAW_FOSSIL_CHANCE
+	var luck_mult: float = get_multiplier(STAT_FOSSIL_LUCK) * get_multiplier(STAT_FRAGMENT_CHANCE)
+	var level_mult: float = 1.0 + 0.35 * float(maxi(get_rubble_level(station) - 1, 0))
+	var hero_mult: float = 2.5 if (orange_rock_broken and hero_station == station) else 1.0
+	return clampf(BASE_RAW_FOSSIL_CHANCE * luck_mult * level_mult * hero_mult, 0.0, 0.50)
+
+
+func get_station_fossil_flash(station: StringName) -> float:
+	return maxf(float(station_last_fossil_time.get(station, 0.0)), 0.0)
+
+
+func get_station_revived_count(station: StringName) -> int:
+	return int(station_revived_dinos.get(station, 0))
+
+
+func get_station_revive_dino_id(station: StringName) -> StringName:
+	if not RUBBLE_DEFS.has(station):
+		return &""
+	return StringName(RUBBLE_DEFS[station].get("revive_dino", &""))
+
+
+func get_station_revive_cost(station: StringName) -> float:
+	if not RUBBLE_DEFS.has(station):
+		return 0.0
+	var def: Dictionary = RUBBLE_DEFS[station]
+	var lvl: int = get_station_revived_count(station)
+	return roundf(float(def["base_cost"]) * 1.5 * pow(2.2, float(lvl)))
+
+
+func can_revive_station_dino(station: StringName) -> bool:
+	if not RUBBLE_DEFS.has(station) or not is_station_built(station):
+		return false
+	var dino_id: StringName = get_station_revive_dino_id(station)
+	if dino_id == &"" or get_fragments(dino_id) < STATION_REVIVE_FOSSILS_REQUIRED:
+		return false
+	var product: StringName = RUBBLE_DEFS[station]["product"]
+	return can_afford(product, get_station_revive_cost(station))
+
+
+func revive_station_dino(station: StringName) -> bool:
+	if not can_revive_station_dino(station):
+		return false
+	var product: StringName = RUBBLE_DEFS[station]["product"]
+	var cost: float = get_station_revive_cost(station)
+	if not spend(product, cost):
+		return false
+	var dino_id: StringName = get_station_revive_dino_id(station)
+	add_fragments(dino_id, -STATION_REVIVE_FOSSILS_REQUIRED)
+	var new_revived: int = get_station_revived_count(station) + 1
+	station_revived_dinos[station] = new_revived
+	var prev_count: int = get_dino_count(dino_id)
+	dino_counts[dino_id] = prev_count + 1
+	if prev_count == 0:
+		discovered_dinos[dino_id] = true
+		Events.dino_unlocked.emit(dino_id)
+		_update_color_progress()
+	Events.dino_count_changed.emit(dino_id, prev_count + 1)
+	Events.rubble_rebuilt.emit(station, get_rubble_level(station))
+	recalculate_stats()
+	var rname: String = String(RUBBLE_DEFS[station].get("revive_name", dino_id))
+	Events.notification_requested.emit("🦖 %s revivido em %s!" % [rname, String(RUBBLE_DEFS[station]["title"])], null)
+	return true
+
+
+func roll_station_raw_fossil(station: StringName, rolls: int = 1, force_find: bool = false, world_position: Vector2 = Vector2.ZERO) -> bool:
+	if not RUBBLE_DEFS.has(station) or rolls <= 0:
+		return false
+	var hits: int = 1 if force_find else _sample_binomial(rolls, get_raw_fossil_find_chance(station))
+	if hits <= 0:
+		return false
+	var target_dino: StringName = get_station_revive_dino_id(station)
+	if target_dino == &"":
+		target_dino = &"compsognathus"
+	for _i: int in range(hits):
+		raw_fossil_queue.append(target_dino)
+	add_resource(RES_RAW_FOSSILS, float(hits))
+	station_last_fossil_time[station] = STATION_FOSSIL_FLASH_DURATION
+	Events.loot_dropped.emit(RES_RAW_FOSSILS, float(hits), world_position)
+	return true
+
+
+func get_university_cleaning_speed() -> float:
+	if not is_station_built(&"rubble_bunker"):
+		return 0.0
+	var base_speed: float = 1.0
+	if has_station_worker(&"rubble_bunker"):
+		base_speed += 0.25
+	if orange_rock_broken and hero_station == &"rubble_bunker":
+		base_speed += 0.35
+	return base_speed * get_multiplier(STAT_CLEANING_SPEED)
+
+
+func get_university_clean_duration() -> float:
+	return BASE_FOSSIL_CLEAN_SECONDS / maxf(get_university_cleaning_speed(), 0.001)
+
+
+func get_university_clean_remaining_seconds() -> float:
+	if raw_fossil_queue.is_empty() or get_university_cleaning_speed() <= 0.0:
+		return 0.0
+	return maxf(1.0 - fossil_cleaning_progress, 0.0) * get_university_clean_duration()
+
+
+func _complete_one_cleaned_fossil(world_position: Vector2 = Vector2.ZERO) -> StringName:
+	if raw_fossil_queue.is_empty():
+		return &""
+	var dino_id: StringName = raw_fossil_queue[0]
+	raw_fossil_queue.remove_at(0)
+	if get_resource(RES_RAW_FOSSILS) > 0.0:
+		add_resource(RES_RAW_FOSSILS, -1.0)
+	var double_p: float = clampf(get_stat(STAT_CLEAN_DOUBLE_CHANCE, 0.0), 0.0, 0.90)
+	var out_count: int = 2 if randf() < double_p else 1
+	add_fragments(dino_id, out_count)
+	for _c: int in range(out_count):
+		register_fossil_found(dino_id)
+	Events.fragment_dropped.emit(dino_id, world_position)
+	return dino_id
+
+
+func _tick_university_cleaning(delta: float) -> void:
+	if raw_fossil_queue.is_empty():
+		fossil_cleaning_progress = 0.0
+		return
+	var speed: float = get_university_cleaning_speed()
+	if speed <= 0.0:
+		return
+	fossil_cleaning_progress += (delta * speed) / BASE_FOSSIL_CLEAN_SECONDS
+	while fossil_cleaning_progress >= 1.0 - 1e-6 and not raw_fossil_queue.is_empty():
+		fossil_cleaning_progress = maxf(fossil_cleaning_progress - 1.0, 0.0)
+		_complete_one_cleaned_fossil(Vector2.ZERO)
+	if raw_fossil_queue.is_empty():
+		fossil_cleaning_progress = 0.0
+
+
+func get_university_prep_cost() -> float:
+	return 5.0 + float(current_era_index) * 4.0
+
+
+func can_prepare_fossil_at_university() -> bool:
+	return can_afford(RES_SCIENCE, get_university_prep_cost())
+
+
+func prepare_fossil_at_university(world_position: Vector2 = Vector2.ZERO) -> StringName:
+	if not raw_fossil_queue.is_empty() and can_prepare_fossil_at_university():
+		if spend(RES_SCIENCE, get_university_prep_cost()):
+			fossil_cleaning_progress = 0.0
+			return _complete_one_cleaned_fossil(world_position)
+	if not can_prepare_fossil_at_university():
+		return &""
+	if not spend(RES_SCIENCE, get_university_prep_cost()):
+		return &""
+	var picked: DinoData = null
+	var fallback: Array[DinoData] = []
+	for d: DinoData in get_dinos_sorted():
+		if d.unlock_era_index <= current_era_index:
+			fallback.append(d)
+			var count: int = get_dino_count(d.id)
+			var req: int = d.get_fragments_required(count)
+			if d.can_spawn_more(count) and (count == 0 or d.fragments_growth_per_unit > 0) and get_fragments(d.id) < req:
+				picked = d
+				break
+	if picked == null:
+		if not fallback.is_empty():
+			picked = fallback[randi() % fallback.size()]
+		else:
+			var sorted: Array[DinoData] = get_dinos_sorted()
+			if not sorted.is_empty():
+				picked = sorted[0]
+	if picked == null:
+		return &""
+	add_fragments(picked.id, 1)
+	var rarity: int = maxi(roll_fossil_rarity(), 1)
+	register_fossil_found(picked.id, rarity)
+	Events.fragment_dropped.emit(picked.id, world_position)
+	return picked.id
+
+
+func hero_farm_action(station: StringName = hero_station, world_position: Vector2 = Vector2.ZERO) -> Dictionary:
+	if not orange_rock_broken:
+		_on_orange_rock_hit(get_click_damage(), world_position)
+		return {"kind": &"egg"}
+	var target_station: StringName = station if RUBBLE_DEFS.has(station) else &"rubble_forge"
+	if not is_station_built(target_station):
+		var title: String = String(RUBBLE_DEFS[target_station]["title"])
+		Events.notification_requested.emit("Construa %s primeiro para farmar!" % title, null)
+		return {"kind": &"locked", "station": target_station}
+	var product: StringName = RUBBLE_DEFS[target_station]["product"]
+	var gain: float = maxf(1.0, (1.2 + get_station_effective_rate(target_station)) * 1.5)
+	add_resource(product, gain)
+	Events.loot_dropped.emit(product, gain, world_position)
+	if get_station_revived_count(target_station) > 0:
+		var t2_product: StringName = RUBBLE_DEFS[target_station]["tier2_product"]
+		var t2_gain: float = maxf(0.5, get_station_tier2_rate(target_station) * 1.5)
+		add_resource(t2_product, t2_gain)
+		Events.loot_dropped.emit(t2_product, t2_gain, world_position)
+	var progress_gain: float = maxf(15.0, gain * 25.0 * maxf(get_click_damage(), 1.0) * get_total_bones_multiplier())
+	run_surface_progress += progress_gain
+	var found_raw: bool = roll_station_raw_fossil(target_station, 5, false, world_position)
+	var cleaned_dino: StringName = &""
+	if target_station == &"rubble_bunker" and not raw_fossil_queue.is_empty():
+		fossil_cleaning_progress += (4.0 * get_multiplier(STAT_CLEANING_SPEED)) / BASE_FOSSIL_CLEAN_SECONDS
+		if fossil_cleaning_progress >= 1.0 - 1e-6:
+			fossil_cleaning_progress = maxf(fossil_cleaning_progress - 1.0, 0.0)
+			cleaned_dino = _complete_one_cleaned_fossil(world_position)
+			if raw_fossil_queue.is_empty():
+				fossil_cleaning_progress = 0.0
+	return {
+		"kind": &"farm",
+		"station": target_station,
+		"product": product,
+		"amount": gain,
+		"raw_fossil_found": found_raw,
+		"fossil": cleaned_dino,
+	}
+
+
+func set_sfx_volume(value: float) -> void:
+	sfx_volume = clampf(value, 0.0, 1.0)
+
+
+func set_music_volume(value: float) -> void:
+	music_volume = clampf(value, 0.0, 1.0)
 
 
 func get_rubble_level(rubble_id: StringName) -> int:
@@ -1094,11 +1585,16 @@ func get_rubble_cost(rubble_id: StringName) -> float:
 		return 0.0
 	var def: Dictionary = RUBBLE_DEFS[rubble_id]
 	var lvl: int = get_rubble_level(rubble_id)
+	if lvl <= 0:
+		return float(def.get("build_cost", def["base_cost"]))
 	return roundf(float(def["base_cost"]) * pow(float(def["cost_growth"]), float(lvl)))
 
 
 func can_rebuild_rubble(rubble_id: StringName) -> bool:
 	if not RUBBLE_DEFS.has(rubble_id):
+		return false
+	var lvl: int = get_rubble_level(rubble_id)
+	if lvl >= 1 and not has_station_worker(rubble_id):
 		return false
 	return can_afford(RES_ROCKS, get_rubble_cost(rubble_id))
 
@@ -1115,7 +1611,8 @@ func rebuild_rubble(rubble_id: StringName) -> bool:
 	_update_color_progress()
 	Events.rubble_rebuilt.emit(rubble_id, new_lvl)
 	var def: Dictionary = RUBBLE_DEFS[rubble_id]
-	Events.notification_requested.emit("🏗️ %s reconstruída (Nv. %d)!" % [String(def["title"]), new_lvl], null)
+	var msg: String = "🏗️ %s construída!" % String(def["title"]) if new_lvl == 1 else "🏗️ %s ampliada (Nv. %d)!" % [String(def["title"]), new_lvl]
+	Events.notification_requested.emit(msg, null)
 	return true
 
 
@@ -1155,14 +1652,14 @@ func can_trigger_early_impact() -> bool:
 		return false
 	var min_depth: int = balance.early_impact_min_depth if balance != null else 3
 	var min_amber: float = balance.early_impact_min_amber if balance != null else 1.0
-	return depth >= min_depth and calculate_amber_reward() >= min_amber
+	return (depth >= min_depth or run_surface_progress >= 2700.0) and calculate_amber_reward() >= min_amber
 
 
 func _on_meteor_early_impact_requested() -> void:
 	if not can_trigger_early_impact():
 		var min_depth: int = balance.early_impact_min_depth if balance != null else 3
 		Events.notification_requested.emit(
-			"Escave pelo menos %dm e acumule +1 Âmbar para antecipar o impacto." % min_depth,
+			"Acumule progresso nas estações (ou %dm) e +1 Âmbar para antecipar o impacto." % min_depth,
 			null
 		)
 		return
@@ -1182,7 +1679,8 @@ func trigger_meteor_impact() -> void:
 ## Prévia do âmbar que o jogador receberia agora (para a UI "Antecipar impacto").
 ## shield_ratio: 0..1 — quanto do impacto foi absorvido pelas defesas.
 func calculate_amber_reward(shield_ratio: float = -1.0) -> float:
-	if run_total_bones <= 0.0 and depth <= 0:
+	var effective_progress: float = run_total_bones + run_surface_progress
+	if effective_progress <= 0.0 and depth <= 0:
 		return 0.0
 	if shield_ratio < 0.0:
 		shield_ratio = get_shield_ratio()
@@ -1191,7 +1689,7 @@ func calculate_amber_reward(shield_ratio: float = -1.0) -> float:
 	var depth_weight: float = balance.amber_depth_per_layer if balance != null else 0.042
 	var layer_weight: float = balance.amber_layer_progress_weight if balance != null else 0.05
 	var shield_weight: float = balance.amber_shield_bonus if balance != null else 0.75
-	var from_bones: float = pow(maxf(run_total_bones / maxf(divisor, 1.0), 0.0), exponent)
+	var from_bones: float = pow(maxf(effective_progress / maxf(divisor, 1.0), 0.0), exponent)
 	var layer_progress: float = clampf(1.0 - (layer_hp / maxf(layer_max_hp, 1.0)), 0.0, 1.0)
 	var depth_factor: float = 1.0 + float(depth) * depth_weight + layer_progress * layer_weight
 	var survival_factor: float = 1.0 + clampf(shield_ratio, 0.0, 1.0) * shield_weight
@@ -1290,25 +1788,55 @@ var _field_elapsed: float = 0.0
 
 
 func get_station_rate(station: StringName) -> float:
+	if not RUBBLE_DEFS.has(station) or not is_station_built(station) or not has_station_worker(station):
+		return 0.0
 	var site: Dictionary = RUBBLE_DEFS[station]
 	var gear_level: int = get_upgrade_level(site["gear"])
-	return float(site["rate"]) * get_rubble_level(station) * (1.0 + FIELD_GEAR_YIELD_BONUS * gear_level)
+	var revived: int = get_station_revived_count(station)
+	var revive_mult: float = pow(1.75, float(revived)) if revived > 0 else 1.0
+	return float(site["rate"]) * float(get_rubble_level(station)) * (1.0 + FIELD_GEAR_YIELD_BONUS * float(gear_level)) * revive_mult * get_multiplier(STAT_TIER2_YIELD)
+
+
+func get_station_tier2_rate(station: StringName) -> float:
+	var revived: int = get_station_revived_count(station)
+	if revived <= 0 or not RUBBLE_DEFS.has(station) or not is_station_built(station):
+		return 0.0
+	var site: Dictionary = RUBBLE_DEFS[station]
+	var base_t2: float = float(site.get("tier2_rate", 0.0))
+	return base_t2 * float(revived) * get_multiplier(STAT_TIER2_YIELD)
 
 
 func _harvest_stations(seconds: float, gains: Dictionary) -> void:
 	for station: StringName in RUBBLE_ORDER:
-		var amount: float = seconds * get_station_rate(station)
+		var amount: float = seconds * get_station_effective_rate(station)
 		if amount > 0.0:
 			var product: StringName = RUBBLE_DEFS[station]["product"]
 			add_resource(product, amount)
-			gains[product] = amount
+			gains[product] = float(gains.get(product, 0.0)) + amount
+			run_surface_progress += amount * 15.0 * get_multiplier(STAT_PRESTIGE_BONES_MULT)
+		var t2_amount: float = seconds * get_station_tier2_rate(station)
+		if t2_amount > 0.0:
+			var t2_product: StringName = RUBBLE_DEFS[station]["tier2_product"]
+			add_resource(t2_product, t2_amount)
+			gains[t2_product] = float(gains.get(t2_product, 0.0)) + t2_amount
+			run_surface_progress += t2_amount * 40.0 * get_multiplier(STAT_PRESTIGE_BONES_MULT)
 
 
 func _tick_passive_income(delta: float) -> void:
+	for station: StringName in RUBBLE_ORDER:
+		var t: float = float(station_last_fossil_time.get(station, 0.0))
+		if t > 0.0:
+			station_last_fossil_time[station] = maxf(t - delta, 0.0)
 	_field_elapsed += delta
 	if _field_elapsed >= 1.0:
-		_harvest_stations(_field_elapsed, {})
+		var step_secs: float = _field_elapsed
+		_harvest_stations(step_secs, {})
 		_field_elapsed = 0.0
+		var roll_count: int = maxi(floori(step_secs), 1)
+		for station: StringName in RUBBLE_ORDER:
+			if is_station_built(station) and (has_station_worker(station) or (orange_rock_broken and hero_station == station)):
+				roll_station_raw_fossil(station, roll_count, false, Vector2.ZERO)
+	_tick_university_cleaning(delta)
 	var dna_rate: float = get_dna_per_second()
 	if dna_rate > 0.0:
 		add_resource(RES_DNA, dna_rate * delta)
@@ -1445,6 +1973,7 @@ func to_save_dict() -> Dictionary:
 		"dino_counts": _sn_dict_to_json(dino_counts),
 		"upgrade_levels": _sn_dict_to_json(upgrade_levels),
 		"rubble_levels": _sn_dict_to_json(rubble_levels),
+		"station_worker_unlocked": _sn_dict_to_json(station_worker_unlocked),
 		"orange_rock_hp": orange_rock_hp,
 		"orange_rock_broken": orange_rock_broken,
 		"permanent_upgrade_levels": _sn_dict_to_json(permanent_upgrade_levels),
@@ -1454,6 +1983,7 @@ func to_save_dict() -> Dictionary:
 		"layer_hp": layer_hp,
 		"depth": depth,
 		"run_total_bones": run_total_bones,
+		"run_surface_progress": run_surface_progress,
 		"meteor_time_left": meteor_time_left,
 		"run_number": run_number,
 		"max_depth_ever": max_depth_ever,
@@ -1464,11 +1994,18 @@ func to_save_dict() -> Dictionary:
 		"fossil_catalog": _fossil_catalog_to_json(fossil_catalog),
 		"total_fossils_evaluated": total_fossils_evaluated,
 		"total_legendary_fossils": total_legendary_fossils,
+		"raw_fossil_queue": raw_fossil_queue.map(func(k: StringName) -> String: return String(k)),
+		"fossil_cleaning_progress": fossil_cleaning_progress,
+		"station_revived_dinos": _sn_dict_to_json(station_revived_dinos),
+		"sfx_volume": sfx_volume,
+		"music_volume": music_volume,
 	}
 
 
 func load_save_dict(data: Dictionary) -> void:
 	_field_elapsed = 0.0
+	hero_station = &""
+	station_last_fossil_time.clear()
 	last_evaluated_fossil.clear()
 	resources.clear()
 	for res_id: StringName in ALL_RESOURCES:
@@ -1484,6 +2021,21 @@ func load_save_dict(data: Dictionary) -> void:
 	_json_to_int_dict(data.get("upgrade_levels", {}), upgrade_levels)
 	rubble_levels.clear()
 	_json_to_int_dict(data.get("rubble_levels", {}), rubble_levels)
+	if get_rubble_level(&"rubble_forge") < 1:
+		rubble_levels[&"rubble_forge"] = 1
+	station_worker_unlocked.clear()
+	var raw_workers: Variant = data.get("station_worker_unlocked", {})
+	if raw_workers is Dictionary:
+		_json_to_bool_dict(raw_workers as Dictionary, station_worker_unlocked)
+	station_revived_dinos.clear()
+	_json_to_int_dict(data.get("station_revived_dinos", {}), station_revived_dinos)
+	raw_fossil_queue.clear()
+	for raw_d: Variant in data.get("raw_fossil_queue", []):
+		raw_fossil_queue.append(StringName(str(raw_d)))
+	resources[RES_RAW_FOSSILS] = float(raw_fossil_queue.size())
+	fossil_cleaning_progress = clampf(float(data.get("fossil_cleaning_progress", 0.0)), 0.0, 1.0)
+	sfx_volume = clampf(float(data.get("sfx_volume", 1.0)), 0.0, 1.0)
+	music_volume = clampf(float(data.get("music_volume", 1.0)), 0.0, 1.0)
 	orange_rock_broken = bool(data.get("orange_rock_broken", false))
 	orange_rock_hp = 0.0 if orange_rock_broken else clampf(float(data.get("orange_rock_hp", ORANGE_ROCK_MAX_HP)), 0.01, ORANGE_ROCK_MAX_HP)
 	permanent_upgrade_levels.clear()
@@ -1502,6 +2054,7 @@ func load_save_dict(data: Dictionary) -> void:
 	lifetime_bones = float(data.get("lifetime_bones", 0.0))
 	total_amber_earned = float(data.get("total_amber_earned", 0.0))
 	run_total_bones = float(data.get("run_total_bones", 0.0))
+	run_surface_progress = maxf(float(data.get("run_surface_progress", 0.0)), 0.0)
 	depth = int(data.get("depth", 0))
 	current_era_index = clampi(int(data.get("current_era_index", 0)), 0, maxi(eras.size() - 1, 0))
 	current_layer_index = int(data.get("current_layer_index", 0))
@@ -1533,6 +2086,11 @@ static func _sn_dict_to_json(source: Dictionary) -> Dictionary:
 static func _json_to_int_dict(source: Dictionary, target: Dictionary) -> void:
 	for key: Variant in source:
 		target[StringName(str(key))] = int(source[key])
+
+
+static func _json_to_bool_dict(source: Dictionary, target: Dictionary) -> void:
+	for key: Variant in source:
+		target[StringName(str(key))] = bool(source[key])
 
 
 static func _fossil_catalog_to_json(source: Dictionary) -> Dictionary:

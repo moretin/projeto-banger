@@ -14,12 +14,21 @@ var _pool_index: int = 0
 
 var _audio_player: AudioStreamPlayer
 var _playback: AudioStreamGeneratorPlayback
+var _music_player: AudioStreamPlayer
+var _music_playback: AudioStreamGeneratorPlayback
+var _music_phase_a: float = 0.0
+var _music_phase_b: float = 0.0
+var _music_step_t: float = 0.0
+var _music_note_idx: int = 0
 var _active_tones: Array[Dictionary] = []
 var _sfx_cooldown: float = 0.0
 var _brush_cooldown: float = 0.0
 var _brush_suppress_timer: float = 0.0
 var _drum_timer: float = 0.0
 var _drum_double_timer: float = -1.0
+var _current_scenario: StringName = &"surface"
+
+const MUSIC_NOTES: PackedFloat64Array = [220.0, 261.63, 293.66, 329.63, 392.0, 329.63, 293.66, 261.63]
 
 
 func _ready() -> void:
@@ -40,9 +49,13 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	_playback = null
+	_music_playback = null
 	if _audio_player != null:
 		_audio_player.stop()
 		_audio_player.stream = null
+	if _music_player != null:
+		_music_player.stop()
+		_music_player.stream = null
 
 
 func _process(delta: float) -> void:
@@ -51,6 +64,7 @@ func _process(delta: float) -> void:
 	_brush_suppress_timer = maxf(_brush_suppress_timer - delta, 0.0)
 	_tick_seismic_drum(delta)
 	_fill_audio_buffer()
+	_fill_music_buffer()
 
 
 func _tick_seismic_drum(delta: float) -> void:
@@ -121,9 +135,19 @@ func _setup_procedural_audio() -> void:
 	_audio_player.play()
 	_playback = _audio_player.get_stream_playback() as AudioStreamGeneratorPlayback
 
+	_music_player = AudioStreamPlayer.new()
+	var m_stream := AudioStreamGenerator.new()
+	m_stream.mix_rate = SAMPLE_RATE
+	m_stream.buffer_length = 0.15
+	_music_player.stream = m_stream
+	_music_player.volume_db = -16.0
+	add_child(_music_player)
+	_music_player.play()
+	_music_playback = _music_player.get_stream_playback() as AudioStreamGeneratorPlayback
+
 
 func _play_tone(freq_start: float, freq_end: float, duration: float, amp: float = 0.22, noise_mix: float = 0.0) -> void:
-	if _playback == null or _active_tones.size() >= 6:
+	if _playback == null or _active_tones.size() >= 6 or GameState.sfx_volume <= 0.001:
 		return
 	_active_tones.append({
 		"f0": freq_start,
@@ -142,7 +166,8 @@ func _fill_audio_buffer() -> void:
 	var frames: int = _playback.get_frames_available()
 	if frames <= 0:
 		return
-	if _active_tones.is_empty():
+	var vol: float = clampf(GameState.sfx_volume, 0.0, 1.0)
+	if _active_tones.is_empty() or vol <= 0.001:
 		for _i: int in range(frames):
 			_playback.push_frame(Vector2.ZERO)
 		return
@@ -169,8 +194,37 @@ func _fill_audio_buffer() -> void:
 				tone["t"] = t + dt
 				tone["phase"] = phase
 			idx -= 1
-		sample = clampf(sample, -0.9, 0.9)
+		sample = clampf(sample * vol, -0.9, 0.9)
 		_playback.push_frame(Vector2(sample, sample))
+
+
+func _fill_music_buffer() -> void:
+	if _music_playback == null:
+		return
+	var frames: int = _music_playback.get_frames_available()
+	if frames <= 0:
+		return
+	var vol: float = clampf(GameState.music_volume, 0.0, 1.0)
+	if vol <= 0.001:
+		for _i: int in range(frames):
+			_music_playback.push_frame(Vector2.ZERO)
+		return
+	var dt: float = 1.0 / SAMPLE_RATE
+	var note_dur: float = 1.4
+	for _i: int in range(frames):
+		_music_step_t += dt
+		if _music_step_t >= note_dur:
+			_music_step_t -= note_dur
+			_music_note_idx = (_music_note_idx + 1) % MUSIC_NOTES.size()
+		var freq: float = MUSIC_NOTES[_music_note_idx]
+		var pad_freq: float = 110.0
+		_music_phase_a = fmod(_music_phase_a + freq * dt * TAU, TAU)
+		_music_phase_b = fmod(_music_phase_b + pad_freq * dt * TAU, TAU)
+		var env: float = sin(clampf(_music_step_t / note_dur, 0.0, 1.0) * PI)
+		var mel: float = sin(_music_phase_a) * 0.14 * env
+		var pad: float = sin(_music_phase_b) * 0.09
+		var out_sample: float = clampf((mel + pad) * vol, -0.6, 0.6)
+		_music_playback.push_frame(Vector2(out_sample, out_sample))
 
 
 func _on_brush_stroke(world_pos: Vector2) -> void:
@@ -182,7 +236,7 @@ func _on_brush_stroke(world_pos: Vector2) -> void:
 
 
 func _on_dig_hit(_damage: float, world_pos: Vector2, is_crit: bool) -> void:
-	if _brush_suppress_timer > 0.0:
+	if _current_scenario != &"dig_site" or _brush_suppress_timer > 0.0:
 		return
 	var col: Color = Color(1.0, 0.82, 0.30) if is_crit else Color(0.88, 0.72, 0.48)
 	_emit_burst(world_pos, col, 1.35 if is_crit else 0.95)
@@ -201,6 +255,7 @@ func _on_orange_rock_hit(_damage: float, world_pos: Vector2) -> void:
 
 
 func _on_scenario_changed(current_scenario: StringName) -> void:
+	_current_scenario = current_scenario
 	if current_scenario == &"dig_site":
 		_play_tone(260.0, 175.0, 0.08, 0.12)
 	else:
@@ -208,6 +263,8 @@ func _on_scenario_changed(current_scenario: StringName) -> void:
 
 
 func _on_layer_broken(_era_idx: int, _layer_idx: int, _depth: int) -> void:
+	if _current_scenario != &"dig_site":
+		return
 	_emit_burst(Vector2(480.0, 420.0), Color(0.95, 0.72, 0.34), 2.2)
 	_play_tone(140.0, 55.0, 0.22, 0.30)
 

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"dinos_fish_banquet"
+display_name = "Banquete do Pesqueiro"
+description = "Desbloqueio único: suprimentos do Pesqueiro elevam em +25% a produção das estruturas. Libera Tratado Paleontológico."
+category = 2
+sort_order = 1
+cost_resource = &"fish"
+base_cost = 24.0
+cost_growth = 1.0
+max_level = 1
+stat_id = &"tier2_yield"
+effect_type = 1
+effect_value = 0.25
+required_upgrade = &"dinos_sky_scouts"
+required_level = 1

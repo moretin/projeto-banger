@@ -6,13 +6,13 @@
 script = ExtResource("1")
 id = &"field_helmet"
 display_name = "Capacete de impacto"
-description = "A cabeçada solta lascas maiores. +8% de dano de clique por nível."
+description = "O Paquicefalossauro solta lascas maiores: +25% produção da Pedreira e +10% força manual por nível."
 category = 5
 required_station = &"rubble_forge"
 cost_resource = &"rocks"
-base_cost = 12.0
+base_cost = 16.0
 cost_growth = 1.65
 max_level = 12
 stat_id = &"click_damage"
 effect_type = 1
-effect_value = 0.08
+effect_value = 0.10

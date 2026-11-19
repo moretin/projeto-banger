@@ -465,7 +465,7 @@ func _run_audits() -> Dictionary:
 	_gs.start_new_game()
 	_gs.dino_counts[&"compsognathus"] = 5
 	_gs.dino_counts[&"velociraptor"] = 3
-	_gs.upgrade_levels[&"machines_pneumatic_drill"] = 3
+	_gs.upgrade_levels[&"dinos_pack_instinct"] = 3
 	_gs.recalculate_stats()
 	var active_bps: float = float(_gs.get_bones_per_second())
 	var active_1h_bones: float = active_bps * 3600.0

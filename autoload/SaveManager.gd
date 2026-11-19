@@ -12,7 +12,7 @@ const SAVE_PATH: String = "user://savegame.json"
 const BACKUP_PATH: String = "user://savegame.bak.json"
 const TEMP_PATH: String = "user://savegame.tmp"
 
-const SAVE_VERSION: int = 4
+const SAVE_VERSION: int = 5
 const AUTOSAVE_INTERVAL: float = 30.0
 ## Limite de tempo offline recompensado (8 horas).
 const MAX_OFFLINE_SECONDS: float = 8.0 * 3600.0
@@ -179,6 +179,28 @@ func _migrate(payload: Dictionary) -> Dictionary:
 			game["resources"] = stock
 			payload["game"] = game
 		version = 4
+	if version == 4:
+		# v4 → v5: Pedreira inicia construída (Nv. 1) e trabalhadores automáticos passam a ser desbloqueáveis.
+		# Estações que já tinham nível > 0 na v4 preservam o trabalhador para não perder automação.
+		var raw_v4: Variant = payload.get("game", {})
+		if raw_v4 is Dictionary:
+			var game: Dictionary = raw_v4 as Dictionary
+			var raw_rubble: Variant = game.get("rubble_levels", {})
+			var rubble: Dictionary = raw_rubble as Dictionary if raw_rubble is Dictionary else {}
+			var raw_workers: Variant = game.get("station_worker_unlocked", {})
+			var workers: Dictionary = raw_workers as Dictionary if raw_workers is Dictionary else {}
+			for key: Variant in rubble:
+				var k_str: String = String(key)
+				if int(rubble[key]) > 0 and not workers.has(k_str):
+					workers[k_str] = true
+			if int(rubble.get("rubble_forge", 0)) < 1:
+				rubble["rubble_forge"] = 1
+			game["rubble_levels"] = rubble
+			game["station_worker_unlocked"] = workers
+			if not game.has("run_surface_progress"):
+				game["run_surface_progress"] = 0.0
+			payload["game"] = game
+		version = 5
 	if version > SAVE_VERSION:
 		push_warning("[SaveManager] Save de versão mais nova (%d > %d)." % [version, SAVE_VERSION])
 	payload["version"] = SAVE_VERSION

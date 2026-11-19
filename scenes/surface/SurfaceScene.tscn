@@ -1,7 +1,22 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scenes/surface/SurfaceScene.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/surface/BasinLandscape.gd" id="2"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dock"]
+bg_color = Color(0.145, 0.137, 0.212, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.84, 0.62, 0.34, 0.95)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.45)
+shadow_size = 10
+shadow_offset = Vector2(0, 4)
 
 [node name="SurfaceScene" type="Control"]
 clip_contents = true
@@ -10,112 +25,110 @@ anchor_bottom = 1.0
 script = ExtResource("1")
 
 [node name="Map" type="Control" parent="."]
+unique_name_in_owner = true
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_bottom = -222.0
-unique_name_in_owner = true
 script = ExtResource("2")
 
 [node name="BasinName" type="Label" parent="Map"]
-offset_left = 50.0
-offset_top = 28.0
-theme_override_colors/font_color = Color(0.14,0.19,0.20,1)
-theme_override_font_sizes/font_size = 32
+offset_left = 32.0
+offset_top = 18.0
+theme_override_colors/font_color = Color(0.14, 0.19, 0.20, 1)
+theme_override_font_sizes/font_size = 30
 text = "Bacia do Âmbar"
 
 [node name="Camp" type="Label" parent="Map"]
-offset_left = 52.0
-offset_top = 76.0
-theme_override_colors/font_color = Color(0.18,0.23,0.23,1)
-text = "Acampamento de superfície"
+offset_left = 34.0
+offset_top = 56.0
+theme_override_colors/font_color = Color(0.18, 0.23, 0.23, 1)
+theme_override_font_sizes/font_size = 14
+text = "Mova o dino com WASD · Aproxime-se das estruturas · [E] Ajudar no farm"
 
-[node name="Dock" type="ColorRect" parent="."]
-anchor_right = 1.0
-anchor_bottom = 1.0
-anchor_top = 1.0
-offset_top = -222.0
-color = Color(0.149,0.149,0.22,1)
+[node name="Dock" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+z_index = 12
+layout_mode = 0
+offset_left = 120.0
+offset_top = 420.0
+offset_right = 730.0
+offset_bottom = 674.0
+custom_minimum_size = Vector2(610, 0)
+theme_override_styles/panel = SubResource("StyleBoxFlat_dock")
 
-[node name="Rim" type="ColorRect" parent="Dock"]
-anchor_right = 1.0
-offset_bottom = 3.0
-color = Color(0.75,0.55,0.37,1)
-mouse_filter = 2
+[node name="Margin" type="MarginContainer" parent="Dock"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
 
-[node name="Layout" type="HBoxContainer" parent="Dock"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 48.0
-offset_top = 16.0
-offset_right = -48.0
-offset_bottom = -18.0
-theme_override_constants/separation = 36
-
-[node name="Info" type="VBoxContainer" parent="Dock/Layout"]
-custom_minimum_size = Vector2(355,0)
-alignment = 1
+[node name="Layout" type="VBoxContainer" parent="Dock/Margin"]
+layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="SiteName" type="Label" parent="Dock/Layout/Info"]
-unique_name_in_owner = true
-theme_override_font_sizes/font_size = 26
-
-[node name="Stock" type="Label" parent="Dock/Layout/Info"]
-unique_name_in_owner = true
-theme_override_colors/font_color = Color(0.62,0.84,0.77,1)
-theme_override_font_sizes/font_size = 17
-
-[node name="Groups" type="HBoxContainer" parent="Dock/Layout/Info"]
-unique_name_in_owner = true
-theme_override_constants/separation = 6
-
-[node name="Bench" type="VBoxContainer" parent="Dock/Layout"]
-unique_name_in_owner = true
-size_flags_horizontal = 3
-alignment = 1
-theme_override_constants/separation = 5
-
-[node name="ItemTitle" type="Label" parent="Dock/Layout/Bench"]
-unique_name_in_owner = true
-theme_override_font_sizes/font_size = 23
-
-[node name="Details" type="Label" parent="Dock/Layout/Bench"]
-unique_name_in_owner = true
-autowrap_mode = 3
-
-[node name="ActionRow" type="HBoxContainer" parent="Dock/Layout/Bench"]
-unique_name_in_owner = true
+[node name="TopInfo" type="HBoxContainer" parent="Dock/Margin/Layout"]
+layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Prev" type="Button" parent="Dock/Layout/Bench/ActionRow"]
+[node name="SiteName" type="Label" parent="Dock/Margin/Layout/TopInfo"]
 unique_name_in_owner = true
-text = "‹"
-custom_minimum_size = Vector2(50, 40)
-tooltip_text = "Item anterior"
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+text = "Estrutura"
+text_overrun_behavior = 3
 
-[node name="Page" type="Label" parent="Dock/Layout/Bench/ActionRow"]
+[node name="Stock" type="Label" parent="Dock/Margin/Layout/TopInfo"]
 unique_name_in_owner = true
-vertical_alignment = 1
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.84, 0.77, 1)
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 2
 
-[node name="Next" type="Button" parent="Dock/Layout/Bench/ActionRow"]
+[node name="Groups" type="HBoxContainer" parent="Dock/Margin/Layout"]
 unique_name_in_owner = true
-text = "›"
-custom_minimum_size = Vector2(50, 40)
-tooltip_text = "Próximo item"
+layout_mode = 2
+theme_override_constants/separation = 5
 
-[node name="Quantity" type="Button" parent="Dock/Layout/Bench/ActionRow"]
+[node name="ItemsScroll" type="ScrollContainer" parent="Dock/Margin/Layout"]
 unique_name_in_owner = true
-text = "×1"
-custom_minimum_size = Vector2(50, 40)
+custom_minimum_size = Vector2(582, 136)
+layout_mode = 2
+size_flags_vertical = 0
+follow_focus = true
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="ItemsList" type="VBoxContainer" parent="Dock/Margin/Layout/ItemsScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="ActionRow" type="HBoxContainer" parent="Dock/Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Quantity" type="Button" parent="Dock/Margin/Layout/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(88, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
 tooltip_text = "Alterar quantidade por compra"
+text = "Lote ×1"
 
-[node name="Buy" type="Button" parent="Dock/Layout/Bench/ActionRow"]
-unique_name_in_owner = true
-text = "Equipar"
-custom_minimum_size = Vector2(50, 40)
+[node name="ActionSpacer" type="Control" parent="Dock/Margin/Layout/ActionRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
 
-[node name="ToDigSiteButton" type="Button" parent="Dock/Layout"]
+[node name="ToDigSiteButton" type="Button" parent="Dock/Margin/Layout/ActionRow"]
 unique_name_in_owner = true
-text = "Descer à jazida  ↓"
-custom_minimum_size = Vector2(50, 40)
-size_flags_vertical = 4
+custom_minimum_size = Vector2(180, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+tooltip_text = "Ajuda este posto com [E] para coletar recursos e procurar fósseis brutos"
+text = "Ajudar [E]"

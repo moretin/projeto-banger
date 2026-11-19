@@ -6,10 +6,13 @@
 script = ExtResource("1_m4oqq")
 id = &"defense_reinforced_bunker"
 display_name = "Bunker Subterrâneo"
-description = "+4% de escudo contra o meteoro (fortifica escavação e aumenta Âmbar)."
+description = "+4% de escudo contra o meteoro por nível (fortifica a coleta e aumenta Âmbar)."
 category = 3
-base_cost = 1200.0
-cost_growth = 1.85
+sort_order = 0
+cost_resource = &"rocks"
+base_cost = 35.0
+cost_growth = 1.55
 max_level = 15
 stat_id = &"meteor_shield"
+effect_type = 0
 effect_value = 0.04

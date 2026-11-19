@@ -75,8 +75,8 @@ func test_1x_10x_100x_purchases_match_individual_sum() -> void:
 	_assert_bulk_matches_sequential(&"tools_sharp_pickaxe", 1, 1000.0)
 	_assert_bulk_matches_sequential(&"tools_sharp_pickaxe", 10, 1.0e8)
 	_assert_bulk_matches_sequential(&"tools_sharp_pickaxe", 100, 1.0e14)
-	_assert_bulk_matches_sequential(&"machines_pneumatic_drill", 10, 1.0e8)
-	_assert_bulk_matches_sequential(&"machines_pneumatic_drill", 100, 1.0e12)
+	_assert_bulk_matches_sequential(&"dinos_pack_instinct", 10, 1.0e8)
+	_assert_bulk_matches_sequential(&"dinos_pack_instinct", 100, 1.0e16)
 	# Upgrade com max_level = 15: 10x completo e 100x limitado pelos 5 níveis restantes.
 	_assert_bulk_matches_sequential(&"defense_reinforced_bunker", 10, 1.0e8, 0)
 	_assert_bulk_matches_sequential(&"defense_reinforced_bunker", 100, 1.0e12, 10)
@@ -88,6 +88,31 @@ func test_buy_max_matches_sequential_individual_purchases() -> void:
 	_assert_bulk_matches_sequential(&"tools_sharp_pickaxe", GameState.BUY_MAX, 3.0)
 	_assert_bulk_matches_sequential(&"tools_sharp_pickaxe", GameState.BUY_MAX, 500.0)
 	_assert_bulk_matches_sequential(&"tools_sharp_pickaxe", GameState.BUY_MAX, 1.0e6)
-	_assert_bulk_matches_sequential(&"machines_pneumatic_drill", GameState.BUY_MAX, 25000.0)
+	_assert_bulk_matches_sequential(&"dinos_pack_instinct", GameState.BUY_MAX, 25000.0)
 	_assert_bulk_matches_sequential(&"defense_reinforced_bunker", GameState.BUY_MAX, 1.0e9)
 	_assert_bulk_matches_sequential(&"amber_ark_project", GameState.BUY_MAX, 4000.0)
+
+
+func test_unique_surface_upgrade_caps_at_level_1_and_surface_progress_earns_amber() -> void:
+	# Upgrade único (max_level = 1) compra exatamente 1 nível mesmo com 10x / BUY_MAX.
+	GameState.upgrade_levels[&"tools_sharp_pickaxe"] = 1
+	GameState.recalculate_stats()
+	var brush: UpgradeData = GameState.get_upgrade(&"tools_fine_brush")
+	assert_not_null(brush)
+	assert_eq(brush.max_level, 1)
+	assert_true(GameState.is_upgrade_unlocked(&"tools_fine_brush"))
+	GameState.add_resource(GameState.RES_ROCKS, 500.0)
+	var before_rocks: float = GameState.get_resource(GameState.RES_ROCKS)
+	assert_true(GameState.purchase_upgrade(&"tools_fine_brush", GameState.BUY_MAX))
+	assert_eq(GameState.get_upgrade_level(&"tools_fine_brush"), 1)
+	assert_almost_eq(GameState.get_resource(GameState.RES_ROCKS), before_rocks - brush.base_cost, 0.001)
+	assert_false(GameState.can_purchase_upgrade(&"tools_fine_brush", 1))
+	assert_true(GameState.is_upgrade_unlocked(&"tools_geologist_lens"))
+
+	# Progresso exclusivo da superfície (run_surface_progress) deve render Âmbar mesmo com 0 ossos subterrâneos.
+	GameState.start_new_game()
+	assert_almost_eq(GameState.run_total_bones, 0.0, 0.0001)
+	assert_almost_eq(GameState.calculate_amber_reward(), 0.0, 0.0001)
+	GameState.run_surface_progress = 20000.0
+	assert_gt(GameState.calculate_amber_reward(), 0.0, "Progresso na superfície deve gerar recompensa de Âmbar")
+	assert_true(GameState.can_trigger_early_impact(), "Progresso suficiente na superfície deve liberar evacuação antecipada")

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"uni_cleaning_speed"
+display_name = "Bancada de Limpeza Rápida"
+description = "Escovas e solventes na Universidade aceleram a limpeza de fósseis brutos (+45% por nível). Libera Satélite de Desvio."
+category = 3
+sort_order = 1
+cost_resource = &"science"
+base_cost = 10.0
+cost_growth = 1.45
+max_level = 15
+stat_id = &"cleaning_speed"
+effect_type = 1
+effect_value = 0.45

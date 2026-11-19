@@ -4,10 +4,10 @@
 [ext_resource type="Theme" path="res://scenes/ui/ui_theme.tres" id="2_theme"]
 
 [node name="HUD" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 74)
+custom_minimum_size = Vector2(0, 96)
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 74.0
+offset_bottom = 96.0
 grow_horizontal = 2
 size_flags_horizontal = 3
 theme = ExtResource("2_theme")
@@ -15,10 +15,10 @@ script = ExtResource("1_hud")
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 2
-theme_override_constants/margin_left = 14
+theme_override_constants/margin_left = 18
 theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 6
 
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
@@ -26,14 +26,19 @@ theme_override_constants/separation = 4
 
 [node name="TopRow" type="HBoxContainer" parent="Margin/VBox"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="BonesGroup" type="HBoxContainer" parent="Margin/VBox/TopRow"]
+[node name="MeteorGroup" type="HBoxContainer" parent="Margin/VBox/TopRow"]
+custom_minimum_size = Vector2(240, 0)
 layout_mode = 2
-theme_override_constants/separation = 5
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 0
 
-[node name="BonesIcon" type="TextureRect" parent="Margin/VBox/TopRow/BonesGroup"]
+[node name="MeteorIcon" type="TextureRect" parent="Margin/VBox/TopRow/MeteorGroup"]
 unique_name_in_owner = true
 texture_filter = 1
 custom_minimum_size = Vector2(18, 18)
@@ -42,315 +47,84 @@ size_flags_vertical = 4
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
-
-[node name="Readout" type="VBoxContainer" parent="Margin/VBox/TopRow/BonesGroup"]
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 0
-
-[node name="ResourceName" type="Label" parent="Margin/VBox/TopRow/BonesGroup/Readout"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.83, 0.76, 0.65, 1)
-theme_override_font_sizes/font_size = 12
-text = "Ossos"
-
-[node name="Balance" type="HBoxContainer" parent="Margin/VBox/TopRow/BonesGroup/Readout"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="BonesLabel" type="Label" parent="Margin/VBox/TopRow/BonesGroup/Readout/Balance"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.97, 0.93, 0.82, 1)
-theme_override_font_sizes/font_size = 17
-text = "0"
-
-[node name="BonesRate" type="Label" parent="Margin/VBox/TopRow/BonesGroup/Readout/Balance"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.81, 0.87, 0.72, 1)
-theme_override_font_sizes/font_size = 12
-text = "+0/s"
-vertical_alignment = 1
-
-[node name="RocksGroup" type="HBoxContainer" parent="Margin/VBox/TopRow"]
-layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="RocksIcon" type="TextureRect" parent="Margin/VBox/TopRow/RocksGroup"]
-unique_name_in_owner = true
-texture_filter = 1
-custom_minimum_size = Vector2(18, 18)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Readout" type="VBoxContainer" parent="Margin/VBox/TopRow/RocksGroup"]
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 0
-
-[node name="ResourceName" type="Label" parent="Margin/VBox/TopRow/RocksGroup/Readout"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.83, 0.76, 0.65, 1)
-theme_override_font_sizes/font_size = 12
-text = "Rochas"
-
-[node name="RocksLabel" type="Label" parent="Margin/VBox/TopRow/RocksGroup/Readout"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.93, 0.77, 0.56, 1)
-theme_override_font_sizes/font_size = 17
-text = "0"
-
-[node name="MineralsGroup" type="HBoxContainer" parent="Margin/VBox/TopRow"]
-layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="MineralsIcon" type="TextureRect" parent="Margin/VBox/TopRow/MineralsGroup"]
-unique_name_in_owner = true
-texture_filter = 1
-custom_minimum_size = Vector2(18, 18)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Readout" type="VBoxContainer" parent="Margin/VBox/TopRow/MineralsGroup"]
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 0
-
-[node name="ResourceName" type="Label" parent="Margin/VBox/TopRow/MineralsGroup/Readout"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.83, 0.76, 0.65, 1)
-theme_override_font_sizes/font_size = 12
-text = "Minérios"
-
-[node name="MineralsLabel" type="Label" parent="Margin/VBox/TopRow/MineralsGroup/Readout"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.88, 0.96, 1)
-theme_override_font_sizes/font_size = 17
-text = "0"
-
-[node name="DnaGroup" type="HBoxContainer" parent="Margin/VBox/TopRow"]
-layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="DnaIcon" type="TextureRect" parent="Margin/VBox/TopRow/DnaGroup"]
-unique_name_in_owner = true
-texture_filter = 1
-custom_minimum_size = Vector2(18, 18)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Readout" type="VBoxContainer" parent="Margin/VBox/TopRow/DnaGroup"]
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 0
-
-[node name="ResourceName" type="Label" parent="Margin/VBox/TopRow/DnaGroup/Readout"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.83, 0.76, 0.65, 1)
-theme_override_font_sizes/font_size = 12
-text = "DNA"
-
-[node name="Balance" type="HBoxContainer" parent="Margin/VBox/TopRow/DnaGroup/Readout"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="DnaLabel" type="Label" parent="Margin/VBox/TopRow/DnaGroup/Readout/Balance"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.62, 0.94, 0.64, 1)
-theme_override_font_sizes/font_size = 17
-text = "0"
-
-[node name="DnaRate" type="Label" parent="Margin/VBox/TopRow/DnaGroup/Readout/Balance"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.81, 0.87, 0.72, 1)
-theme_override_font_sizes/font_size = 12
-text = "+0/s"
-vertical_alignment = 1
-
-[node name="AmberGroup" type="HBoxContainer" parent="Margin/VBox/TopRow"]
-layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="AmberIcon" type="TextureRect" parent="Margin/VBox/TopRow/AmberGroup"]
-unique_name_in_owner = true
-texture_filter = 1
-custom_minimum_size = Vector2(18, 18)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Readout" type="VBoxContainer" parent="Margin/VBox/TopRow/AmberGroup"]
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 0
-
-[node name="ResourceName" type="Label" parent="Margin/VBox/TopRow/AmberGroup/Readout"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.83, 0.76, 0.65, 1)
-theme_override_font_sizes/font_size = 12
-text = "Âmbar"
-
-[node name="AmberLabel" type="Label" parent="Margin/VBox/TopRow/AmberGroup/Readout"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.76, 0.28, 1)
-theme_override_font_sizes/font_size = 17
-text = "0"
-
-[node name="Spacer" type="Control" parent="Margin/VBox/TopRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-
-[node name="MeteorGroup" type="VBoxContainer" parent="Margin/VBox/TopRow"]
-custom_minimum_size = Vector2(230, 0)
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 2
-
-[node name="MeteorRow" type="HBoxContainer" parent="Margin/VBox/TopRow/MeteorGroup"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 5
-alignment = 1
-
-[node name="MeteorIcon" type="TextureRect" parent="Margin/VBox/TopRow/MeteorGroup/MeteorRow"]
-unique_name_in_owner = true
-texture_filter = 1
-custom_minimum_size = Vector2(16, 16)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="MeteorLabel" type="Label" parent="Margin/VBox/TopRow/MeteorGroup/MeteorRow"]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.98, 0.93, 0.82, 1)
-theme_override_font_sizes/font_size = 16
-text = "Impacto em 15:00"
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="MeteorBar" type="ProgressBar" parent="Margin/VBox/TopRow/MeteorGroup"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 6)
+custom_minimum_size = Vector2(210, 14)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 max_value = 900.0
 value = 900.0
 show_percentage = false
 
-[node name="AmberForecast" type="Label" parent="Margin/VBox/TopRow/MeteorGroup"]
+[node name="LeftSpacer" type="Control" parent="Margin/VBox/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="ResourcesCenter" type="HBoxContainer" parent="Margin/VBox/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.82, 0.47, 1)
-theme_override_font_sizes/font_size = 12
-text = "Previsão: +0 Âmbar"
-horizontal_alignment = 1
+size_flags_vertical = 4
+theme_override_constants/separation = 22
+alignment = 1
 
-[node name="MuseumButton" type="Button" parent="Margin/VBox/TopRow"]
+[node name="RightSpacer" type="Control" parent="Margin/VBox/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="ButtonsGroup" type="HBoxContainer" parent="Margin/VBox/TopRow"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="MuseumButton" type="Button" parent="Margin/VBox/TopRow/ButtonsGroup"]
 unique_name_in_owner = true
 texture_filter = 1
-custom_minimum_size = Vector2(98, 32)
+custom_minimum_size = Vector2(100, 34)
 layout_mode = 2
 focus_neighbor_right = NodePath("../PrestigeButton")
 focus_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Museu"
 
-[node name="PrestigeButton" type="Button" parent="Margin/VBox/TopRow"]
+[node name="PrestigeButton" type="Button" parent="Margin/VBox/TopRow/ButtonsGroup"]
 unique_name_in_owner = true
 texture_filter = 1
-custom_minimum_size = Vector2(132, 32)
+custom_minimum_size = Vector2(132, 34)
 layout_mode = 2
 focus_neighbor_left = NodePath("../MuseumButton")
-focus_neighbor_right = NodePath("../SettingsButton")
 focus_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Arca / Âmbar"
 
-[node name="SettingsButton" type="Button" parent="Margin/VBox/TopRow"]
+[node name="SettingsButton" type="Button" parent="Margin/VBox/TopRow/ButtonsGroup"]
 unique_name_in_owner = true
+visible = false
 texture_filter = 1
-custom_minimum_size = Vector2(88, 32)
+custom_minimum_size = Vector2(88, 34)
 layout_mode = 2
 focus_neighbor_left = NodePath("../PrestigeButton")
 focus_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Save"
 
-[node name="BottomRow" type="HBoxContainer" parent="Margin/VBox"]
+[node name="ToastRow" type="HBoxContainer" parent="Margin/VBox"]
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
-theme_override_constants/separation = 14
-
-[node name="EraGroup" type="HBoxContainer" parent="Margin/VBox/BottomRow"]
-layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="EraIcon" type="TextureRect" parent="Margin/VBox/BottomRow/EraGroup"]
-unique_name_in_owner = true
-texture_filter = 1
-custom_minimum_size = Vector2(16, 16)
-layout_mode = 2
-size_flags_vertical = 4
 mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
 
-[node name="EraLabel" type="Label" parent="Margin/VBox/BottomRow/EraGroup"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.88, 0.80, 0.68, 1)
-theme_override_font_sizes/font_size = 14
-text = "Terra (Crosta) · Profundidade: 0m · Expedição #1"
-
-[node name="DpsGroup" type="HBoxContainer" parent="Margin/VBox/BottomRow"]
-layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="DpsIcon" type="TextureRect" parent="Margin/VBox/BottomRow/DpsGroup"]
-unique_name_in_owner = true
-texture_filter = 1
-custom_minimum_size = Vector2(16, 16)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="DpsLabel" type="Label" parent="Margin/VBox/BottomRow/DpsGroup"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.84, 0.90, 0.74, 1)
-theme_override_font_sizes/font_size = 14
-text = "Clique: 1 · DPS: 0/s · Escudo: 0%"
-
-[node name="ToastLabel" type="Label" parent="Margin/VBox/BottomRow"]
+[node name="ToastLabel" type="Label" parent="Margin/VBox/ToastRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.86, 0.36, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 13
 text = ""
-horizontal_alignment = 2
+horizontal_alignment = 1
 text_overrun_behavior = 3

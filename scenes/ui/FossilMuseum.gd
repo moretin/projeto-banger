@@ -56,7 +56,6 @@ func _ready() -> void:
 
 	Events.fossil_found.connect(_on_fossil_found)
 	Events.museum_modal_requested.connect(open_museum)
-	Events.scenario_changed.connect(_on_scenario_changed)
 	Events.meteor_impact_started.connect(func() -> void: _laudo_card.visible = false)
 	Events.prestige_modal_requested.connect(func() -> void: _laudo_card.visible = false)
 	Events.run_started.connect(_on_run_started)
@@ -82,46 +81,10 @@ func present_evaluation(dino_id: StringName, forced_rarity: int = -1) -> void:
 	GameState.register_fossil_found(dino_id, forced_rarity)
 
 
-func _on_fossil_found(dino_id: StringName, rarity: int) -> void:
-	var r: int = clampi(rarity, 0, 3)
-	var data: DinoData = GameState.get_dino(dino_id)
-	var info: Dictionary = GameState.last_evaluated_fossil
-	var matches_last: bool = StringName(info.get("dino_id", &"")) == dino_id and int(info.get("rarity", -1)) == r
-	var dname: String = String(info.get("display_name", "")) if matches_last else (data.display_name if data != null else String(dino_id))
-	var fallback_part: String = data.get_fossil_display_name() if data != null else "Fragmento Fóssil"
-	var part_name: String = String(info.get("part_name", fallback_part)) if matches_last else fallback_part
-	var record_num: int = int(info.get("record_number", GameState.total_fossils_evaluated)) if matches_last else GameState.total_fossils_evaluated
-	var era: EraData = GameState.get_current_era()
-	var era_name: String = String(info.get("era_name", era.display_name if era != null else "Crosta")) if matches_last else (era.display_name if era != null else "Crosta")
-	var found_depth: int = int(info.get("depth", GameState.depth)) if matches_last else GameState.depth
-
-	# Evita piscar a tela com spam quando muitos fragmentos caem ao mesmo tempo; prioriza raridade maior.
-	if _laudo_card.visible and _laudo_timer > STAMP_SHOW_DURATION - 1.1 and r < _current_shown_rarity:
-		_batch_count += 1
-		_laudo_part_label.text = "Peça: %s (+%d achados)" % [part_name, _batch_count]
-		_refresh_museum_if_open()
-		return
-
-	if not _laudo_card.visible:
-		_batch_count = 1
-	else:
-		_batch_count += 1
-	_current_shown_rarity = r
-	_laudo_timer = STAMP_SHOW_DURATION
-
-	_laudo_header_label.text = "LAUDO DO FÓSSIL · REGISTRO #%03d" % record_num
-	_laudo_species_label.text = dname
-	_laudo_part_label.text = "Peça: %s" % part_name
-	_laudo_meta_label.text = "Estrato: Cota -%dm (%s) · Entrou no Museu" % [found_depth, era_name]
-	_laudo_sprite.texture = AmberTheme.get_dino_sprite(dino_id, data.sprite if data != null else null)
-
-	var stamp_col: Color = RARITY_COLORS[r]
-	_stamp_label.text = RARITY_LABELS[r]
-	_stamp_label.add_theme_color_override("font_color", stamp_col)
-	_stamp_badge.modulate = stamp_col
-
-	_laudo_card.visible = true
-	_animate_stamp_slam()
+func _on_fossil_found(_dino_id: StringName, _rarity: int) -> void:
+	# Notificações visuais no canto inferior direito removidas; mantém apenas atualização silenciosa do acervo no Museu.
+	_laudo_card.visible = false
+	_laudo_timer = 0.0
 	_refresh_museum_if_open()
 
 
@@ -144,12 +107,6 @@ func _on_laudo_gui_input(event: InputEvent) -> void:
 		open_museum()
 
 
-func _on_scenario_changed(scenario: StringName) -> void:
-	if scenario == &"surface":
-		_laudo_card.visible = false
-		_laudo_timer = 0.0
-
-
 func _on_run_started(_run: int) -> void:
 	_batch_count = 1
 	_current_shown_rarity = -1
@@ -163,9 +120,11 @@ func _refresh_museum_if_open() -> void:
 
 
 func _refresh_museum() -> void:
-	_museum_summary_label.text = "Fósseis catalogados no Museu: %d  ·  Holótipos Lendários: %d" % [
+	var museum_bonus_pct: int = roundi((GameState.get_museum_collection_multiplier() - 1.0) * 100.0)
+	_museum_summary_label.text = "Fósseis catalogados no Museu: %d  ·  Holótipos Lendários: %d  ·  Bônus do Acervo: +%d%% Ossos" % [
 		GameState.total_fossils_evaluated,
 		GameState.total_legendary_fossils,
+		museum_bonus_pct,
 	]
 	for child: Node in _vitrines_grid.get_children():
 		child.queue_free()

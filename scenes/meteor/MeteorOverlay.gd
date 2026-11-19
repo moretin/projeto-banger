@@ -1,9 +1,8 @@
 class_name MeteorOverlay
 extends Control
-## Controlador visual do Meteoro relativo à câmera, Manchete Pré-Histórica ("Gazeta do Cratera")
-## e Bancada do Laboratório da Arca (investimento permanente de Âmbar).
-
-const MAX_METEOR_EMBERS: int = 28
+## Controlador dos modais de prestígio (Manchete Pré-Histórica "Gazeta do Cratera",
+## Arca de Evacuação e clarão de impacto). O meteoro em aproximação é desenhado
+## no céu de fundo em BasinLandscape.gd, atrás do cenário, janelas e HUD.
 
 @onready var _sky_canvas: Control = %MeteorSkyCanvas
 @onready var _impact_flash: ColorRect = %ImpactFlash
@@ -26,9 +25,6 @@ const MAX_METEOR_EMBERS: int = 28
 @onready var _visit_lab: Button = %VisitLab
 
 var _current_scenario: StringName = &"surface"
-var _embers: Array[Dictionary] = []
-var _ember_spawn_accum: float = 0.0
-var _sky_pulse_t: float = 0.0
 
 
 func _ready() -> void:
@@ -77,37 +73,6 @@ func _exit_tree() -> void:
 
 func _on_modal_visibility_changed() -> void:
 	Events.prestige_modal_visibility_changed.emit(_modal_backdrop.visible or _newspaper_backdrop.visible)
-
-
-func _process(delta: float) -> void:
-	_sky_pulse_t += delta
-	var d: float = clampf(GameState.danger_level, 0.0, 1.0)
-	if d > 0.15 or not _embers.is_empty():
-		var play_w: float = size.x
-		if d > 0.15:
-			_ember_spawn_accum += delta * (4.0 + d * 14.0)
-			while _ember_spawn_accum >= 1.0:
-				_ember_spawn_accum -= 1.0
-				if _embers.size() >= MAX_METEOR_EMBERS:
-					_embers.pop_front()
-				_embers.append({
-					"pos": Vector2(randf_range(60.0, play_w - 60.0), randf_range(0.0, 32.0)),
-					"vel": Vector2(randf_range(-24.0, 12.0), randf_range(38.0, 96.0)),
-					"r": randf_range(2.0, 4.5),
-					"life": randf_range(0.9, 1.8),
-					"max_life": 1.8,
-				})
-		var i: int = _embers.size() - 1
-		while i >= 0:
-			var e: Dictionary = _embers[i]
-			var life: float = float(e["life"]) - delta
-			if life <= 0.0:
-				_embers.remove_at(i)
-			else:
-				e["life"] = life
-				e["pos"] = (e["pos"] as Vector2) + (e["vel"] as Vector2) * delta
-			i -= 1
-		_sky_canvas.queue_redraw()
 
 
 func open_prestige_modal() -> void:
@@ -198,7 +163,8 @@ func _on_scenario_changed(scenario: StringName) -> void:
 
 
 func _on_danger_level_changed(_level: float) -> void:
-	_sky_canvas.queue_redraw()
+	if _current_scenario == &"dig_site":
+		_sky_canvas.queue_redraw()
 
 
 func _on_resource_changed(_res_id: StringName, _amount: float, _delta: float) -> void:
@@ -211,40 +177,13 @@ func _on_upgrade_purchased(_upg_id: StringName, _new_level: int) -> void:
 		_refresh_modal()
 
 
-## Desenha o meteoro em coordenadas relativas ao ScenarioViewport e à profundidade da câmera.
+## Na Superfície o meteoro vive no céu de fundo em BasinLandscape.gd (atrás de janelas e HUD).
+## Aqui preservamos apenas um reflexo sutil na boca do poço quando o jogador está raso no subsolo.
 func _on_sky_canvas_draw() -> void:
-	var d: float = clampf(GameState.danger_level, 0.0, 1.0)
-	var play_w: float = size.x
-
-	# Clarão térmico no topo da tela proporcional ao perigo
-	if d > 0.10:
-		var glow_a: float = clampf((d - 0.10) * 0.28 + sin(_sky_pulse_t * 3.5) * 0.03 * d, 0.0, 0.32)
-		_sky_canvas.draw_rect(Rect2(0.0, 0.0, play_w, 72.0 + d * 48.0), Color(1.0, 0.32, 0.08, glow_a))
-
-	# Fagulhas e cinzas incandescentes no quadrante do cenário
-	for e: Dictionary in _embers:
-		var alpha: float = clampf(float(e["life"]) / float(e["max_life"]), 0.0, 1.0)
-		_sky_canvas.draw_circle(e["pos"] as Vector2, float(e["r"]), Color(1.0, 0.62, 0.18, alpha * 0.85))
-
-	if _current_scenario == &"dig_site":
-		# No subsolo, a câmera desceu: apenas clarão na boca superior se profundidade rasinha
-		if GameState.depth <= 2 and d > 0.05:
-			var peek_pos := Vector2(play_w * 0.80, 26.0 - float(GameState.depth) * 10.0)
-			_sky_canvas.draw_circle(peek_pos, 18.0 + d * 18.0, Color(1.0, 0.42, 0.12, 0.25 + d * 0.35))
+	if _current_scenario != &"dig_site":
 		return
-
-	# Na Superfície: o meteoro rasga o quadrante superior-direito da tela útil, longe do HeaderLabel
-	var start_pos := Vector2(play_w * 0.89, 88.0)
-	var end_pos := Vector2(play_w * 0.77, 178.0)
-	var pos: Vector2 = start_pos.lerp(end_pos, d)
-	var radius: float = lerpf(11.0, 40.0, d)
-	var tail_dir: Vector2 = (start_pos - end_pos).normalized()
-
-	# Rastro atmosférico / plasma
-	_sky_canvas.draw_line(pos, pos + tail_dir * (radius * 3.2), Color(1.0, 0.42, 0.10, 0.38 + d * 0.42), radius * 0.95)
-	_sky_canvas.draw_line(pos, pos + tail_dir * (radius * 2.0), Color(1.0, 0.78, 0.28, 0.55 + d * 0.35), radius * 0.45)
-	# Halo e corpo irregular rochoso em chamas
-	_sky_canvas.draw_circle(pos, radius * 1.38, Color(1.0, 0.34, 0.08, 0.30 + d * 0.40))
-	_sky_canvas.draw_circle(pos, radius, Color(0.95, 0.62, 0.22, 0.96))
-	_sky_canvas.draw_circle(pos + Vector2(-radius * 0.12, radius * 0.10), radius * 0.68, Color(0.36, 0.17, 0.12, 1.0))
-	_sky_canvas.draw_circle(pos + Vector2(-radius * 0.30, -radius * 0.20), radius * 0.22, Color(0.22, 0.10, 0.07, 0.90))
+	var d: float = clampf(GameState.danger_level, 0.0, 1.0)
+	if GameState.depth <= 2 and d > 0.05:
+		var play_w: float = size.x
+		var peek_pos: Vector2 = Vector2(play_w * 0.80, 26.0 - float(GameState.depth) * 10.0)
+		_sky_canvas.draw_circle(peek_pos, 16.0 + d * 14.0, Color(1.0, 0.42, 0.12, 0.16 + d * 0.24))

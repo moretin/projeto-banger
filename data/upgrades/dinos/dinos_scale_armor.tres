@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"dinos_scale_armor"
+display_name = "Couraça de Escamas"
+description = "Escamas coletadas no Pesqueiro fortalecem o bando (+35% de poder dos dinos por nível). Libera Fúria Primordial."
+category = 1
+sort_order = 10
+cost_resource = &"scales"
+base_cost = 5.0
+cost_growth = 1.55
+max_level = 15
+stat_id = &"dino_damage"
+effect_type = 1
+effect_value = 0.35

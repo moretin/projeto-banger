@@ -6,13 +6,13 @@
 script = ExtResource("1")
 id = &"field_fins"
 display_name = "Nadadeiras de junco"
-description = "O Bariônix traz alimento para o bando. +6% de dano dos dinos por nível."
+description = "O Bariônix pesca exemplares maiores: +25% produção do Pesqueiro e +8% força dos dinos por nível."
 category = 5
 required_station = &"rubble_nest"
 cost_resource = &"fish"
-base_cost = 5.0
+base_cost = 14.0
 cost_growth = 1.65
 max_level = 12
 stat_id = &"dino_damage"
 effect_type = 1
-effect_value = 0.06
+effect_value = 0.08

@@ -13,6 +13,7 @@ const DINO_SWARM_SCENE: PackedScene = preload("res://scenes/dinos/DinoSwarm.tscn
 @onready var _scenario_viewport: Control = %ScenarioViewport
 @onready var _surface_scene: SurfaceScene = %SurfaceScene
 @onready var _dig_site: DigSite = %DigSite
+@onready var _top_gear_button: Button = %TopGearButton
 
 var _current_scenario: StringName = &"surface"
 var _transition_tween: Tween
@@ -22,6 +23,8 @@ func _ready() -> void:
 	var swarm: DinoSwarm = DINO_SWARM_SCENE.instantiate() as DinoSwarm
 	_dig_site.get_dino_stage().add_child(swarm)
 
+	_top_gear_button.icon = AmberTheme.get_icon(&"settings")
+	_top_gear_button.pressed.connect(func() -> void: Events.settings_modal_requested.emit())
 	_scenario_viewport.resized.connect(_sync_scenario_layout)
 	Events.scenario_transition_requested.connect(transition_to_scenario)
 	Events.run_started.connect(_on_run_started)

@@ -317,3 +317,89 @@ func test_v2_save_migrates_to_v3_preserving_progress_with_empty_museum() -> void
 	assert_true(SaveManager.save_game())
 	var re_parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
 	assert_eq(int((re_parsed as Dictionary).get("version", 0)), SaveManager.SAVE_VERSION)
+
+
+func test_v4_save_migrates_to_v5_preserving_progress_and_workers() -> void:
+	var v4_payload: Dictionary = {
+		"version": 4,
+		"saved_at": Time.get_unix_time_from_system(),
+		"game": {
+			"resources": {
+				"rocks": 140.0,
+				"fish": 48.0,
+				"feathers": 0.0,
+				"science": 22.0,
+				"amber": 95.0,
+				"raw_fossils": 1.0,
+			},
+			"fragments": {"ankylosaurus": 4, "dilophosaurus": 2},
+			"dino_counts": {"compsognathus": 1},
+			"upgrade_levels": {"tools_sharp_pickaxe": 3, "field_fins": 2},
+			"rubble_levels": {"rubble_forge": 0, "rubble_nest": 2, "rubble_bunker": 1},
+			"orange_rock_hp": 0.0,
+			"orange_rock_broken": true,
+			"permanent_upgrade_levels": {"amber_ark_project": 2},
+			"discovered_dinos": ["compsognathus"],
+			"current_era_index": 0,
+			"current_layer_index": 0,
+			"layer_hp": 120000.0,
+			"depth": 0,
+			"run_total_bones": 0.0,
+			"meteor_time_left": 480.0,
+			"run_number": 3,
+			"max_depth_ever": 5,
+			"lifetime_bones": 25000.0,
+			"total_amber_earned": 150.0,
+			"buy_multiplier": 1,
+			"ark_completed": false,
+			"fossil_catalog": {"ankylosaurus": {"count": 4, "best_rarity": 2, "parts": ["Placa Osteoderma"]}},
+			"total_fossils_evaluated": 4,
+			"total_legendary_fossils": 0,
+			"raw_fossil_queue": ["ankylosaurus"],
+			"fossil_cleaning_progress": 0.4,
+			"station_revived_dinos": {"rubble_nest": 1},
+		},
+	}
+	var f: FileAccess = FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
+	f.store_string(JSON.stringify(v4_payload))
+	f.close()
+
+	assert_true(SaveManager.load_game(), "Save v4 deve migrar para v5 sem falhar")
+	assert_eq(SaveManager.last_migrated_reset_version, -1, "Migração v4→v5 NÃO pode descartar progresso")
+	assert_eq(SaveManager.SAVE_VERSION, 5)
+
+	# Pedreira que estava 0 na v4 passa a 1 na v5 (sem trabalhador); estações já construídas preservam trabalhadores.
+	assert_eq(GameState.get_rubble_level(&"rubble_forge"), 1)
+	assert_false(GameState.has_station_worker(&"rubble_forge"))
+	assert_eq(GameState.get_rubble_level(&"rubble_nest"), 2)
+	assert_true(GameState.has_station_worker(&"rubble_nest"), "Pesqueiro já construído na v4 preserva trabalhador na v5")
+	assert_gt(GameState.get_station_rate(&"rubble_nest"), 0.0)
+	assert_eq(GameState.get_rubble_level(&"rubble_bunker"), 1)
+	assert_true(GameState.has_station_worker(&"rubble_bunker"), "Universidade já construída na v4 preserva trabalhador na v5")
+	assert_eq(GameState.get_rubble_level(&"rubble_silo"), 0)
+	assert_false(GameState.has_station_worker(&"rubble_silo"))
+
+	# Recursos, upgrades, fila de fósseis, revividos e museu preservados.
+	assert_almost_eq(GameState.get_resource(GameState.RES_ROCKS), 140.0, 0.01)
+	assert_almost_eq(GameState.get_resource(GameState.RES_FISH), 48.0, 0.01)
+	assert_almost_eq(GameState.get_resource(GameState.RES_SCIENCE), 22.0, 0.01)
+	assert_almost_eq(GameState.get_resource(GameState.RES_AMBER), 95.0, 0.01)
+	assert_eq(GameState.get_upgrade_level(&"tools_sharp_pickaxe"), 3)
+	assert_eq(GameState.get_upgrade_level(&"field_fins"), 2)
+	assert_eq(GameState.raw_fossil_queue, [&"ankylosaurus"])
+	assert_almost_eq(GameState.fossil_cleaning_progress, 0.4, 0.01)
+	assert_eq(GameState.get_station_revived_count(&"rubble_nest"), 1)
+	assert_eq(GameState.total_fossils_evaluated, 4)
+
+	# Round-trip completo em v5 (incluindo station_worker_unlocked e run_surface_progress).
+	GameState.run_surface_progress = 12345.0
+	assert_true(SaveManager.save_game())
+	var re_parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	assert_eq(int((re_parsed as Dictionary).get("version", 0)), 5)
+	GameState.start_new_game()
+	assert_true(SaveManager.load_game())
+	assert_true(GameState.has_station_worker(&"rubble_nest"))
+	assert_false(GameState.has_station_worker(&"rubble_forge"))
+	assert_almost_eq(GameState.run_surface_progress, 12345.0, 0.01)
+	assert_eq(GameState.raw_fossil_queue, [&"ankylosaurus"])
+	assert_almost_eq(GameState.fossil_cleaning_progress, 0.4, 0.01)

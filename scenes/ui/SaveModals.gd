@@ -7,6 +7,10 @@ extends Control
 @onready var _offline_ok_button: Button = %OfflineOkButton
 
 @onready var _settings_backdrop: ColorRect = %SettingsBackdrop
+@onready var _sfx_slider: HSlider = %SfxSlider
+@onready var _sfx_value_label: Label = %SfxValueLabel
+@onready var _music_slider: HSlider = %MusicSlider
+@onready var _music_value_label: Label = %MusicValueLabel
 @onready var _save_now_button: Button = %SaveNowButton
 @onready var _export_button: Button = %ExportButton
 @onready var _import_button: Button = %ImportButton
@@ -27,6 +31,8 @@ func _ready() -> void:
 
 	_offline_ok_button.pressed.connect(func() -> void: _offline_backdrop.visible = false)
 	_close_settings_button.pressed.connect(_close_settings)
+	_sfx_slider.value_changed.connect(_on_sfx_slider_changed)
+	_music_slider.value_changed.connect(_on_music_slider_changed)
 	_save_now_button.pressed.connect(_on_save_now_pressed)
 	_export_button.pressed.connect(_on_export_pressed)
 	_import_button.pressed.connect(_on_import_pressed)
@@ -35,6 +41,8 @@ func _ready() -> void:
 	Events.offline_progress_applied.connect(_on_offline_progress_applied)
 	Events.settings_modal_requested.connect(open_settings)
 	Events.game_saved.connect(_on_game_saved)
+	Events.game_loaded.connect(_sync_audio_sliders)
+	_sync_audio_sliders()
 
 
 func open_settings() -> void:
@@ -42,7 +50,27 @@ func open_settings() -> void:
 	_reset_button.text = "Resetar Todo o Progresso"
 	_status_label.text = ""
 	_save_text_edit.text = SaveManager.export_save_string()
+	_sync_audio_sliders()
 	_settings_backdrop.visible = true
+
+
+func _sync_audio_sliders() -> void:
+	var sfx_pct: float = roundf(clampf(GameState.sfx_volume, 0.0, 1.0) * 100.0)
+	var music_pct: float = roundf(clampf(GameState.music_volume, 0.0, 1.0) * 100.0)
+	_sfx_slider.set_value_no_signal(sfx_pct)
+	_sfx_value_label.text = "%d%%" % roundi(sfx_pct)
+	_music_slider.set_value_no_signal(music_pct)
+	_music_value_label.text = "%d%%" % roundi(music_pct)
+
+
+func _on_sfx_slider_changed(value: float) -> void:
+	GameState.set_sfx_volume(value / 100.0)
+	_sfx_value_label.text = "%d%%" % roundi(value)
+
+
+func _on_music_slider_changed(value: float) -> void:
+	GameState.set_music_volume(value / 100.0)
+	_music_value_label.text = "%d%%" % roundi(value)
 
 
 func _close_settings() -> void:
@@ -52,7 +80,7 @@ func _close_settings() -> void:
 func _on_offline_progress_applied(seconds: float, gains: Dictionary) -> void:
 	var lines: PackedStringArray = [
 		"Tempo ausente: %s\n" % GameState.format_time(seconds),
-		"Sua equipe de dinossauros e máquinas coletou:",
+		"Sua equipe de dinossauros coletou:",
 	]
 	for resource_id: Variant in gains:
 		lines.append("• +%s %s" % [GameState.format_number(float(gains[resource_id])), GameState.RESOURCE_NAMES[resource_id]])
