@@ -28,6 +28,7 @@ var _ev: Node
 var _mode: String = "all"
 var _json_out: String = ""
 var _max_campaign_runs: int = 80
+var _strike_rate: float = 0.5
 
 
 func _init() -> void:
@@ -38,6 +39,8 @@ func _init() -> void:
 			_json_out = arg.trim_prefix("--json=")
 		elif arg.begins_with("--max-runs="):
 			_max_campaign_runs = maxi(int(arg.trim_prefix("--max-runs=")), 1)
+		elif arg.begins_with("--strike-rate="):
+			_strike_rate = clampf(float(arg.trim_prefix("--strike-rate=")), 0.0, 1.0)
 
 
 func _process(_delta: float) -> bool:
@@ -51,9 +54,11 @@ func _process(_delta: float) -> bool:
 
 	var report: Dictionary = {}
 	if _mode == "all" or _mode == "run1":
-		report["run1"] = _run_strategy_comparison()
+		report["run1"] = _run_strategy_comparison(_strike_rate)
+	if _mode == "all" or _mode == "precise":
+		report["precise_strike_matrix"] = _run_precise_strike_matrix()
 	if _mode == "all" or _mode == "campaign":
-		report["campaign"] = _run_campaign_to_ark()
+		report["campaign"] = _run_campaign_to_ark(_strike_rate)
 	if _mode == "all" or _mode == "audits":
 		report["audits"] = _run_audits()
 
@@ -72,9 +77,9 @@ func _process(_delta: float) -> bool:
 # 1. COMPARATIVO DE 6 ESTRATÉGIAS NA RUN 1
 # ==============================================================================
 
-func _run_strategy_comparison() -> Dictionary:
+func _run_strategy_comparison(strike_rate: float = 0.5) -> Dictionary:
 	print("==========================================================================")
-	print("SIMULACAO RUN 1 — 6 ESTRATEGIAS (dt=%.2fs, seed=%d)" % [DT, SEED_BASE])
+	print("SIMULACAO RUN 1 — 6 ESTRATEGIAS (dt=%.2fs, seed=%d, golpe_preciso=%.0f%%)" % [DT, SEED_BASE, strike_rate * 100.0])
 	print("==========================================================================")
 
 	var all_upgrades_bought: Dictionary = {}
@@ -85,14 +90,14 @@ func _run_strategy_comparison() -> Dictionary:
 	for strat: String in STRATEGIES:
 		seed(SEED_BASE)
 		_gs.start_new_game()
-		var run_data: Dictionary = _simulate_run(strat, all_upgrades_bought)
+		var run_data: Dictionary = _simulate_run(strat, all_upgrades_bought, -1, strike_rate)
 		results.append(run_data)
 
-	print("\n### Resumo Run 1 por Estrategia")
-	print("| Estrategia | Dur | 1o Upg | 1a Auto | 1o Dino | Gap<=5m | Era Final | Prof | Ossos | DPS Pico | Dinos | Escudo | Ambar | Arv Nv% | Arv Custo% | Compras Perm |")
+	print("\n### Resumo Run 1 por Estrategia (Golpe Preciso %.0f%%)" % [strike_rate * 100.0])
+	print("| Estrategia | Dur | 1o Upg | 1a Auto | 1o Dino | Gap<=5m | Era Final | Prof | Ossos | DPS Pico | Dinos | GP(P/G/M) | Fosseis(Lend) | Escudo | Ambar | Compras Perm |")
 	print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 	for r: Dictionary in results:
-		print("| %s | %s | %s | %s | %s | %s | %s | %dm | %s | %s/s | %d | %d%% | +%s | %.1f%% | %.1f%% | %d |" % [
+		print("| %s | %s | %s | %s | %s | %s | %s | %dm | %s | %s/s | %d | %d/%d/%d | %d(%d) | %d%% | +%s | %d |" % [
 			str(r["strategy"]),
 			str(_gs.format_time(float(r["duration"]))),
 			_fmt_opt_time(float(r["t_first_upgrade"])),
@@ -104,10 +109,13 @@ func _run_strategy_comparison() -> Dictionary:
 			str(_gs.format_number(float(r["bones"]))),
 			str(_gs.format_number(float(r["peak_dps"]))),
 			int(r["total_dinos"]),
+			int(r["strikes_perfect"]),
+			int(r["strikes_good"]),
+			int(r["strikes_miss"]),
+			int(r["fossils_run"]),
+			int(r["legendaries_run"]),
 			int(r["shield_pct"]),
 			str(_gs.format_number(float(r["amber"]))),
-			float(r["amber_tree_pct_levels"]),
-			float(r["amber_tree_pct_cost"]),
 			int(r["amber_upgrades_buyable"]),
 		])
 
@@ -196,10 +204,97 @@ func _run_strategy_comparison() -> Dictionary:
 # 2. CAMPANHA MULTI-RUN ATÉ PROJETO ARCA (ESTRATÉGIA HIBRIDA)
 # ==============================================================================
 
-func _run_campaign_to_ark() -> Dictionary:
+func _run_precise_strike_matrix() -> Dictionary:
 	print("\n==========================================================================")
-	print("SIMULACAO CAMPANHA COMPLETA ATE PROJETO ARCA (HIBRIDA)")
+	print("MATRIZ GOLPE PRECISO (0%, 50%, 90%) — IMPACTO NA DOMINANCIA E CAMPANHA")
 	print("==========================================================================")
+	var rates: Array[float] = [0.0, 0.5, 0.9]
+	var rows: Array[Dictionary] = []
+	print("\n| Taxa GP | Estrategia | Era Final | Prof | Ossos | Ambar+ | GP (P/G/M) | Fosseis(Lend) |")
+	print("|---|---|---|---|---|---|---|---|")
+	for rate: float in rates:
+		var dummy_counts: Dictionary = {}
+		var best_bones: float = -1.0
+		var best_strat: String = ""
+		var strat_bones: Array[float] = []
+		var strat_ambers: Array[float] = []
+		var max_amber: float = -1.0
+		var max_amber_strat: String = ""
+		for strat: String in STRATEGIES:
+			seed(SEED_BASE)
+			_gs.start_new_game()
+			var r: Dictionary = _simulate_run(strat, dummy_counts, -1, rate)
+			var b: float = float(r["bones"])
+			var a: float = float(r["amber"])
+			strat_bones.append(b)
+			strat_ambers.append(a)
+			if b > best_bones:
+				best_bones = b
+				best_strat = strat
+			if a > max_amber:
+				max_amber = a
+				max_amber_strat = strat
+			print("| %.0f%% | %s | %s | %dm | %s | +%s | %d/%d/%d | %d(%d) |" % [
+				rate * 100.0,
+				strat,
+				str(r["era_name"]),
+				int(r["depth"]),
+				str(_gs.format_number(b)),
+				str(_gs.format_number(a)),
+				int(r["strikes_perfect"]),
+				int(r["strikes_good"]),
+				int(r["strikes_miss"]),
+				int(r["fossils_run"]),
+				int(r["legendaries_run"]),
+			])
+		strat_bones.sort()
+		strat_ambers.sort()
+		var med_b: float = (strat_bones[2] + strat_bones[3]) * 0.5
+		var med_a: float = (strat_ambers[2] + strat_ambers[3]) * 0.5
+		var dom_b: float = best_bones / maxf(med_b, 1.0)
+		var dom_a: float = max_amber / maxf(med_a, 1.0)
+
+		var camp_summary: Dictionary = _run_campaign_to_ark(rate, false)
+		rows.append({
+			"strike_rate": rate,
+			"max_bones_strat": best_strat,
+			"bones_dominance_ratio": dom_b,
+			"max_amber_strat": max_amber_strat,
+			"amber_dominance_ratio": dom_a,
+			"ark_run": int(camp_summary["ark_ready_run"]),
+			"ark_hours": float(camp_summary["ark_ready_hours"]),
+			"run1_depth": int(camp_summary["run1_depth"]),
+			"run2_recover_ratio": float(camp_summary["run2_recover_ratio"]),
+			"museum_fossils_total": int(camp_summary["museum_fossils_total"]),
+			"museum_legendaries_total": int(camp_summary["museum_legendaries_total"]),
+			"museum_species_total": int(camp_summary["museum_species_total"]),
+		})
+	print("\n### Sumario Comparativo Golpe Preciso (0% vs 50% vs 90%)")
+	print("| Taxa GP | Maior Ossos (Dom) | Maior Ambar (Dom) | Prof R1 | Recup R2 | Arca (Run/Horas) | Museu Campanha (Foss/Lend/Esp) |")
+	print("|---|---|---|---|---|---|---|")
+	for row: Dictionary in rows:
+		print("| %.0f%% | %s (%.2fx) | %s (%.2fx) | %dm | %.1f%% | Run #%d (%.2fh) | %d / %d / %d/8 |" % [
+			float(row["strike_rate"]) * 100.0,
+			str(row["max_bones_strat"]),
+			float(row["bones_dominance_ratio"]),
+			str(row["max_amber_strat"]),
+			float(row["amber_dominance_ratio"]),
+			int(row["run1_depth"]),
+			float(row["run2_recover_ratio"]) * 100.0,
+			int(row["ark_run"]),
+			float(row["ark_hours"]),
+			int(row["museum_fossils_total"]),
+			int(row["museum_legendaries_total"]),
+			int(row["museum_species_total"]),
+		])
+	return {"matrix": rows}
+
+
+func _run_campaign_to_ark(strike_rate: float = 0.5, verbose: bool = true) -> Dictionary:
+	if verbose:
+		print("\n==========================================================================")
+		print("SIMULACAO CAMPANHA COMPLETA ATE PROJETO ARCA (HIBRIDA, GP=%.0f%%)" % [strike_rate * 100.0])
+		print("==========================================================================")
 	seed(SEED_BASE)
 	_gs.start_new_game()
 
@@ -220,7 +315,7 @@ func _run_campaign_to_ark() -> Dictionary:
 
 	for run_idx: int in range(1, _max_campaign_runs + 1):
 		var target_depth_for_recovery: int = run1_depth if run_idx == 2 else -1
-		var r: Dictionary = _simulate_run("HIBRIDA", campaign_upgrades, target_depth_for_recovery)
+		var r: Dictionary = _simulate_run("HIBRIDA", campaign_upgrades, target_depth_for_recovery, strike_rate)
 		total_seconds += float(r["duration"])
 		var cur_depth: int = int(r["depth"])
 		if run_idx == 1:
@@ -254,51 +349,65 @@ func _run_campaign_to_ark() -> Dictionary:
 		if ark_ready:
 			break
 
-	print("\n| Run | Dur | Tempo Acum | Era Final | Prof | Recup R1 | Ossos | DPS Pico | Dinos | Escudo | Ambar+ | Arca Nv | Compras Perm |")
-	print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
-	for r: Dictionary in runs:
-		var rec_str: String = "—"
-		if int(r["run_number"]) == 2:
-			rec_str = "%.0fs (%.1f%%)" % [run2_recover_time, run2_recover_ratio * 100.0] if run2_recover_time >= 0.0 else "N/A"
-		var pb: Array = r["perm_bought"]
-		var pb_str: String = ", ".join(pb) if not pb.is_empty() else "poupa"
-		print("| #%d | %s | %.2fh | %s | %dm | %s | %s | %s/s | %d | %d%% | +%s | %d/5 | %s |" % [
-			int(r["run_number"]),
-			str(_gs.format_time(float(r["duration"]))),
-			float(r["cum_hours"]),
-			str(r["era_name"]),
-			int(r["depth"]),
-			rec_str,
-			str(_gs.format_number(float(r["bones"]))),
-			str(_gs.format_number(float(r["peak_dps"]))),
-			int(r["total_dinos"]),
-			int(r["shield_pct"]),
-			str(_gs.format_number(float(r["amber_gained"]))),
-			int(r["ark_level"]),
-			pb_str,
-		])
-
 	var unused_campaign: PackedStringArray = []
 	for upg_id: StringName in _gs.upgrades_db:
 		if int(campaign_upgrades.get(String(upg_id), 0)) == 0:
 			unused_campaign.append(String(upg_id))
 
-	print("\n### Sumario Campanha")
-	print("  Projeto Arca concluido?: %s (Run #%d, %.2f horas acumuladas)" % [
-		"SIM" if ark_ready_run > 0 else "NAO (limite %d runs)" % _max_campaign_runs,
-		ark_ready_run,
-		ark_ready_hours if ark_ready_run > 0 else total_seconds / 3600.0,
-	])
-	print("  Run 2 recupera profundidade da Run 1 (%dm): %s (meta <= 40%%)" % [
-		run1_depth,
-		("%.1fs / %.1fs = %.1f%%" % [run2_recover_time, run1_duration, run2_recover_ratio * 100.0]) if run2_recover_time >= 0.0 else "NAO RECUPEROU",
-	])
-	print("  Toda run alcancou profundidade nova?: %s" % ("SIM" if monotonic_depth else "NAO"))
-	print("  Upgrades com 0 compras em toda a campanha: %s" % (
-		", ".join(unused_campaign) if not unused_campaign.is_empty() else "nenhum"
-	))
+	var museum_fossils: int = int(_gs.total_fossils_evaluated)
+	var museum_legendaries: int = int(_gs.total_legendary_fossils)
+	var museum_species: int = int(_gs.fossil_catalog.size())
+
+	if verbose:
+		print("\n| Run | Dur | Tempo Acum | Era Final | Prof | Recup R1 | Ossos | DPS Pico | Dinos | GP(P/G/M) | Fosseis(Lend) | Escudo | Ambar+ | Arca Nv | Compras Perm |")
+		print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+		for r: Dictionary in runs:
+			var rec_str: String = "—"
+			if int(r["run_number"]) == 2:
+				rec_str = "%.0fs (%.1f%%)" % [run2_recover_time, run2_recover_ratio * 100.0] if run2_recover_time >= 0.0 else "N/A"
+			var pb: Array = r["perm_bought"]
+			var pb_str: String = ", ".join(pb) if not pb.is_empty() else "poupa"
+			print("| #%d | %s | %.2fh | %s | %dm | %s | %s | %s/s | %d | %d/%d/%d | %d(%d) | %d%% | +%s | %d/5 | %s |" % [
+				int(r["run_number"]),
+				str(_gs.format_time(float(r["duration"]))),
+				float(r["cum_hours"]),
+				str(r["era_name"]),
+				int(r["depth"]),
+				rec_str,
+				str(_gs.format_number(float(r["bones"]))),
+				str(_gs.format_number(float(r["peak_dps"]))),
+				int(r["total_dinos"]),
+				int(r["strikes_perfect"]),
+				int(r["strikes_good"]),
+				int(r["strikes_miss"]),
+				int(r["fossils_run"]),
+				int(r["legendaries_run"]),
+				int(r["shield_pct"]),
+				str(_gs.format_number(float(r["amber_gained"]))),
+				int(r["ark_level"]),
+				pb_str,
+			])
+
+		print("\n### Sumario Campanha (GP=%.0f%%)" % [strike_rate * 100.0])
+		print("  Projeto Arca concluido?: %s (Run #%d, %.2f horas acumuladas)" % [
+			"SIM" if ark_ready_run > 0 else "NAO (limite %d runs)" % _max_campaign_runs,
+			ark_ready_run,
+			ark_ready_hours if ark_ready_run > 0 else total_seconds / 3600.0,
+		])
+		print("  Run 2 recupera profundidade da Run 1 (%dm): %s (meta <= 40%%)" % [
+			run1_depth,
+			("%.1fs / %.1fs = %.1f%%" % [run2_recover_time, run1_duration, run2_recover_ratio * 100.0]) if run2_recover_time >= 0.0 else "NAO RECUPEROU",
+		])
+		print("  Toda run alcancou profundidade nova?: %s" % ("SIM" if monotonic_depth else "NAO"))
+		print("  Acervo do Museu ao concluir Arca: %d fosseis catalogados (%d lendarios), %d/8 especies" % [
+			museum_fossils, museum_legendaries, museum_species,
+		])
+		print("  Upgrades com 0 compras em toda a campanha: %s" % (
+			", ".join(unused_campaign) if not unused_campaign.is_empty() else "nenhum"
+		))
 
 	return {
+		"strike_rate": strike_rate,
 		"runs": runs,
 		"ark_ready_run": ark_ready_run,
 		"ark_ready_hours": ark_ready_hours,
@@ -307,6 +416,9 @@ func _run_campaign_to_ark() -> Dictionary:
 		"run2_recover_time": run2_recover_time,
 		"run2_recover_ratio": run2_recover_ratio,
 		"monotonic_depth": monotonic_depth,
+		"museum_fossils_total": museum_fossils,
+		"museum_legendaries_total": museum_legendaries,
+		"museum_species_total": museum_species,
 		"unused_campaign_upgrades": Array(unused_campaign),
 		"campaign_upgrade_counts": campaign_upgrades,
 	}
@@ -420,13 +532,23 @@ func _run_audits() -> Dictionary:
 # NUCLEO DE SIMULACAO DE UMA RUN
 # ==============================================================================
 
-func _simulate_run(strat: String, upgrade_counts: Dictionary, recover_depth_target: int = -1) -> Dictionary:
+func _simulate_run(strat: String, upgrade_counts: Dictionary, recover_depth_target: int = -1, strike_rate: float = 0.5) -> Dictionary:
 	var clicks_per_sec: float = _strategy_cps(strat)
 	var dino_timers: Dictionary[StringName, float] = {}
 	var elapsed: float = 0.0
 	var click_accum: float = 0.0
 	var vein_accum: float = 0.0
 	var peak_dps: float = 0.0
+
+	var start_fossils: int = int(_gs.total_fossils_evaluated)
+	var start_legendaries: int = int(_gs.total_legendary_fossils)
+	var dial_cooldown: float = 0.0
+	var dial_active: bool = false
+	var dial_reaction_left: float = 0.0
+	var strikes_perfect: int = 0
+	var strikes_good: int = 0
+	var strikes_miss: int = 0
+	var perfect_share_when_hit: float = 0.065 / 0.19
 
 	var t_first_upgrade: float = -1.0
 	var t_first_automation: float = -1.0
@@ -445,12 +567,27 @@ func _simulate_run(strat: String, upgrade_counts: Dictionary, recover_depth_targ
 	while elapsed < float(_gs.meteor_total_time):
 		elapsed += DT
 
-		# 1. Cliques ativos
-		var crit_chance: float = clampf(float(_gs.get_stat(_gs.STAT_CLICK_CRIT_CHANCE, 0.05)), 0.0, 0.95)
+		if dial_cooldown > 0.0:
+			dial_cooldown = maxf(dial_cooldown - DT, 0.0)
+
+		# 0. Fase inicial na Superfície: quebrar o Ovo de Âmbar (Rocha Laranja) antes de descer
+		var clicks_for_dig: int = 0
 		click_accum += clicks_per_sec * DT
 		var clicks_now: int = floori(click_accum)
 		click_accum -= float(clicks_now)
-		for _c: int in range(clicks_now):
+
+		if not bool(_gs.orange_rock_broken):
+			for _oc: int in range(clicks_now):
+				if not bool(_gs.orange_rock_broken):
+					_ev.orange_rock_hit.emit(maxf(float(_gs.get_click_damage()), 1.0), Vector2.ZERO)
+				else:
+					clicks_for_dig += 1
+		else:
+			clicks_for_dig = clicks_now
+
+		# 1. Cliques ativos na Escavação
+		var crit_chance: float = clampf(float(_gs.get_stat(_gs.STAT_CLICK_CRIT_CHANCE, 0.05)), 0.0, 0.95)
+		for _c: int in range(clicks_for_dig):
 			var dmg: float = float(_gs.get_click_damage())
 			if randf() < crit_chance:
 				dmg *= 2.5
@@ -479,6 +616,22 @@ func _simulate_run(strat: String, upgrade_counts: Dictionary, recover_depth_targ
 		if passive_dps > 0.0:
 			_gs.apply_dig_damage(passive_dps * DT, Vector2.ZERO)
 
+		# 3b. Sismógrafo Golpe Preciso (quando ativado por quebra de camada)
+		if dial_active:
+			dial_reaction_left -= DT
+			if dial_reaction_left <= 0.0:
+				dial_active = false
+				var res: StringName = &"miss"
+				if randf() < strike_rate:
+					res = &"perfect" if randf() < perfect_share_when_hit else &"good"
+				if res == &"perfect":
+					strikes_perfect += 1
+				elif res == &"good":
+					strikes_good += 1
+				else:
+					strikes_miss += 1
+				_gs.resolve_precise_strike(res, Vector2.ZERO)
+
 		# 4. Veios especiais periódicos
 		vein_accum += DT
 		if vein_accum >= VEIN_INTERVAL:
@@ -492,10 +645,15 @@ func _simulate_run(strat: String, upgrade_counts: Dictionary, recover_depth_targ
 			if bought_kind == &"":
 				break
 			bought_any = true
-			if bought_kind == &"upgrade" and t_first_upgrade < 0.0:
+			if (bought_kind == &"upgrade" or bought_kind == &"auto_upgrade") and t_first_upgrade < 0.0:
 				t_first_upgrade = elapsed
-			if bought_kind == &"dino" and t_first_dino < 0.0:
-				t_first_dino = elapsed
+			if bought_kind == &"auto_upgrade" and t_first_automation < 0.0:
+				t_first_automation = elapsed
+			if bought_kind == &"dino":
+				if t_first_dino < 0.0:
+					t_first_dino = elapsed
+				if t_first_automation < 0.0:
+					t_first_automation = elapsed
 
 		# Reconstrução de estações do Acampamento com RES_ROCKS acumulado
 		for rubble_id: StringName in _gs.RUBBLE_ORDER:
@@ -506,11 +664,15 @@ func _simulate_run(strat: String, upgrade_counts: Dictionary, recover_depth_targ
 			max_gap_5m = maxf(max_gap_5m, elapsed - last_buy_t_5m)
 			last_buy_t_5m = elapsed
 
-		if t_first_automation < 0.0 and (float(_gs.get_total_dps()) > 0.0 or t_first_dino >= 0.0):
-			t_first_automation = elapsed
-
-		# 6. Camadas, Eras e Recuperação
+		# 6. Camadas, Eras e Recuperação (+ ativação de dial do Golpe Preciso)
 		var cur_depth: int = int(_gs.depth)
+		if cur_depth > prev_depth and not dial_active and dial_cooldown <= 0.0:
+			var cfg: Object = _gs.balance
+			var cd: float = float(cfg.precise_strike_dial_cooldown) if cfg != null else 5.5
+			var dur: float = float(cfg.precise_strike_dial_duration) if cfg != null else 2.6
+			dial_cooldown = cd
+			dial_active = true
+			dial_reaction_left = minf(1.0, dur * 0.45)
 		while prev_depth < cur_depth:
 			prev_depth += 1
 			t_layers.append(elapsed)
@@ -559,6 +721,12 @@ func _simulate_run(strat: String, upgrade_counts: Dictionary, recover_depth_targ
 		"amber_upgrades_buyable": int(amber_stats["buyable_count"]),
 		"amber_tree_pct_levels": float(amber_stats["pct_levels"]),
 		"amber_tree_pct_cost": float(amber_stats["pct_cost"]),
+		"strikes_perfect": strikes_perfect,
+		"strikes_good": strikes_good,
+		"strikes_miss": strikes_miss,
+		"fossils_run": int(_gs.total_fossils_evaluated) - start_fossils,
+		"legendaries_run": int(_gs.total_legendary_fossils) - start_legendaries,
+		"museum_species": int(_gs.fossil_catalog.size()),
 	}
 
 
@@ -692,9 +860,12 @@ func _buy_best_for_strategy(strat: String, upgrade_counts: Dictionary) -> String
 		if bool(_gs.assemble_dino(best_id, 1)):
 			return &"dino"
 	elif best_kind == &"upgrade":
+		var chosen_upg: UpgradeData = _gs.get_upgrade(best_id)
 		if bool(_gs.purchase_upgrade(best_id, 1)):
 			var key: String = String(best_id)
 			upgrade_counts[key] = int(upgrade_counts.get(key, 0)) + 1
+			if chosen_upg != null and chosen_upg.stat_id == _gs.STAT_AUTO_DPS:
+				return &"auto_upgrade"
 			return &"upgrade"
 	return &""
 
