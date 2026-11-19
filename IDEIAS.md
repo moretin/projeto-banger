@@ -74,4 +74,19 @@ Com uma curva de balanceamento progressivo (usando os recursos gerados + Ciênci
 
 ---
 
+## 4. Dinossauro Protagonista: Movimentação (`WASD`), Interação por Proximidade e Farm Ativo
+
+O **Dinossauro Protagonista** atua como o avatar controlável diretamente pelo jogador na Superfície, conectando exploração, gerenciamento das estruturas e coleta direcionada:
+
+1. **Movimentação Livre com `WASD`**:
+   - O jogador controla o deslocamento do dinossauro protagonista pelo cenário da Superfície usando as teclas `W`, `A`, `S`, `D`.
+2. **Upgrades e Interação por Proximidade**:
+   - Para visualizar e comprar upgrades das estruturas da superfície (Montanha/Pedreira, Pesqueiro/Lago, Torre de Caça/Céu, Universidade, etc.), o dinossauro protagonista precisa **chegar perto da estrutura**.
+   - Ao entrar no raio de proximidade da construção, as opções de upgrade daquela estrutura aparecem contextualmente.
+3. **Auxílio no Farm Direcionado de Recursos**:
+   - Além de gerenciar a base, o protagonista pode **ajudar ativamente a farmar recursos** na atividade/estrutura escolhida pelo jogador.
+   - Ele pode gerar **🪨 Pedra**, **🐟 Peixe** (pesca), **🧪 Ciência** ou **🪶 Pena**, servindo como uma forma flexível de captar mais recursos específicos dependendo do objetivo atual do player.
+
+---
+
 *Adicione novas seções abaixo conforme surgirem novas ideias de mecânicas, dinossauros, eventos ou estruturas.*

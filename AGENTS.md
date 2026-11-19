@@ -52,3 +52,14 @@ godot --headless --path . --quit-after 600
 godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
 godot --headless --path . -s res://scenes/ui/test_ui_layout.gd
 ```
+
+## 5. Sincronia Local entre Codex e Antigravity (Chat Principal `Main`)
+Este repositório opera agora em **modo Local compartilhado** em `d:\projeto-banger`:
+- **Antigravity (Chat Principal `Main`)**: coordena a branch `main`, faz revisão técnica/integração das branches e mantém os documentos centrais (`AGENTS.md`, `IDEIAS.md`, `SKILLS.md`, `README.md`, `docs/GDD.md`).
+- **Codex**: executa implementações focadas nas branches de área (`[B1]`–`[B7]`) ou tarefas delegadas, seguindo as regras deste arquivo e as skills catalogadas em `SKILLS.md`.
+- **Skills Instaladas (19)**: as skills filtradas de Godot 4.7 (2D/Core) e Game Dev estão versionadas em `.agents/skills/` (com `.agents/.gdignore` para isolar a Godot Engine) e espelhadas em `C:\Users\pedro\.codex\skills\`. Consulte `SKILLS.md` para a lista completa.
+- **Regras de Convivência na Mesma Pasta Local**:
+  1. Sempre execute `git fetch origin` e `git status -sb` antes de editar arquivos ou rodar `git checkout`, preservando eventuais alterações locais não commitadas.
+  2. Ao finalizar, testar e integrar uma branch `feat/*` na `main`, retorne o workspace local para a `main` sincronizada (`git checkout main && git pull --ff-only origin main`).
+  3. Para rodar a suíte headless completa na máquina do Pedro via PowerShell, use o binário console oficial da Godot 4.7.2:
+     `powershell -NoProfile -ExecutionPolicy Bypass -File ./tools/run_tests.ps1 -GodotBin "D:\Arquivos fodase\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe"`
