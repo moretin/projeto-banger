@@ -537,11 +537,14 @@ func test_all_upgrades_use_valid_surface_or_amber_resources_and_no_machines() ->
 
 func test_meteor_drawn_in_basin_background_not_foreground_overlay() -> void:
 	var basin_src: String = FileAccess.get_file_as_string("res://scenes/surface/BasinLandscape.gd")
-	var meteor_call_idx: int = basin_src.find("_draw_background_meteor(")
-	var first_ridge_idx: int = basin_src.find("_ridge(")
-	assert_gt(meteor_call_idx, -1, "BasinLandscape deve desenhar o meteoro ao fundo")
-	assert_gt(first_ridge_idx, -1)
-	assert_lt(meteor_call_idx, first_ridge_idx, "Meteoro deve ser desenhado ANTES das montanhas e elementos de frente")
+	var sky_idx: int = basin_src.find("draw_texture_rect(SKY,")
+	var meteor_idx: int = basin_src.find("_draw_background_meteor(danger)")
+	var ridge_idx: int = basin_src.find("draw_texture_rect(RIDGES,")
+	var ground_idx: int = basin_src.find("draw_colored_polygon(_ground_shape,")
+	assert_gt(sky_idx, -1, "BasinLandscape deve desenhar a camada de céu")
+	assert_gt(meteor_idx, sky_idx, "O meteoro deve aparecer sobre o céu")
+	assert_gt(ridge_idx, meteor_idx, "As serras devem ficar na frente do meteoro")
+	assert_gt(ground_idx, ridge_idx, "O chão deve ficar na frente do relevo")
 
 	var overlay_src: String = FileAccess.get_file_as_string("res://scenes/meteor/MeteorOverlay.gd")
 	assert_true(overlay_src.contains("if _current_scenario != &\"dig_site\":"), "MeteorOverlay não deve desenhar meteoro em primeiro plano na superfície")
@@ -578,10 +581,13 @@ func test_custom_dino_pixel_art_sprites_and_icons() -> void:
 	await get_tree().process_frame
 	assert_eq(surface._get_worker_icon(&"rubble_forge"), AmberTheme.get_dino_sprite(&"pachycephalosaurus"))
 	assert_eq(surface._get_worker_icon(&"rubble_silo"), AmberTheme.get_dino_sprite(&"pterodactyl"))
-	# Exercita renderização com Paquicefalossauro e Pterodáctilo ativos na cena.
-	GameState.rubble_levels[&"rubble_silo"] = 1
-	GameState.station_worker_unlocked[&"rubble_forge"] = true
-	GameState.station_worker_unlocked[&"rubble_silo"] = true
+	for station: StringName in [&"rubble_nest", &"rubble_bunker"]:
+		assert_true(surface._get_worker_icon(station) is AtlasTexture, "O posto deve mostrar o sprite do seu especialista")
+	# Exercita as poses dos trabalhadores base e revividos em todos os postos.
+	for station: StringName in GameState.RUBBLE_ORDER:
+		GameState.rubble_levels[station] = 1
+		GameState.station_worker_unlocked[station] = true
+		GameState.station_revived_dinos[station] = 1
 	Events.orange_rock_hit.emit(20.0, Vector2.ZERO)
 	surface.move_hero_to_station(&"rubble_forge")
 	surface._on_field_action_pressed()

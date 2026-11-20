@@ -886,6 +886,9 @@ func _get_worker_icon(station: StringName) -> Texture2D:
 		var ptero: Texture2D = AmberTheme.get_dino_sprite(&"pterodactyl")
 		if ptero != null:
 			return ptero
+	var worker_icon: Texture2D = StationWorkerArt.get_icon(station)
+	if worker_icon != null:
+		return worker_icon
 	var def: Dictionary = GameState.RUBBLE_DEFS[station] as Dictionary
 	var product: StringName = StringName(def["product"])
 	return AmberTheme.get_resource_icon(product)
