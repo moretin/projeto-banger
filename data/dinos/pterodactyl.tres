@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="DinoData" format=3]
+[gd_resource type="Resource" script_class="DinoData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://data/DinoData.gd" id="1_h1r6p"]
+[ext_resource type="Texture2D" path="res://assets/sprites/pterodactyl.png" id="2_ptero_sprite"]
 
 [resource]
 script = ExtResource("1_h1r6p")
@@ -8,6 +9,8 @@ id = &"pterodactyl"
 display_name = "Pterodáctilo"
 description = "Soterrado na Rocha Incandescente. Amplia em +3% a extração de minérios por unidade."
 role = 4
+icon = ExtResource("2_ptero_sprite")
+sprite = ExtResource("2_ptero_sprite")
 accent_color = Color(0.75, 0.48, 0.92, 1)
 fossil_id = &"fossil_pterodactyl"
 fossil_name = "Asa Cristalizada de Pterodáctilo"

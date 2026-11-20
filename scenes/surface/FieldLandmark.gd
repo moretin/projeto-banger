@@ -26,6 +26,7 @@ var _built_cached: bool = false
 
 func _ready() -> void:
 	flat = true
+	texture_filter = Control.TEXTURE_FILTER_NEAREST
 	for style: StringName in [&"normal", &"hover", &"pressed", &"focus", &"disabled"]:
 		add_theme_stylebox_override(style, StyleBoxEmpty.new())
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -94,7 +95,7 @@ func _process(delta: float) -> void:
 			refresh()
 	phase += delta
 	pulse = maxf(0.0, pulse - delta * 3.0)
-	var frame: int = floori(phase * 10.0)
+	var frame: int = floori(phase * 30.0)
 	if frame != _frame:
 		_frame = frame
 		queue_redraw()
@@ -122,7 +123,7 @@ func _draw() -> void:
 		if GameState.is_station_built(station) and GameState.has_station_worker(station):
 			var def: Dictionary = GameState.RUBBLE_DEFS[station] as Dictionary
 			var gear_id: StringName = def["gear"] as StringName
-			_worker(GameState.get_upgrade_level(gear_id) > 0)
+			_worker(GameState.get_upgrade_level(gear_id) > 0, origin, factor)
 		var revived: int = GameState.get_station_revived_count(station)
 		if revived > 0:
 			_revived_dino_worker(revived)
@@ -250,8 +251,9 @@ func _lake(level: int) -> void:
 	_box(17, 42, 35, 2, Color("#9ac9af"))
 	_box(10, 55, 58, 2, WATER)
 	_box(17, 57, 43, 1, TEAL)
+	var slow_frame: int = maxi(_frame / 3, 0)
 	for i: int in range(5):
-		_box(13 + i*11, 48 + (i + _frame / 4) % 4, 6, 1, Color("#b6ddbf"))
+		_box(13 + i*11, 48 + (i + slow_frame / 4) % 4, 6, 1, Color("#b6ddbf"))
 	for i: int in range(5):
 		_box(8+i*2, 39-i%3*2, 1, 9, MOSS)
 		_box(8+i*2, 36-i%3*2, 2, 4, WOOD)
@@ -283,7 +285,7 @@ func _lake(level: int) -> void:
 
 func _lake_unbuilt() -> void:
 	# Bacia rasa lamacenta com pequena poça, juncos e estacas de obra (sem píer, guarda-sol ou lanterna).
-	var anim_f: int = maxi(_frame, 0)
+	var anim_f: int = maxi(_frame / 3, 0)
 	_box(11, 49, 62, 8, Color("#8c6252"))
 	_box(15, 47, 52, 9, Color("#785249"))
 	_box(18, 55, 46, 2, Color("#6b4942"))
@@ -328,11 +330,12 @@ func _tower(level: int) -> void:
 	_box(60, 32, 1, 23, WOOD)
 	for rung: int in range(6):
 		_box(56, 32 + rung*4, 5, 1, TIMBER)
+	var slow_f: int = maxi(_frame / 3, 0)
 	if GameState.get_upgrade_level(&"dinos_sky_scouts") > 0:
 		# Poleiro e flâmula dos Batedores das Dunas junto à torre.
 		_box(64, 34, 2, 21, WOOD)
 		_box(60, 34, 10, 2, TIMBER)
-		_box(66, 36, 7 + _frame % 2, 4, AMBER)
+		_box(66, 36, 7 + slow_f % 2, 4, AMBER)
 		_box(67, 37, 4, 2, CREAM)
 	if GameState.get_upgrade_level(&"dinos_beak_talons") > 0 or GameState.get_station_revived_count(&"rubble_silo") > 0:
 		_box(13, 48, 9, 7, INK)
@@ -345,7 +348,7 @@ func _tower(level: int) -> void:
 		_box(22, 19, 38, 3, WOOD)
 		for i: int in range(5):
 			_box(24+i*8, 19, 2, 7, TIMBER)
-		var vane_w: int = 4 + ((_frame / 2) % 6)
+		var vane_w: int = 4 + ((slow_f / 2) % 6)
 		_box(36, 2, 9, 3, TEAL)
 		_box(40, 0, 2, 10, TEAL)
 		_box(41 - vane_w / 2, 1, vane_w, 2, CREAM)
@@ -373,7 +376,7 @@ func _tower_unbuilt() -> void:
 	_box(65, 52, 3, 2, WOOD)
 	_box(64, 51, 5, 1, CREAM)
 	# Estaca baixa com fitinha de vento para sinalizar o terreno.
-	var anim_f: int = maxi(_frame, 0)
+	var anim_f: int = maxi(_frame / 3, 0)
 	_box(13, 45, 2, 11, WOOD)
 	_box(15, 45, 4 + (anim_f % 2), 2, Color("#df825a"))
 	_box(15, 47, 3, 1, AMBER)
@@ -404,13 +407,14 @@ func _college(level: int) -> void:
 		_box(36, 7, 8, 7, INK)
 		_box(38, 5, 4, 8, AMBER)
 		_box(38, 6, 2, 3, CREAM)
+	var slow_f: int = maxi(_frame / 3, 0)
 	if GameState.get_upgrade_level(&"uni_fossil_luck") > 0 or GameState.get_upgrade_level(&"uni_clean_double") > 0:
 		_box(7, 42, 6, 13, WOOD)
 		_box(8, 37, 4, 5, INK)
-		_box(9, 38, 2, 3, Color("#ffd54f") if (_frame % 4) < 2 else CREAM)
+		_box(9, 38, 2, 3, Color("#ffd54f") if (slow_f % 4) < 2 else CREAM)
 	for i: int in range(2):
 		_box(23+i*30, 36, 6, 8, INK)
-		var win_col: Color = CREAM if (not GameState.raw_fossil_queue.is_empty() and (_frame % 4) < 2) else (AMBER if level > 0 else MOSS)
+		var win_col: Color = CREAM if (not GameState.raw_fossil_queue.is_empty() and (slow_f % 4) < 2) else (AMBER if level > 0 else MOSS)
 		_box(24+i*30, 37, 3, 4, win_col)
 	_box(32, 53, 20, 3, TIMBER)
 	if level > 0:
@@ -461,7 +465,17 @@ func _college_unbuilt() -> void:
 	_box(57, 43, 5, 1, TEAL)
 
 
-func _worker(equipped: bool) -> void:
+func _worker(equipped: bool, canvas_origin: Vector2, canvas_factor: float) -> void:
+	if station == &"rubble_forge":
+		var pachy_tex: Texture2D = AmberTheme.get_dino_sprite(&"pachycephalosaurus")
+		if pachy_tex != null:
+			_draw_pachy_miner(pachy_tex, equipped, canvas_origin, canvas_factor)
+			return
+	elif station == &"rubble_silo":
+		var ptero_tex: Texture2D = AmberTheme.get_dino_sprite(&"pterodactyl")
+		if ptero_tex != null:
+			_draw_ptero_scout(ptero_tex, equipped, canvas_origin, canvas_factor)
+			return
 	var beat: float = sin(phase * 3.2)
 	var x: float = 58 + roundf(beat * 4)
 	var y: float = 49
@@ -516,6 +530,105 @@ func _worker(equipped: bool) -> void:
 			_box(x+12, y+2, 3, 3, CREAM)
 			if equipped:
 				_box(x+9, y-5, 3, 3, TEAL)
+
+
+func _draw_pachy_miner(tex: Texture2D, equipped: bool, canvas_origin: Vector2, canvas_factor: float) -> void:
+	var tex_sz: Vector2 = tex.get_size()
+	var draw_w: float = 28.0
+	var draw_h: float = draw_w * (tex_sz.y / maxf(tex_sz.x, 1.0))
+	var cycle: float = fmod(phase * 1.15, 1.0)
+	var dx: float = 0.0
+	var rot: float = 0.0
+	var sx: float = 1.0
+	var sy: float = 1.0
+	var impact_strength: float = 0.0
+
+	if cycle < 0.38:
+		var t: float = cycle / 0.38
+		var wind: float = sin(t * PI * 0.5)
+		dx = wind * 4.0
+		rot = wind * 0.14
+		sx = 1.0 - wind * 0.06
+		sy = 1.0 + wind * 0.05
+	elif cycle < 0.52:
+		var t: float = (cycle - 0.38) / 0.14
+		var slam: float = sin(t * PI * 0.5)
+		dx = lerpf(4.0, -6.0, slam)
+		rot = lerpf(0.14, -0.26, slam)
+		sx = 1.0 + 0.14 * slam
+		sy = 1.0 - 0.12 * slam
+	else:
+		var t: float = (cycle - 0.52) / 0.48
+		var rec: float = pow(1.0 - t, 2.0)
+		dx = -6.0 * rec
+		rot = -0.26 * rec + sin(phase * 3.0) * 0.02 * (1.0 - rec)
+		sx = 1.0 + 0.08 * rec
+		sy = 1.0 - 0.06 * rec
+
+	if cycle >= 0.48 and cycle <= 0.72:
+		impact_strength = clampf(1.0 - absf(cycle - 0.56) / 0.16, 0.0, 1.0)
+
+	var px: float = 69.0 + dx
+	var py: float = 57.0
+	_box(px - 10.0, 56.0, 20.0, 2.0, Color(0.12, 0.09, 0.08, 0.35))
+	draw_set_transform(canvas_origin + Vector2(px, py) * canvas_factor, rot, Vector2(-sx, sy) * canvas_factor)
+	draw_texture_rect(tex, Rect2(-draw_w * 0.5, -draw_h, draw_w, draw_h), false)
+	draw_set_transform(canvas_origin, 0.0, Vector2.ONE * canvas_factor)
+
+	if equipped:
+		var crest_x: float = px - 7.0
+		var crest_y: float = py - draw_h + 2.0
+		_box(crest_x, crest_y, 5.0, 2.0, AMBER)
+		_box(crest_x + 1.0, crest_y - 1.0, 3.0, 1.0, CREAM)
+
+	if impact_strength > 0.05:
+		var hit_x: float = 54.0
+		var hit_y: float = 43.0
+		var burst_t: float = clampf((cycle - 0.48) / 0.24, 0.0, 1.0)
+		var spark_c: Color = Color(CREAM.r, CREAM.g, CREAM.b, impact_strength)
+		var stone_c: Color = Color("#c68c73")
+		stone_c.a = impact_strength
+		var amber_c: Color = Color(AMBER.r, AMBER.g, AMBER.b, impact_strength)
+		draw_rect(Rect2(hit_x - 2.0, hit_y - 2.0, 4.0, 4.0), amber_c if equipped else spark_c)
+		draw_rect(Rect2(hit_x - 3.0 - burst_t * 6.0, hit_y - 2.0 - burst_t * 5.0, 2.0, 2.0), spark_c)
+		draw_rect(Rect2(hit_x - 1.0 - burst_t * 4.0, hit_y + 1.0 + burst_t * 4.0, 2.0, 2.0), stone_c)
+		draw_rect(Rect2(hit_x + 1.0 + burst_t * 3.0, hit_y - 3.0 - burst_t * 6.0, 2.0, 2.0), amber_c if equipped else stone_c)
+
+
+func _draw_ptero_scout(tex: Texture2D, equipped: bool, canvas_origin: Vector2, canvas_factor: float) -> void:
+	var tex_sz: Vector2 = tex.get_size()
+	var draw_w: float = 26.0
+	var draw_h: float = draw_w * (tex_sz.y / maxf(tex_sz.x, 1.0))
+	var fx: float = 41.0 + sin(phase * 1.45) * 25.0
+	var fy: float = 15.0 + sin(phase * 2.9) * 5.0
+	var vx: float = cos(phase * 1.45)
+	var dir: float = 1.0 if vx >= 0.0 else -1.0
+	var flap: float = sin(phase * 8.5)
+	var sx: float = 1.0 - flap * 0.05
+	var sy: float = 1.0 + flap * 0.16
+	var rot: float = dir * (cos(phase * 2.9) * 0.16 + flap * 0.05)
+
+	# Sombra suave no chão acompanhando a patrulha aérea e rastros de vento.
+	_box(fx - 5.0, 56.0, 10.0, 2.0, Color(0.12, 0.09, 0.08, 0.20))
+	for s_i: int in range(2):
+		var streak_x: float = fx - dir * (11.0 + float(s_i) * 5.0)
+		var streak_y: float = fy + float(s_i) * 3.0 - 2.0
+		_box(streak_x, streak_y, 4.0, 1.0, Color(CREAM.r, CREAM.g, CREAM.b, 0.45 - float(s_i) * 0.15))
+
+	# Pena solta planando em direção à torre.
+	var feather_t: float = fmod(phase * 0.55, 1.0)
+	var feather_x: float = 41.0 + sin(phase * 3.0) * 8.0 - feather_t * 4.0
+	var feather_y: float = lerpf(18.0, 44.0, feather_t)
+	_box(feather_x, feather_y, 2.0, 1.0, Color(CREAM.r, CREAM.g, CREAM.b, 1.0 - feather_t))
+
+	draw_set_transform(canvas_origin + Vector2(fx, fy) * canvas_factor, rot, Vector2(dir * sx, sy) * canvas_factor)
+	draw_texture_rect(tex, Rect2(-draw_w * 0.5, -draw_h * 0.5, draw_w, draw_h), false)
+	draw_set_transform(canvas_origin, 0.0, Vector2.ONE * canvas_factor)
+
+	if equipped:
+		var glint_col: Color = Color(TEAL.r, TEAL.g, TEAL.b, 0.90)
+		_box(fx + dir * 4.0, fy - 3.0, 2.0, 2.0, glint_col)
+		_box(fx + dir * 6.0, fy - 4.0, 2.0, 1.0, CREAM)
 
 
 func _revived_dino_worker(_revived_level: int) -> void:

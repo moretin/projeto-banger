@@ -560,3 +560,31 @@ func test_meteor_drawn_in_basin_background_not_foreground_overlay() -> void:
 		await get_tree().process_frame
 	assert_true(surface.is_inside_tree())
 	assert_true(overlay.is_inside_tree())
+
+
+func test_custom_dino_pixel_art_sprites_and_icons() -> void:
+	for dino_id: StringName in [&"compsognathus", &"pterodactyl", &"pachycephalosaurus"]:
+		var tex: Texture2D = AmberTheme.get_dino_sprite(dino_id)
+		assert_not_null(tex, "Sprite %s deve existir em assets/sprites" % dino_id)
+		var img: Image = tex.get_image()
+		assert_not_null(img)
+		assert_lt(img.get_pixel(0, 0).a, 0.05, "Fundo de %s deve ser transparente" % dino_id)
+	var ptero_data: DinoData = GameState.get_dino(&"pterodactyl")
+	assert_not_null(ptero_data)
+	assert_not_null(ptero_data.sprite, "pterodactyl.tres deve apontar para o sprite")
+
+	var packed: PackedScene = load("res://scenes/surface/SurfaceScene.tscn") as PackedScene
+	var surface: SurfaceScene = add_child_autofree(packed.instantiate()) as SurfaceScene
+	await get_tree().process_frame
+	assert_eq(surface._get_worker_icon(&"rubble_forge"), AmberTheme.get_dino_sprite(&"pachycephalosaurus"))
+	assert_eq(surface._get_worker_icon(&"rubble_silo"), AmberTheme.get_dino_sprite(&"pterodactyl"))
+	# Exercita renderização com Paquicefalossauro e Pterodáctilo ativos na cena.
+	GameState.rubble_levels[&"rubble_silo"] = 1
+	GameState.station_worker_unlocked[&"rubble_forge"] = true
+	GameState.station_worker_unlocked[&"rubble_silo"] = true
+	Events.orange_rock_hit.emit(20.0, Vector2.ZERO)
+	surface.move_hero_to_station(&"rubble_forge")
+	surface._on_field_action_pressed()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_gt(surface._hero_action_timer, 0.0)

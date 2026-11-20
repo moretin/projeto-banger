@@ -20,6 +20,11 @@ const MAX_ACTIVE_FX: int = 48
 const STAGE_MIN_X: float = 82.0
 const DEFAULT_STAGE_MAX_X: float = 960.0
 const HOIST_BASKET_X: float = 96.0
+const RIGHT_FACING_DINOS: Dictionary = {
+	&"compsognathus": true,
+	&"pterodactyl": true,
+	&"pachycephalosaurus": true,
+}
 
 
 class VisualAgent:
@@ -267,6 +272,7 @@ func _animate_visual_agents(delta: float) -> void:
 				var swoop: float = sin(a.phase * 0.9) * 16.0
 				pos = Vector2(a.x, a.base_y + swoop)
 				rot = a.dir * cos(a.phase * 0.9) * 0.14
+				sy_mult = 1.0 + sin(a.phase * 3.8) * 0.16
 
 			DinoData.Role.AREA:
 				# Tricerátopo inclina os chifres empurrando bloco fendido de pedra
@@ -352,8 +358,9 @@ func _animate_visual_agents(delta: float) -> void:
 				if a.lunge_timer > 0.0:
 					rot = -0.15 * a.dir
 
-		# Sprites olham para a ESQUERDA por padrão: inverte eixo X quando vai para direita (dir > 0).
-		var sx: float = -a.size.x * a.dir
+		# Ajusta orientação horizontal de acordo com a direção padrão da arte.
+		var face_sign: float = 1.0 if RIGHT_FACING_DINOS.has(a.dino_id) else -1.0
+		var sx: float = a.size.x * a.dir * face_sign
 		var sy: float = a.size.y * sy_mult
 		var xform := Transform2D(rot, Vector2(sx, sy), 0.0, pos)
 
@@ -517,10 +524,10 @@ func _create_agent(data: DinoData, max_x: float = DEFAULT_STAGE_MAX_X) -> Visual
 
 	match data.role:
 		DinoData.Role.COLLECTOR:
-			a.size = Vector2(34.0, 34.0)
+			a.size = Vector2(54.0, 22.0)
 			a.base_y = randf_range(-16.0, -8.0)
 		DinoData.Role.TRANSPORT:
-			a.size = Vector2(40.0, 28.0)
+			a.size = Vector2(44.0, 41.0)
 			a.base_y = randf_range(-88.0, -50.0)
 		DinoData.Role.BREAKER:
 			a.size = Vector2(48.0, 44.0)

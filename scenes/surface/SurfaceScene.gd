@@ -27,14 +27,18 @@ const DIMMED_MODULATE: Color = Color(0.58, 0.56, 0.54, 0.68)
 
 class HeroAvatar:
 	extends Control
+	const ACTION_DURATION: float = 0.34
 	var facing_left: bool = false
 	var walking: bool = false
+	var assisting_built: bool = false
 	var phase: float = 0.0
+	var action_timer: float = 0.0
 	var status_label: String = "WASD · [E]"
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		focus_mode = Control.FOCUS_NONE
+		texture_filter = Control.TEXTURE_FILTER_NEAREST
 
 	func _draw() -> void:
 		if not GameState.orange_rock_broken:
@@ -43,14 +47,72 @@ class HeroAvatar:
 		var cx: float = size.x * 0.5
 		var cy: float = size.y - 20.0
 		var ring_col: Color = Color(0.95, 0.72, 0.25, 0.65) if GameState.hero_station != &"" else Color(0.18, 0.14, 0.10, 0.30)
-		draw_arc(Vector2(cx, cy), 28.0, 0.0, TAU, 24, ring_col, 2.5)
-		draw_rect(Rect2(cx - 22.0, cy - 5.0, 44.0, 9.0), Color(0.12, 0.09, 0.08, 0.35))
+		draw_arc(Vector2(cx, cy), 30.0, 0.0, TAU, 24, ring_col, 2.5)
 
-		var hop: float = roundf(absf(sin(phase * 11.0)) * 7.0) if walking else roundf(absf(sin(phase * 3.0)) * 3.0)
+		var facing_sign: float = -1.0 if facing_left else 1.0
+		var hop: float = 0.0
+		var lunge_x: float = 0.0
+		var rot: float = 0.0
+		var sx: float = 1.0
+		var sy: float = 1.0
+		var act_t: float = 0.0
+
+		if action_timer > 0.0:
+			act_t = clampf(1.0 - action_timer / ACTION_DURATION, 0.0, 1.0)
+			var impulse: float = sin(act_t * PI)
+			lunge_x = facing_sign * impulse * 14.0
+			hop = impulse * 4.0
+			rot = facing_sign * 0.22 * impulse
+			sx = 1.0 + 0.16 * impulse
+			sy = 1.0 - 0.14 * impulse
+		elif walking:
+			var stride: float = sin(phase * 13.0)
+			hop = roundf(absf(stride) * 7.5)
+			rot = facing_sign * (0.07 + stride * 0.06)
+			var stretch: float = absf(stride)
+			sx = 1.0 - 0.06 * stretch
+			sy = 1.0 + 0.07 * stretch
+		elif assisting_built:
+			var work_wave: float = sin(phase * 4.5)
+			hop = maxf(work_wave, 0.0) * 3.0
+			rot = facing_sign * maxf(work_wave, 0.0) * 0.10
+			sx = 1.0 + work_wave * 0.04
+			sy = 1.0 - work_wave * 0.04
+		else:
+			var breath: float = sin(phase * 2.6)
+			sx = 1.0 - breath * 0.025
+			sy = 1.0 + breath * 0.035
+			rot = sin(phase * 2.1) * 0.03
+
+		var shadow_scale: float = clampf(1.0 - hop * 0.035, 0.72, 1.0)
+		var shadow_w: float = 52.0 * shadow_scale
+		draw_rect(Rect2(cx + lunge_x - shadow_w * 0.5, cy - 4.0, shadow_w, 8.0), Color(0.12, 0.09, 0.08, 0.35))
+
+		if walking:
+			for d_i: int in range(2):
+				var p_prog: float = fmod(phase * 2.8 + float(d_i) * 0.5, 1.0)
+				var px: float = cx - facing_sign * (18.0 + p_prog * 22.0)
+				var py: float = cy - 4.0 - p_prog * 9.0
+				var pr: float = lerpf(3.0, 1.0, p_prog)
+				draw_rect(Rect2(px, py, pr * 2.0, pr * 2.0), Color(0.92, 0.80, 0.58, (1.0 - p_prog) * 0.55))
+
 		if sprite != null:
-			draw_set_transform(Vector2(cx, cy - hop), 0.0, Vector2(-1.0 if facing_left else 1.0, 1.0))
-			draw_texture_rect(sprite, Rect2(-38.0, -68.0, 76.0, 68.0), false)
+			var tex_sz: Vector2 = sprite.get_size()
+			var draw_w: float = 104.0
+			var draw_h: float = draw_w * (tex_sz.y / maxf(tex_sz.x, 1.0))
+			draw_set_transform(Vector2(cx + lunge_x, cy - hop), rot, Vector2(facing_sign * sx, sy))
+			draw_texture_rect(sprite, Rect2(-draw_w * 0.5, -draw_h, draw_w, draw_h), false)
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+		if action_timer > 0.0:
+			var tip_x: float = cx + lunge_x + facing_sign * 42.0
+			var tip_y: float = cy - hop - 22.0
+			var spark_col: Color = Color(1.0, 0.90, 0.42, (1.0 - act_t) * 0.95)
+			for s_i: int in range(-1, 2):
+				var p0 := Vector2(tip_x, tip_y + float(s_i) * 5.0)
+				var p1 := Vector2(tip_x + facing_sign * (10.0 + act_t * 10.0), tip_y + float(s_i) * 9.0 - 4.0)
+				draw_line(p0, p1, spark_col, 2.5)
+
 		var font: Font = ThemeDB.fallback_font
 		if font != null and not status_label.is_empty():
 			draw_string(font, Vector2(0.0, size.y - 2.0), status_label, HORIZONTAL_ALIGNMENT_CENTER, size.x, 12, Color(0.99, 0.94, 0.80))
@@ -110,6 +172,7 @@ var _hero_map_pos: Vector2 = Vector2(236.0, 152.0)
 var _hero_facing_left: bool = false
 var _hero_walking: bool = false
 var _hero_anim_phase: float = 0.0
+var _hero_action_timer: float = 0.0
 var _active_floating_labels: int = 0
 
 
@@ -126,7 +189,7 @@ func _ready() -> void:
 
 	_hero_avatar = HeroAvatar.new()
 	_hero_avatar.name = "HeroAvatar"
-	_hero_avatar.size = Vector2(148.0, 92.0)
+	_hero_avatar.size = Vector2(172.0, 96.0)
 	_map.add_child(_hero_avatar)
 
 	_map.resized.connect(_layout_landmarks)
@@ -197,6 +260,7 @@ func _process(delta: float) -> void:
 	else:
 		_hero_walking = false
 	_hero_anim_phase += delta
+	_hero_action_timer = maxf(_hero_action_timer - delta, 0.0)
 	_sync_hero_avatar()
 	if _site == &"rubble_bunker":
 		_update_university_live_ui()
@@ -354,7 +418,9 @@ func _sync_hero_avatar() -> void:
 	_hero_avatar.position = (screen_foot - Vector2(_hero_avatar.size.x * 0.5, _hero_avatar.size.y - 20.0)).round()
 	_hero_avatar.facing_left = _hero_facing_left
 	_hero_avatar.walking = _hero_walking
+	_hero_avatar.assisting_built = (GameState.hero_station != &"" and GameState.is_station_built(GameState.hero_station))
 	_hero_avatar.phase = _hero_anim_phase
+	_hero_avatar.action_timer = _hero_action_timer
 	if GameState.hero_station != &"" and GameState.RUBBLE_DEFS.has(GameState.hero_station):
 		if GameState.is_station_built(GameState.hero_station):
 			var prod: StringName = StringName(GameState.RUBBLE_DEFS[GameState.hero_station]["product"])
@@ -812,6 +878,10 @@ func _set_btn_status(btn: Button, label: String, icon_tex: Texture2D = null) -> 
 
 
 func _get_worker_icon(station: StringName) -> Texture2D:
+	if station == &"rubble_forge":
+		var pachy: Texture2D = AmberTheme.get_dino_sprite(&"pachycephalosaurus")
+		if pachy != null:
+			return pachy
 	if station == &"rubble_silo":
 		var ptero: Texture2D = AmberTheme.get_dino_sprite(&"pterodactyl")
 		if ptero != null:
@@ -1277,6 +1347,8 @@ func _on_field_action_pressed() -> void:
 		var landmark: FieldLandmark = _landmarks[target_station] as FieldLandmark
 		landmark.pulse = 1.0
 		action_pos = landmark.get_global_rect().get_center()
+	_hero_action_timer = HeroAvatar.ACTION_DURATION
+	_sync_hero_avatar()
 	GameState.hero_farm_action(target_station, action_pos)
 	_refresh()
 
