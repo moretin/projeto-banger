@@ -9,6 +9,11 @@ extends Control
 ## `Events.scenario_transition_requested`.
 
 const DINO_SWARM_SCENE: PackedScene = preload("res://scenes/dinos/DinoSwarm.tscn")
+# Tremores isolados, em vez de ruido aleatorio aplicado a cada frame.
+const TREMOR_START_DANGER: float = 0.72
+const TREMOR_PERIOD: float = 4.5
+const TREMOR_DURATION: float = 0.42
+const TREMOR_MAX_PIXELS: float = 2.4
 
 @onready var _scenario_viewport: Control = %ScenarioViewport
 @onready var _surface_scene: SurfaceScene = %SurfaceScene
@@ -17,6 +22,7 @@ const DINO_SWARM_SCENE: PackedScene = preload("res://scenes/dinos/DinoSwarm.tscn
 
 var _current_scenario: StringName = &"surface"
 var _transition_tween: Tween
+var _tremor_clock: float = 0.0
 
 
 func _ready() -> void:
@@ -33,18 +39,32 @@ func _ready() -> void:
 	_sync_scenario_layout.call_deferred()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _transition_tween != null and _transition_tween.is_running():
 		return
-	var d: float = GameState.danger_level
-	if d >= 0.45 and not GameState.is_impacting:
-		var amp: float = pow((d - 0.45) / 0.55, 1.4) * 2.8
-		var jitter_x: float = randf_range(-amp, amp)
-		_surface_scene.position.x = jitter_x
-		_dig_site.position.x = jitter_x
+	var danger: float = GameState.danger_level
+	if GameState.is_impacting or danger < TREMOR_START_DANGER:
+		_tremor_clock = 0.0
 	else:
-		_surface_scene.position.x = 0.0
-		_dig_site.position.x = 0.0
+		_tremor_clock += delta
+	var offset: float = _meteor_tremor_offset(danger, _tremor_clock)
+	if GameState.is_impacting:
+		offset = 0.0
+	_surface_scene.position.x = offset
+	_dig_site.position.x = offset
+
+
+## Tremor com envelope suave e pausa longa entre pulsos.
+## Efeito puramente visual: nao altera o estado do jogo nem a economia.
+static func _meteor_tremor_offset(danger: float, elapsed: float) -> float:
+	if danger < TREMOR_START_DANGER:
+		return 0.0
+	var phase: float = fposmod(maxf(elapsed, 0.0), TREMOR_PERIOD)
+	if phase >= TREMOR_DURATION:
+		return 0.0
+	var intensity: float = clampf((danger - TREMOR_START_DANGER) / (1.0 - TREMOR_START_DANGER), 0.0, 1.0)
+	var envelope: float = pow(sin(PI * phase / TREMOR_DURATION), 2.0)
+	return sin(phase * 37.0) * envelope * intensity * TREMOR_MAX_PIXELS
 
 
 func transition_to_scenario(target: StringName) -> void:
