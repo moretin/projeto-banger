@@ -6,13 +6,13 @@
 script = ExtResource("1")
 id = &"tools_metal_pick"
 display_name = "Picareta de Metal Puro"
-description = "Forjada com metal do Anquilossauro: +35% na produção de todas as estruturas e recursos raros."
+description = "Forjada com Metal do Anquilossauro: +35% na produção de recursos raros Tier-2 por nível."
 category = 0
 sort_order = 10
 cost_resource = &"metal"
-base_cost = 5.0
-cost_growth = 1.55
-max_level = 15
+base_cost = 14.0
+cost_growth = 1.75
+max_level = 12
 stat_id = &"tier2_yield"
 effect_type = 1
 effect_value = 0.35

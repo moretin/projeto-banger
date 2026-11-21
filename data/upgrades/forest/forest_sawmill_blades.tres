@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"forest_sawmill_blades"
+display_name = "Serras de Sequoia"
+description = "Serraria reforçada eleva em +25% a produção automática de todas as estruturas por nível. Libera Seiva de Âmbar."
+category = 6
+sort_order = 0
+cost_resource = &"wood"
+base_cost = 140.0
+cost_growth = 1.72
+max_level = 12
+stat_id = &"station_yield"
+effect_type = 1
+effect_value = 0.25

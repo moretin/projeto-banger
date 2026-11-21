@@ -12,7 +12,7 @@ const SAVE_PATH: String = "user://savegame.json"
 const BACKUP_PATH: String = "user://savegame.bak.json"
 const TEMP_PATH: String = "user://savegame.tmp"
 
-const SAVE_VERSION: int = 5
+const SAVE_VERSION: int = 6
 const AUTOSAVE_INTERVAL: float = 30.0
 ## Limite de tempo offline recompensado (8 horas).
 const MAX_OFFLINE_SECONDS: float = 8.0 * 3600.0
@@ -201,6 +201,20 @@ func _migrate(payload: Dictionary) -> Dictionary:
 				game["run_surface_progress"] = 0.0
 			payload["game"] = game
 		version = 5
+	if version == 5:
+		# v5 → v6: adiciona biomas (current_biome) e recursos de Floresta/Neve; descarta catálogo legado do Museu.
+		var raw_v5: Variant = payload.get("game", {})
+		if raw_v5 is Dictionary:
+			var game: Dictionary = raw_v5 as Dictionary
+			if not game.has("current_biome"):
+				game["current_biome"] = String(GameState.BIOME_AMBER)
+			var raw_res: Variant = game.get("resources", {})
+			var res_dict: Dictionary = raw_res as Dictionary if raw_res is Dictionary else {}
+			res_dict.merge({"wood": 0.0, "berries": 0.0, "resin": 0.0, "ice": 0.0, "crystals": 0.0})
+			game["resources"] = res_dict
+			game.erase("fossil_catalog")
+			payload["game"] = game
+		version = 6
 	if version > SAVE_VERSION:
 		push_warning("[SaveManager] Save de versão mais nova (%d > %d)." % [version, SAVE_VERSION])
 	payload["version"] = SAVE_VERSION

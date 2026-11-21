@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_balcfg")
-base_meteor_time = 600.0
+base_meteor_time = 1200.0
 meteor_first_run = 1
 early_impact_min_depth = 3
 early_impact_min_amber = 1.0

@@ -3,7 +3,7 @@ extends Resource
 ## Editável em `res://data/balance.tres` e carregado por `GameState`.
 
 @export_group("Meteoro & Prestígio")
-@export var base_meteor_time: float = 600.0
+@export var base_meteor_time: float = 1200.0
 @export var meteor_first_run: int = 1
 @export var early_impact_min_depth: int = 3
 @export var early_impact_min_amber: float = 1.0

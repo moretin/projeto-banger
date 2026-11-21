@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"snow_cryo_vault"
+display_name = "Câmara Criopreservada"
+description = "Preserva amostras intactas com Cristais: +45% na produção de recursos raros Tier-2 por nível."
+category = 8
+sort_order = 2
+cost_resource = &"crystals"
+base_cost = 20.0
+cost_growth = 1.82
+max_level = 10
+stat_id = &"tier2_yield"
+effect_type = 1
+effect_value = 0.45
+required_upgrade = &"snow_glacial_lens"
+required_level = 1

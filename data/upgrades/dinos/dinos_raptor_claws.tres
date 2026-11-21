@@ -5,16 +5,16 @@
 [resource]
 script = ExtResource("1_dg256")
 id = &"dinos_raptor_claws"
-display_name = "Garras Afiadas"
-description = "Desbloqueio único: +20% no rendimento de todas as estruturas. Libera Mandíbula Colossal."
+display_name = "Anzóis de Osso"
+description = "Desbloqueio único: +35% na coleta manual [E] em todas as estruturas. Libera Protocolo de Nutrição."
 category = 1
 sort_order = 1
 cost_resource = &"fish"
-base_cost = 32.0
+base_cost = 135.0
 cost_growth = 1.0
 max_level = 1
-stat_id = &"tier2_yield"
+stat_id = &"manual_yield"
 effect_type = 1
-effect_value = 0.20
+effect_value = 0.35
 required_upgrade = &"dinos_pack_instinct"
 required_level = 1

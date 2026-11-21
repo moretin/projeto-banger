@@ -45,8 +45,6 @@ signal prestige_modal_requested()
 signal prestige_modal_visibility_changed(is_open: bool)
 ## Emissor: HUD. Abre o modal de Save / Configurações.
 signal settings_modal_requested()
-## Emissor: HUD ou Laudo. Abre a galeria do Museu Paleontológico.
-signal museum_modal_requested()
 #endregion
 
 
@@ -81,12 +79,14 @@ signal rubble_rebuilt(rubble_id: StringName, new_level: int)
 signal station_research_requested()
 ## Emissor: Superfície ou Escavação. Jogador escovou o sedimento da jazida por arrasto.
 signal brush_stroke(world_position: Vector2)
-## Emissor: GameState. Fóssil encontrado e catalogado no Museu com raridade (0=Comum..3=Lendário).
+## Emissor: GameState. Fóssil encontrado ou limpo com raridade (0=Comum..3=Lendário).
 signal fossil_found(dino_id: StringName, rarity: int)
 ## Emissor: GameState. Sismógrafo de Golpe Preciso resolvido (&"perfect", &"good", &"miss").
 signal precise_strike_resolved(result: StringName, bonus_damage: float)
 ## Emissor: GameState. Jogador quebrou um veio especial na rocha.
 signal vein_cracked(bonus_bones: float, bonus_minerals: float, dino_id: StringName)
+## Emissor: GameState. Bioma atual da Superfície mudou (&"forest", &"amber_basin", &"snow").
+signal biome_changed(biome_id: StringName)
 #endregion
 
 

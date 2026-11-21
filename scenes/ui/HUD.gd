@@ -3,16 +3,43 @@ extends PanelContainer
 ## Barra inferior de recursos ativos da superfície, barra visual do meteoro e atalhos de modais.
 
 const RESOURCE_DISPLAY_NAMES: Dictionary = {
-	GameState.RES_ROCKS: "Rochas",
-	GameState.RES_FISH: "Peixes",
-	GameState.RES_FEATHERS: "Penas",
-	GameState.RES_SCIENCE: "Ciência",
-	GameState.RES_RAW_FOSSILS: "Fósseis Brutos",
-	GameState.RES_METAL: "Metal",
-	GameState.RES_SCALES: "Escamas",
-	GameState.RES_BEAKS: "Bicos",
-	GameState.RES_AMBER: "Âmbar",
+	&"rocks": "Rochas",
+	&"fish": "Peixes",
+	&"feathers": "Penas",
+	&"science": "Ciência",
+	&"raw_fossils": "Fósseis Brutos",
+	&"metal": "Metal",
+	&"scales": "Escamas",
+	&"beaks": "Bicos",
+	&"wood": "Madeira",
+	&"berries": "Frutas",
+	&"resin": "Resina",
+	&"ice": "Gelo",
+	&"crystals": "Cristais",
+	&"amber": "Âmbar",
 }
+
+const LEGACY_HIDDEN_RESOURCES: Array[StringName] = [
+	&"bones",
+	&"minerals",
+	&"dna",
+]
+
+const COMPACT_THRESHOLD: int = 8
+const SPACIOUS_ROW_SEPARATION: int = 20
+const COMPACT_ROW_SEPARATION: int = 10
+const SPACIOUS_CHIP_SEPARATION: int = 7
+const COMPACT_CHIP_SEPARATION: int = 5
+const SPACIOUS_BALANCE_SEPARATION: int = 6
+const COMPACT_BALANCE_SEPARATION: int = 4
+const SPACIOUS_ICON_SIZE: Vector2 = Vector2(24.0, 24.0)
+const COMPACT_ICON_SIZE: Vector2 = Vector2(18.0, 18.0)
+const SPACIOUS_NAME_FONT_SIZE: int = 13
+const COMPACT_NAME_FONT_SIZE: int = 11
+const SPACIOUS_AMOUNT_FONT_SIZE: int = 20
+const COMPACT_AMOUNT_FONT_SIZE: int = 16
+const SPACIOUS_RATE_FONT_SIZE: int = 13
+const COMPACT_RATE_FONT_SIZE: int = 11
 
 const NAME_COLOR: Color = Color(0.84, 0.77, 0.66, 1.0)
 const RATE_COLOR: Color = Color(0.80, 0.89, 0.71, 1.0)
@@ -22,14 +49,16 @@ const METEOR_COLOR_CRIT: Color = Color(0.94, 0.20, 0.14, 1.0)
 
 @onready var _meteor_icon: TextureRect = %MeteorIcon
 @onready var _meteor_bar: ProgressBar = %MeteorBar
-@onready var _resources_center: HBoxContainer = %ResourcesCenter
+@onready var _resources_center: VBoxContainer = %ResourcesCenter
+@onready var _row_top: HBoxContainer = %RowTop
+@onready var _row_bottom: HBoxContainer = %RowBottom
 @onready var _toast_label: Label = %ToastLabel
-@onready var _museum_button: Button = %MuseumButton
 @onready var _prestige_button: Button = %PrestigeButton
 @onready var _settings_button: Button = %SettingsButton
 
 var _toast_timer: float = 0.0
 var _refresh_pending: bool = false
+var _is_compact_layout: bool = false
 var _active_order: Array[StringName] = []
 var _resource_chips: Dictionary = {}
 var _meteor_fill_style: StyleBoxFlat = null
@@ -39,11 +68,9 @@ func _ready() -> void:
 	_meteor_icon.texture = AmberTheme.get_icon(&"meteor")
 	_setup_meteor_bar_style()
 
-	_museum_button.icon = AmberTheme.get_icon(&"museum")
 	_prestige_button.icon = AmberTheme.get_icon(&"amber")
 	_settings_button.icon = AmberTheme.get_icon(&"save")
 
-	_museum_button.pressed.connect(func() -> void: Events.museum_modal_requested.emit())
 	_prestige_button.pressed.connect(func() -> void: Events.prestige_modal_requested.emit())
 	_settings_button.pressed.connect(func() -> void: Events.settings_modal_requested.emit())
 
@@ -127,7 +154,7 @@ func _sync_active_resources() -> void:
 	var raw_active: Array[StringName] = GameState.get_active_surface_resources()
 	var active: Array[StringName] = []
 	for res_id: StringName in raw_active:
-		if res_id == GameState.RES_BONES or res_id == GameState.RES_MINERALS or res_id == GameState.RES_DNA:
+		if res_id in LEGACY_HIDDEN_RESOURCES:
 			continue
 		if res_id not in active:
 			active.append(res_id)
@@ -149,23 +176,42 @@ func _sync_active_resources() -> void:
 			var old_entry: Dictionary = _resource_chips[remove_id] as Dictionary
 			var old_root: Control = old_entry["root"] as Control
 			if old_root != null:
-				if old_root.get_parent() == _resources_center:
-					_resources_center.remove_child(old_root)
+				var old_parent: Node = old_root.get_parent()
+				if old_parent != null:
+					old_parent.remove_child(old_root)
 				old_root.queue_free()
 			_resource_chips.erase(remove_id)
 
+		var use_compact: bool = active.size() >= COMPACT_THRESHOLD
+		var top_count: int = active.size() if not use_compact else ceili(float(active.size()) / 2.0)
+
+		_row_top.add_theme_constant_override("separation", COMPACT_ROW_SEPARATION if use_compact else SPACIOUS_ROW_SEPARATION)
+		_row_bottom.add_theme_constant_override("separation", COMPACT_ROW_SEPARATION)
+		_row_bottom.visible = use_compact and active.size() > top_count
+
 		for idx: int in range(active.size()):
 			var res_id: StringName = active[idx]
+			var is_new: bool = false
 			if not _resource_chips.has(res_id):
 				var entry: Dictionary = _create_resource_chip(res_id)
 				_resource_chips[res_id] = entry
-				_resources_center.add_child(entry["root"] as Control)
+				is_new = true
 			var chip_entry: Dictionary = _resource_chips[res_id] as Dictionary
 			var chip_root: Control = chip_entry["root"] as Control
-			_resources_center.move_child(chip_root, idx)
+			var target_row: HBoxContainer = _row_top if idx < top_count else _row_bottom
+			var target_index: int = idx if idx < top_count else idx - top_count
+			var current_parent: Node = chip_root.get_parent()
+			if current_parent != target_row:
+				if current_parent != null:
+					current_parent.remove_child(chip_root)
+				target_row.add_child(chip_root)
+			target_row.move_child(chip_root, target_index)
+			if is_new or use_compact != _is_compact_layout:
+				_apply_chip_style(chip_entry, use_compact)
 
+		_is_compact_layout = use_compact
 		_active_order = active
-		_resources_center.add_theme_constant_override("separation", 14 if active.size() >= 8 else 22)
+		_resources_center.queue_sort()
 
 	_refresh_all_chip_values()
 
@@ -176,13 +222,11 @@ func _create_resource_chip(res_id: StringName) -> Dictionary:
 	chip.set_meta(&"resource_id", res_id)
 	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_theme_constant_override("separation", 7)
 
 	var icon: TextureRect = TextureRect.new()
 	icon.name = "Icon"
 	icon.texture = AmberTheme.get_resource_icon(res_id)
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.custom_minimum_size = Vector2(24.0, 24.0)
 	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -201,13 +245,11 @@ func _create_resource_chip(res_id: StringName) -> Dictionary:
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.text = _get_resource_display_name(res_id)
 	name_label.add_theme_color_override("font_color", NAME_COLOR)
-	name_label.add_theme_font_size_override("font_size", 13)
 	readout.add_child(name_label)
 
 	var balance: HBoxContainer = HBoxContainer.new()
 	balance.name = "Balance"
 	balance.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	balance.add_theme_constant_override("separation", 6)
 	readout.add_child(balance)
 
 	var amount_label: Label = Label.new()
@@ -215,7 +257,6 @@ func _create_resource_chip(res_id: StringName) -> Dictionary:
 	amount_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	amount_label.text = "0"
 	amount_label.add_theme_color_override("font_color", AmberTheme.get_resource_color(res_id))
-	amount_label.add_theme_font_size_override("font_size", 21)
 	balance.add_child(amount_label)
 
 	var rate_label: Label = Label.new()
@@ -225,14 +266,32 @@ func _create_resource_chip(res_id: StringName) -> Dictionary:
 	rate_label.visible = false
 	rate_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	rate_label.add_theme_color_override("font_color", RATE_COLOR)
-	rate_label.add_theme_font_size_override("font_size", 13)
 	balance.add_child(rate_label)
 
 	return {
 		"root": chip,
+		"icon": icon,
+		"name": name_label,
+		"balance": balance,
 		"amount": amount_label,
 		"rate": rate_label,
 	}
+
+
+func _apply_chip_style(entry: Dictionary, compact: bool) -> void:
+	var chip: HBoxContainer = entry["root"] as HBoxContainer
+	var icon: TextureRect = entry["icon"] as TextureRect
+	var name_label: Label = entry["name"] as Label
+	var balance: HBoxContainer = entry["balance"] as HBoxContainer
+	var amount_label: Label = entry["amount"] as Label
+	var rate_label: Label = entry["rate"] as Label
+
+	chip.add_theme_constant_override("separation", COMPACT_CHIP_SEPARATION if compact else SPACIOUS_CHIP_SEPARATION)
+	icon.custom_minimum_size = COMPACT_ICON_SIZE if compact else SPACIOUS_ICON_SIZE
+	name_label.add_theme_font_size_override("font_size", COMPACT_NAME_FONT_SIZE if compact else SPACIOUS_NAME_FONT_SIZE)
+	balance.add_theme_constant_override("separation", COMPACT_BALANCE_SEPARATION if compact else SPACIOUS_BALANCE_SEPARATION)
+	amount_label.add_theme_font_size_override("font_size", COMPACT_AMOUNT_FONT_SIZE if compact else SPACIOUS_AMOUNT_FONT_SIZE)
+	rate_label.add_theme_font_size_override("font_size", COMPACT_RATE_FONT_SIZE if compact else SPACIOUS_RATE_FONT_SIZE)
 
 
 func _get_resource_display_name(res_id: StringName) -> String:
@@ -263,11 +322,11 @@ func _update_chip_value(res_id: StringName, amount: float) -> void:
 
 
 func _on_resource_changed(res_id: StringName, amount: float, _delta: float) -> void:
-	if res_id == GameState.RES_BONES or res_id == GameState.RES_MINERALS or res_id == GameState.RES_DNA:
+	if res_id in LEGACY_HIDDEN_RESOURCES:
 		return
 	if _resource_chips.has(res_id):
 		_update_chip_value(res_id, amount)
-		if res_id == GameState.RES_RAW_FOSSILS and amount <= 0.0:
+		if res_id == &"raw_fossils" and amount <= 0.0:
 			_sync_active_resources()
 	elif amount > 0.0:
 		_sync_active_resources()

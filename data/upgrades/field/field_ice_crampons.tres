@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"field_ice_crampons"
+display_name = "Grampos Glaciais"
+description = "O Criolofossauro firma passos no gelo: +20% sorte de fósseis brutos por nível."
+category = 5
+required_station = &"snow_glacier"
+cost_resource = &"ice"
+base_cost = 160.0
+cost_growth = 1.80
+max_level = 12
+stat_id = &"fossil_luck"
+effect_type = 1
+effect_value = 0.20

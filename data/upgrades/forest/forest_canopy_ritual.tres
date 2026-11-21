@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"forest_canopy_ritual"
+display_name = "Ritual da Mata"
+description = "Resina sagrada desperta a flora: +35% na produção automática de todas as estruturas por nível."
+category = 7
+sort_order = 2
+cost_resource = &"resin"
+base_cost = 22.0
+cost_growth = 1.82
+max_level = 10
+stat_id = &"station_yield"
+effect_type = 1
+effect_value = 0.35
+required_upgrade = &"forest_spore_greenhouse"
+required_level = 1

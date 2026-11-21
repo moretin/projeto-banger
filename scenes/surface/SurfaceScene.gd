@@ -2,19 +2,56 @@ class_name SurfaceScene
 extends Control
 
 const LANDMARK: Script = preload("res://scenes/surface/FieldLandmark.gd")
-# Coordenadas dos pés de cada marco no atlas de 480 × 240.
-const SITES: Dictionary = {
-	&"rubble_forge": Vector2(55, 128), &"rubble_nest": Vector2(157, 168),
-	&"egg": Vector2(236, 135), &"rubble_silo": Vector2(317, 121),
-	&"rubble_bunker": Vector2(416, 144),
+# Coordenadas dos pés de cada marco no atlas de 480 × 240 por bioma.
+const BIOME_SITES: Dictionary = {
+	&"amber_basin": {
+		&"rubble_forge": Vector2(58, 134),
+		&"rubble_nest": Vector2(158, 168),
+		&"egg": Vector2(238, 142),
+		&"rubble_silo": Vector2(318, 128),
+		&"rubble_bunker": Vector2(416, 148),
+	},
+	&"forest": {
+		&"forest_grove": Vector2(142, 152),
+		&"forest_sanctuary": Vector2(332, 158),
+	},
+	&"snow": {
+		&"snow_glacier": Vector2(146, 154),
+		&"snow_observatory": Vector2(334, 148),
+	},
 }
-const WORKBENCH_NAMES: Dictionary = {
-	UpgradeData.Category.TOOLS: "Ferramentas", UpgradeData.Category.DINOS: "Bando",
-	UpgradeData.Category.MACHINES: "Batedores", UpgradeData.Category.DEFENSE: "Universidade",
+const SITES: Dictionary = {
+	&"rubble_forge": Vector2(58, 134),
+	&"rubble_nest": Vector2(158, 168),
+	&"egg": Vector2(238, 142),
+	&"rubble_silo": Vector2(318, 128),
+	&"rubble_bunker": Vector2(416, 148),
+	&"forest_grove": Vector2(142, 152),
+	&"forest_sanctuary": Vector2(332, 158),
+	&"snow_glacier": Vector2(146, 154),
+	&"snow_observatory": Vector2(334, 148),
+}
+const WORKBENCH_TOOLTIPS: Dictionary = {
+	&"rubble_forge": "Upgrades da Pedreira",
+	&"rubble_nest": "Upgrades do Pesqueiro",
+	&"rubble_silo": "Upgrades da Torre dos Ventos",
+	&"rubble_bunker": "Universidade & Reviver",
+	&"forest_grove": "Upgrades do Bosque",
+	&"forest_sanctuary": "Upgrades da Clareira",
+	&"snow_glacier": "Upgrades da Geleira",
+	&"snow_observatory": "Upgrades do Santuário",
 }
 const HERO_SPEED: float = 148.0
 const PROXIMITY_RADIUS: float = 48.0
-const HERO_BOUNDS: Rect2 = Rect2(26.0, 92.0, 428.0, 126.0)
+const EDGE_LEFT_TRIGGER_X: float = 14.0
+const EDGE_RIGHT_TRIGGER_X: float = 466.0
+const EDGE_FOREST_MIN_X: float = 20.0
+const EDGE_SNOW_MAX_X: float = 460.0
+const SPAWN_LEFT_X: float = 28.0
+const SPAWN_RIGHT_X: float = 452.0
+const FALLBACK_MIN_Y: float = 132.0
+const FALLBACK_MAX_Y: float = 204.0
+const BIOME_FADE_DURATION: float = 0.18
 const MAX_FLOATING_LABELS: int = 24
 const ITEM_BUILD_STATION: StringName = &"__build_station"
 const ITEM_HIRE_WORKER: StringName = &"__hire_worker"
@@ -28,12 +65,16 @@ const DIMMED_MODULATE: Color = Color(0.58, 0.56, 0.54, 0.68)
 class HeroAvatar:
 	extends Control
 	const ACTION_DURATION: float = 0.34
+	const DRAW_WIDTH: float = 125.0
+	const WALK_FRAMES: int = 4
+	const WALK_FPS: float = 10.0
+	const FOOT_OFFSET_Y: float = 20.0
+
 	var facing_left: bool = false
 	var walking: bool = false
 	var assisting_built: bool = false
 	var phase: float = 0.0
 	var action_timer: float = 0.0
-	var status_label: String = "WASD · [E]"
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -43,79 +84,64 @@ class HeroAvatar:
 	func _draw() -> void:
 		if not GameState.orange_rock_broken:
 			return
-		var sprite: Texture2D = AmberTheme.get_dino_sprite(&"compsognathus")
 		var cx: float = size.x * 0.5
-		var cy: float = size.y - 20.0
-		var ring_col: Color = Color(0.95, 0.72, 0.25, 0.65) if GameState.hero_station != &"" else Color(0.18, 0.14, 0.10, 0.30)
-		draw_arc(Vector2(cx, cy), 30.0, 0.0, TAU, 24, ring_col, 2.5)
-
+		var cy: float = size.y - FOOT_OFFSET_Y
 		var facing_sign: float = -1.0 if facing_left else 1.0
 		var hop: float = 0.0
 		var lunge_x: float = 0.0
 		var rot: float = 0.0
 		var sx: float = 1.0
 		var sy: float = 1.0
-		var act_t: float = 0.0
 
 		if action_timer > 0.0:
-			act_t = clampf(1.0 - action_timer / ACTION_DURATION, 0.0, 1.0)
+			var act_t: float = clampf(1.0 - action_timer / ACTION_DURATION, 0.0, 1.0)
 			var impulse: float = sin(act_t * PI)
 			lunge_x = facing_sign * impulse * 14.0
-			hop = impulse * 4.0
+			hop = impulse * 4.5
 			rot = facing_sign * 0.22 * impulse
 			sx = 1.0 + 0.16 * impulse
 			sy = 1.0 - 0.14 * impulse
 		elif walking:
-			var stride: float = sin(phase * 13.0)
-			hop = roundf(absf(stride) * 7.5)
-			rot = facing_sign * (0.07 + stride * 0.06)
+			var stride: float = sin(phase * 14.0)
+			hop = roundf(absf(stride) * 6.0)
+			rot = facing_sign * (0.06 + stride * 0.05)
 			var stretch: float = absf(stride)
-			sx = 1.0 - 0.06 * stretch
-			sy = 1.0 + 0.07 * stretch
+			sx = 1.0 - 0.045 * stretch
+			sy = 1.0 + 0.055 * stretch
 		elif assisting_built:
-			var work_wave: float = sin(phase * 4.5)
-			hop = maxf(work_wave, 0.0) * 3.0
-			rot = facing_sign * maxf(work_wave, 0.0) * 0.10
-			sx = 1.0 + work_wave * 0.04
-			sy = 1.0 - work_wave * 0.04
+			var work_wave: float = sin(phase * 4.2)
+			hop = maxf(work_wave, 0.0) * 2.5
+			rot = facing_sign * maxf(work_wave, 0.0) * 0.08
+			sx = 1.0 + work_wave * 0.035
+			sy = 1.0 - work_wave * 0.035
 		else:
-			var breath: float = sin(phase * 2.6)
+			var breath: float = sin(phase * 2.4)
 			sx = 1.0 - breath * 0.025
 			sy = 1.0 + breath * 0.035
-			rot = sin(phase * 2.1) * 0.03
+			rot = sin(phase * 1.9) * 0.02
 
-		var shadow_scale: float = clampf(1.0 - hop * 0.035, 0.72, 1.0)
-		var shadow_w: float = 52.0 * shadow_scale
-		draw_rect(Rect2(cx + lunge_x - shadow_w * 0.5, cy - 4.0, shadow_w, 8.0), Color(0.12, 0.09, 0.08, 0.35))
-
+		var draw_w: float = DRAW_WIDTH
 		if walking:
-			for d_i: int in range(2):
-				var p_prog: float = fmod(phase * 2.8 + float(d_i) * 0.5, 1.0)
-				var px: float = cx - facing_sign * (18.0 + p_prog * 22.0)
-				var py: float = cy - 4.0 - p_prog * 9.0
-				var pr: float = lerpf(3.0, 1.0, p_prog)
-				draw_rect(Rect2(px, py, pr * 2.0, pr * 2.0), Color(0.92, 0.80, 0.58, (1.0 - p_prog) * 0.55))
+			var walk_sheet: Texture2D = AmberTheme.get_compsognathus_walk_sheet()
+			if walk_sheet != null:
+				var sheet_sz: Vector2 = walk_sheet.get_size()
+				var cell_w: float = sheet_sz.x / float(WALK_FRAMES)
+				var cell_h: float = sheet_sz.y
+				var draw_h: float = draw_w * (cell_h / maxf(cell_w, 1.0))
+				var frame_idx: int = posmod(floori(phase * WALK_FPS), WALK_FRAMES)
+				var src_rect: Rect2 = Rect2(float(frame_idx) * cell_w, 0.0, cell_w, cell_h)
+				draw_set_transform(Vector2(cx + lunge_x, cy - hop), rot, Vector2(facing_sign * sx, sy))
+				draw_texture_rect_region(walk_sheet, Rect2(-draw_w * 0.5, -draw_h, draw_w, draw_h), src_rect)
+				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+				return
 
-		if sprite != null:
-			var tex_sz: Vector2 = sprite.get_size()
-			var draw_w: float = 104.0
+		var idle_sprite: Texture2D = AmberTheme.get_dino_sprite(&"compsognathus")
+		if idle_sprite != null:
+			var tex_sz: Vector2 = idle_sprite.get_size()
 			var draw_h: float = draw_w * (tex_sz.y / maxf(tex_sz.x, 1.0))
 			draw_set_transform(Vector2(cx + lunge_x, cy - hop), rot, Vector2(facing_sign * sx, sy))
-			draw_texture_rect(sprite, Rect2(-draw_w * 0.5, -draw_h, draw_w, draw_h), false)
+			draw_texture_rect(idle_sprite, Rect2(-draw_w * 0.5, -draw_h, draw_w, draw_h), false)
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-		if action_timer > 0.0:
-			var tip_x: float = cx + lunge_x + facing_sign * 42.0
-			var tip_y: float = cy - hop - 22.0
-			var spark_col: Color = Color(1.0, 0.90, 0.42, (1.0 - act_t) * 0.95)
-			for s_i: int in range(-1, 2):
-				var p0 := Vector2(tip_x, tip_y + float(s_i) * 5.0)
-				var p1 := Vector2(tip_x + facing_sign * (10.0 + act_t * 10.0), tip_y + float(s_i) * 9.0 - 4.0)
-				draw_line(p0, p1, spark_col, 2.5)
-
-		var font: Font = ThemeDB.fallback_font
-		if font != null and not status_label.is_empty():
-			draw_string(font, Vector2(0.0, size.y - 2.0), status_label, HORIZONTAL_ALIGNMENT_CENTER, size.x, 12, Color(0.99, 0.94, 0.80))
 
 
 class CardRow:
@@ -135,6 +161,8 @@ class CardRow:
 
 
 @onready var _map: Control = %Map
+@onready var _basin_name: Label = $Map/BasinName
+@onready var _biome_fade: ColorRect = %BiomeFade
 @onready var _dock: PanelContainer = %Dock
 @onready var _site_name: Label = %SiteName
 @onready var _stock: Label = %Stock
@@ -166,14 +194,21 @@ var _style_card_dimmed: StyleBoxFlat = null
 var _style_icon_slot: StyleBoxFlat = null
 var _style_fossil_bar_bg: StyleBoxFlat = null
 var _style_fossil_bar_fill: StyleBoxFlat = null
+var _style_tab_normal: StyleBoxFlat = null
+var _style_tab_hover: StyleBoxFlat = null
+var _style_tab_pressed: StyleBoxFlat = null
+var _style_tab_focus: StyleBoxFlat = null
 
 var _hero_avatar: HeroAvatar = null
-var _hero_map_pos: Vector2 = Vector2(236.0, 152.0)
+var _hero_map_pos: Vector2 = Vector2(238.0, 158.0)
 var _hero_facing_left: bool = false
 var _hero_walking: bool = false
 var _hero_anim_phase: float = 0.0
 var _hero_action_timer: float = 0.0
 var _active_floating_labels: int = 0
+var _pending_biome_spawn: Vector2 = Vector2.ZERO
+var _has_pending_biome_spawn: bool = false
+var _biome_fade_tween: Tween = null
 
 
 func _ready() -> void:
@@ -189,13 +224,14 @@ func _ready() -> void:
 
 	_hero_avatar = HeroAvatar.new()
 	_hero_avatar.name = "HeroAvatar"
-	_hero_avatar.size = Vector2(172.0, 96.0)
+	_hero_avatar.size = Vector2(196.0, 112.0)
 	_map.add_child(_hero_avatar)
 
 	_map.resized.connect(_layout_landmarks)
 	_quantity.pressed.connect(GameState.cycle_buy_multiplier)
 	_field_action_btn.pressed.connect(_on_field_action_pressed)
 	Events.scenario_changed.connect(_on_scenario_changed)
+	Events.biome_changed.connect(_on_biome_changed)
 	Events.station_research_requested.connect(_visit_lab)
 	Events.resource_changed.connect(_queue_refresh.unbind(3))
 	Events.buy_multiplier_changed.connect(_queue_refresh.unbind(1))
@@ -212,7 +248,7 @@ func _ready() -> void:
 	Events.game_loaded.connect(_reset_visit)
 	_layout_landmarks()
 	_reset_visit()
-	(_landmarks[&"egg"] as Button).grab_focus.call_deferred()
+	_grab_current_biome_focus.call_deferred()
 
 
 func _init_card_styles() -> void:
@@ -249,6 +285,33 @@ func _init_card_styles() -> void:
 	_style_fossil_bar_fill = StyleBoxFlat.new()
 	_style_fossil_bar_fill.bg_color = Color(0.95, 0.72, 0.24, 0.98)
 	_style_fossil_bar_fill.set_corner_radius_all(3)
+
+	_style_tab_normal = StyleBoxFlat.new()
+	_style_tab_normal.bg_color = Color("#f3e6cc")
+	_style_tab_normal.border_color = Color("#261820")
+	_style_tab_normal.set_border_width_all(2)
+	_style_tab_normal.set_corner_radius_all(6)
+	_style_tab_normal.shadow_color = Color(0.0, 0.0, 0.0, 0.28)
+	_style_tab_normal.shadow_size = 2
+	_style_tab_normal.shadow_offset = Vector2(0.0, 2.0)
+
+	_style_tab_hover = StyleBoxFlat.new()
+	_style_tab_hover.bg_color = Color("#fff3d4")
+	_style_tab_hover.border_color = Color("#261820")
+	_style_tab_hover.set_border_width_all(2)
+	_style_tab_hover.set_corner_radius_all(6)
+
+	_style_tab_pressed = StyleBoxFlat.new()
+	_style_tab_pressed.bg_color = Color("#ffd67a")
+	_style_tab_pressed.border_color = Color("#261820")
+	_style_tab_pressed.set_border_width_all(2)
+	_style_tab_pressed.set_corner_radius_all(6)
+
+	_style_tab_focus = StyleBoxFlat.new()
+	_style_tab_focus.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	_style_tab_focus.border_color = Color("#1488ff")
+	_style_tab_focus.set_border_width_all(2)
+	_style_tab_focus.set_corner_radius_all(6)
 
 
 func _process(delta: float) -> void:
@@ -299,6 +362,36 @@ static func _ensure_input_actions() -> void:
 			InputMap.action_add_event(act, key_ev)
 
 
+func _get_site_biome(site_id: StringName) -> StringName:
+	for biome_key: Variant in BIOME_SITES:
+		var biome_id: StringName = biome_key as StringName
+		var sites_dict: Dictionary = BIOME_SITES[biome_id] as Dictionary
+		if sites_dict.has(site_id):
+			return biome_id
+	return GameState.BIOME_AMBER
+
+
+func _get_walkable_y_bounds(biome: StringName, map_x: float) -> Vector2:
+	var min_y: float = FALLBACK_MIN_Y
+	var max_y: float = FALLBACK_MAX_Y
+	if _map != null and _map.has_method(&"get_walkable_min_y"):
+		min_y = float(_map.call(&"get_walkable_min_y", biome, map_x))
+	if _map != null and _map.has_method(&"get_walkable_max_y"):
+		max_y = float(_map.call(&"get_walkable_max_y", biome, map_x))
+	if max_y < min_y:
+		max_y = min_y
+	return Vector2(min_y, max_y)
+
+
+func _clamp_hero_to_ground(pos: Vector2, biome: StringName = GameState.current_biome) -> Vector2:
+	var min_x: float = EDGE_FOREST_MIN_X if biome == GameState.BIOME_FOREST else EDGE_LEFT_TRIGGER_X
+	var max_x: float = EDGE_SNOW_MAX_X if biome == GameState.BIOME_SNOW else EDGE_RIGHT_TRIGGER_X
+	var cx: float = clampf(pos.x, min_x, max_x)
+	var y_bounds: Vector2 = _get_walkable_y_bounds(biome, cx)
+	var cy: float = clampf(pos.y, y_bounds.x, y_bounds.y)
+	return Vector2(cx, cy)
+
+
 func move_hero_by_vector(direction: Vector2, delta: float) -> void:
 	if not GameState.orange_rock_broken or direction.length_squared() <= 0.0001:
 		_hero_walking = false
@@ -307,8 +400,34 @@ func move_hero_by_vector(direction: Vector2, delta: float) -> void:
 	_hero_walking = true
 	if absf(norm_dir.x) > 0.05:
 		_hero_facing_left = norm_dir.x < 0.0
-	_hero_map_pos.x = clampf(_hero_map_pos.x + norm_dir.x * HERO_SPEED * delta, HERO_BOUNDS.position.x, HERO_BOUNDS.end.x)
-	_hero_map_pos.y = clampf(_hero_map_pos.y + norm_dir.y * HERO_SPEED * delta, HERO_BOUNDS.position.y, HERO_BOUNDS.end.y)
+	var cur_biome: StringName = GameState.current_biome
+	var next_x: float = _hero_map_pos.x + norm_dir.x * HERO_SPEED * delta
+	var next_y: float = _hero_map_pos.y + norm_dir.y * HERO_SPEED * delta
+
+	if cur_biome == GameState.BIOME_AMBER:
+		if next_x <= EDGE_LEFT_TRIGGER_X and norm_dir.x < -0.1:
+			_transition_to_biome(GameState.BIOME_FOREST, SPAWN_RIGHT_X, next_y)
+			return
+		if next_x >= EDGE_RIGHT_TRIGGER_X and norm_dir.x > 0.1:
+			_transition_to_biome(GameState.BIOME_SNOW, SPAWN_LEFT_X, next_y)
+			return
+		next_x = clampf(next_x, EDGE_LEFT_TRIGGER_X, EDGE_RIGHT_TRIGGER_X)
+	elif cur_biome == GameState.BIOME_FOREST:
+		if next_x >= EDGE_RIGHT_TRIGGER_X and norm_dir.x > 0.1:
+			_transition_to_biome(GameState.BIOME_AMBER, SPAWN_LEFT_X, next_y)
+			return
+		next_x = clampf(next_x, EDGE_FOREST_MIN_X, EDGE_RIGHT_TRIGGER_X)
+	elif cur_biome == GameState.BIOME_SNOW:
+		if next_x <= EDGE_LEFT_TRIGGER_X and norm_dir.x < -0.1:
+			_transition_to_biome(GameState.BIOME_AMBER, SPAWN_RIGHT_X, next_y)
+			return
+		next_x = clampf(next_x, EDGE_LEFT_TRIGGER_X, EDGE_SNOW_MAX_X)
+	else:
+		next_x = clampf(next_x, EDGE_FOREST_MIN_X, EDGE_SNOW_MAX_X)
+
+	var y_bounds: Vector2 = _get_walkable_y_bounds(cur_biome, next_x)
+	next_y = clampf(next_y, y_bounds.x, y_bounds.y)
+	_hero_map_pos = Vector2(next_x, next_y)
 	_sync_hero_avatar()
 	_update_hero_proximity()
 
@@ -317,7 +436,11 @@ func move_hero_by_vector(direction: Vector2, delta: float) -> void:
 func move_hero_to_station(station: StringName) -> void:
 	if not SITES.has(station):
 		return
-	var target_pos: Vector2 = (SITES[station] as Vector2) + Vector2(0.0, 14.0)
+	var target_biome: StringName = _get_site_biome(station)
+	if GameState.current_biome != target_biome:
+		GameState.set_current_biome(target_biome)
+	var raw_pos: Vector2 = (SITES[station] as Vector2) + Vector2(0.0, 14.0)
+	var target_pos: Vector2 = _clamp_hero_to_ground(raw_pos, target_biome)
 	_hero_facing_left = target_pos.x < _hero_map_pos.x
 	_hero_map_pos = target_pos
 	_sync_hero_avatar()
@@ -359,6 +482,99 @@ func is_item_card_dimmed(item_id: StringName) -> bool:
 	return false
 
 
+func is_tab_alert_visible(section: StringName) -> bool:
+	var btn: Button = _groups.get_node_or_null(NodePath(String(section))) as Button
+	if btn == null:
+		return false
+	var badge: Control = btn.get_node_or_null("Content/AlertBadge") as Control
+	return badge != null and badge.visible
+
+
+func _transition_to_biome(target_biome: StringName, spawn_x: float, preferred_y: float) -> void:
+	_pending_biome_spawn = Vector2(spawn_x, preferred_y)
+	_has_pending_biome_spawn = true
+	GameState.set_current_biome(target_biome)
+	if _has_pending_biome_spawn:
+		_has_pending_biome_spawn = false
+
+
+func _on_biome_changed(biome_id: StringName) -> void:
+	_site = &""
+	_section = &""
+	_items.clear()
+	_clear_cards()
+	if GameState.hero_station != &"":
+		GameState.set_hero_station(&"")
+	if _has_pending_biome_spawn:
+		_hero_map_pos = _clamp_hero_to_ground(_pending_biome_spawn, biome_id)
+		_has_pending_biome_spawn = false
+	else:
+		_hero_map_pos = _clamp_hero_to_ground(_hero_map_pos, biome_id)
+	_sync_biome_visuals(true)
+	_sync_hero_avatar()
+	_refresh()
+	_restore_focus_if_cleared()
+
+
+func _sync_biome_visuals(play_fade: bool) -> void:
+	var biome: StringName = GameState.current_biome
+	var active_sites: Dictionary = BIOME_SITES.get(biome, BIOME_SITES[GameState.BIOME_AMBER]) as Dictionary
+	for id_val: Variant in _landmarks:
+		var id: StringName = id_val as StringName
+		var spot: FieldLandmark = _landmarks[id] as FieldLandmark
+		spot.visible = active_sites.has(id)
+		if spot.visible:
+			spot.refresh()
+	if _basin_name != null:
+		_basin_name.text = String(GameState.BIOME_NAMES.get(biome, "Bacia do Âmbar"))
+	if _map != null:
+		_map.queue_redraw()
+	if play_fade:
+		_play_biome_fade(biome)
+
+
+func _play_biome_fade(biome: StringName) -> void:
+	if _biome_fade == null or not is_inside_tree():
+		return
+	if _biome_fade_tween != null and _biome_fade_tween.is_valid():
+		_biome_fade_tween.kill()
+	var tint: Color = Color(0.11, 0.08, 0.06, 0.52)
+	if biome == GameState.BIOME_FOREST:
+		tint = Color(0.06, 0.12, 0.08, 0.52)
+	elif biome == GameState.BIOME_SNOW:
+		tint = Color(0.10, 0.16, 0.22, 0.52)
+	_biome_fade.color = tint
+	_biome_fade.visible = true
+	_biome_fade_tween = create_tween()
+	_biome_fade_tween.tween_property(_biome_fade, "color:a", 0.0, BIOME_FADE_DURATION).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_biome_fade_tween.tween_callback(func() -> void:
+		if is_instance_valid(_biome_fade):
+			_biome_fade.visible = false
+	)
+
+
+func _restore_focus_if_cleared() -> void:
+	if not is_visible_in_tree() or GameState.is_prestige_modal_open:
+		return
+	var vp: Viewport = get_viewport()
+	if vp != null and vp.gui_get_focus_owner() == null:
+		_grab_current_biome_focus()
+
+
+func _grab_current_biome_focus() -> void:
+	if _site != &"" and _landmarks.has(_site):
+		var site_btn: Button = _landmarks[_site] as Button
+		if site_btn.visible:
+			site_btn.grab_focus()
+			return
+	if GameState.current_biome == GameState.BIOME_AMBER and _landmarks.has(&"egg"):
+		(_landmarks[&"egg"] as Button).grab_focus()
+		return
+	var stations: Array[StringName] = GameState.get_stations_for_biome(GameState.current_biome)
+	if not stations.is_empty() and _landmarks.has(stations[0]):
+		(_landmarks[stations[0]] as Button).grab_focus()
+
+
 func _on_landmark_clicked(id: StringName) -> void:
 	if id == &"egg":
 		var egg: FieldLandmark = _landmarks[id] as FieldLandmark
@@ -367,6 +583,8 @@ func _on_landmark_clicked(id: StringName) -> void:
 			Events.orange_rock_hit.emit(GameState.get_click_damage(), egg.get_global_rect().get_center())
 		_sync_hero_avatar()
 		_refresh()
+		return
+	if not GameState.RUBBLE_DEFS.has(id):
 		return
 	# Não teleporta o dinossauro nem abre upgrades à distância ao clicar na estrutura.
 	var title: String = String(GameState.RUBBLE_DEFS[id]["title"])
@@ -392,12 +610,15 @@ func _update_hero_proximity() -> void:
 			_items.clear()
 			_clear_cards()
 			_refresh()
+			_restore_focus_if_cleared()
 
 
 func _find_nearest_station(map_pos: Vector2) -> StringName:
 	var best_id: StringName = &""
 	var best_dist: float = PROXIMITY_RADIUS
-	for id: StringName in GameState.RUBBLE_ORDER:
+	for id: StringName in GameState.get_stations_for_biome(GameState.current_biome):
+		if not SITES.has(id):
+			continue
 		var dist: float = map_pos.distance_to(SITES[id] as Vector2)
 		if dist <= best_dist:
 			best_dist = dist
@@ -415,20 +636,12 @@ func _sync_hero_avatar() -> void:
 	if map_sz.x <= 10.0 or map_sz.y <= 10.0:
 		return
 	var screen_foot: Vector2 = (_hero_map_pos / Vector2(480.0, 240.0)) * map_sz
-	_hero_avatar.position = (screen_foot - Vector2(_hero_avatar.size.x * 0.5, _hero_avatar.size.y - 20.0)).round()
+	_hero_avatar.position = (screen_foot - Vector2(_hero_avatar.size.x * 0.5, _hero_avatar.size.y - HeroAvatar.FOOT_OFFSET_Y)).round()
 	_hero_avatar.facing_left = _hero_facing_left
 	_hero_avatar.walking = _hero_walking
 	_hero_avatar.assisting_built = (GameState.hero_station != &"" and GameState.is_station_built(GameState.hero_station))
 	_hero_avatar.phase = _hero_anim_phase
 	_hero_avatar.action_timer = _hero_action_timer
-	if GameState.hero_station != &"" and GameState.RUBBLE_DEFS.has(GameState.hero_station):
-		if GameState.is_station_built(GameState.hero_station):
-			var prod: StringName = StringName(GameState.RUBBLE_DEFS[GameState.hero_station]["product"])
-			_hero_avatar.status_label = "+%s [E]" % String(GameState.RESOURCE_NAMES[prod]).capitalize()
-		else:
-			_hero_avatar.status_label = "Construir"
-	else:
-		_hero_avatar.status_label = "WASD"
 	_hero_avatar.queue_redraw()
 
 
@@ -466,15 +679,15 @@ func _position_floating_bench() -> void:
 
 func _on_scenario_changed(scenario: StringName) -> void:
 	if scenario == &"surface":
-		var target: Button = _landmarks.get(_site, _landmarks[&"egg"]) as Button
-		target.grab_focus()
+		_grab_current_biome_focus()
 
 
 func _on_orange_rock_broken() -> void:
-	_hero_map_pos = (SITES[&"egg"] as Vector2) + Vector2(0.0, 16.0)
+	_hero_map_pos = _clamp_hero_to_ground((SITES[&"egg"] as Vector2) + Vector2(0.0, 16.0), GameState.BIOME_AMBER)
 	_refresh_egg()
 	_sync_hero_avatar()
 	_refresh()
+	_restore_focus_if_cleared()
 
 
 func _reset_visit() -> void:
@@ -482,11 +695,14 @@ func _reset_visit() -> void:
 	_section = &""
 	_items.clear()
 	_clear_cards()
-	_hero_map_pos = (SITES[&"egg"] as Vector2) + Vector2(0.0, 16.0)
+	_sync_biome_visuals(false)
+	var default_spawn: Vector2 = (SITES[&"egg"] as Vector2) + Vector2(0.0, 16.0) if GameState.current_biome == GameState.BIOME_AMBER else Vector2(240.0, 168.0)
+	_hero_map_pos = _clamp_hero_to_ground(default_spawn, GameState.current_biome)
 	GameState.set_hero_station(&"")
 	_refresh_egg()
 	_sync_hero_avatar()
 	_refresh()
+	_restore_focus_if_cleared()
 
 
 func _visit(id: StringName) -> void:
@@ -506,27 +722,100 @@ func _visit_lab() -> void:
 func _build_groups() -> void:
 	for child: Node in _groups.get_children():
 		child.free()
-	_add_group(&"site", "Ofício")
+	_add_group(&"site", _get_tab_tooltip(_site, &"site"))
 	if _site == &"rubble_bunker":
-		var raw_cnt: int = GameState.raw_fossil_queue.size()
-		_add_group(&"fossils", "Fósseis (%d)" % raw_cnt if raw_cnt > 0 else "Fósseis")
-	var site_data: Dictionary = GameState.RUBBLE_DEFS[_site] as Dictionary
-	var cat: UpgradeData.Category = site_data["category"]
-	_add_group(&"upgrades", String(WORKBENCH_NAMES[cat]))
-	if _site == &"rubble_nest":
-		_add_group(&"species", "Incubadora")
+		_add_group(&"fossils", _get_tab_tooltip(_site, &"fossils"))
+	_add_group(&"upgrades", _get_tab_tooltip(_site, &"upgrades"))
 	if _site == &"rubble_bunker":
-		_add_group(&"amber", "Âmbar")
+		_add_group(&"amber", _get_tab_tooltip(_site, &"amber"))
 
 
-func _add_group(id: StringName, title: String) -> void:
+func _get_tab_icon_key(station: StringName, section: StringName) -> StringName:
+	match section:
+		&"site":
+			return &"site"
+		&"fossils":
+			return &"fossils"
+		&"amber":
+			return &"amber"
+		&"upgrades":
+			match station:
+				&"rubble_forge":
+					return &"tools"
+				&"rubble_nest":
+					return &"dinos"
+				&"rubble_silo":
+					return &"scouts"
+				&"rubble_bunker":
+					return &"university"
+				&"forest_grove", &"forest_sanctuary":
+					return &"forest"
+				&"snow_glacier", &"snow_observatory":
+					return &"snow"
+	return &"site"
+
+
+func _get_tab_tooltip(station: StringName, section: StringName) -> String:
+	match section:
+		&"site":
+			return "Estrutura & Equipe"
+		&"fossils":
+			var raw_cnt: int = GameState.raw_fossil_queue.size()
+			return "Fósseis (%d)" % raw_cnt if raw_cnt > 0 else "Fósseis"
+		&"amber":
+			return "Âmbar Permanente"
+		&"upgrades":
+			return String(WORKBENCH_TOOLTIPS.get(station, "Upgrades"))
+	return String(section)
+
+
+func _add_group(id: StringName, tooltip: String) -> void:
 	var button: Button = Button.new()
 	button.name = String(id)
-	button.text = title
+	button.text = ""
+	button.tooltip_text = tooltip
+	button.accessibility_name = tooltip
 	button.toggle_mode = true
-	button.custom_minimum_size = Vector2(0.0, 26.0)
-	button.add_theme_font_size_override("font_size", 12)
+	button.custom_minimum_size = Vector2(56.0, 38.0)
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	button.add_theme_stylebox_override("normal", _style_tab_normal)
+	button.add_theme_stylebox_override("hover", _style_tab_hover)
+	button.add_theme_stylebox_override("pressed", _style_tab_pressed)
+	button.add_theme_stylebox_override("hover_pressed", _style_tab_pressed)
+	button.add_theme_stylebox_override("focus", _style_tab_focus)
 	button.pressed.connect(_select_section.bind(id))
+
+	var content: HBoxContainer = HBoxContainer.new()
+	content.name = "Content"
+	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", 2)
+	button.add_child(content)
+
+	var icon_rect: TextureRect = TextureRect.new()
+	icon_rect.name = "Icon"
+	icon_rect.custom_minimum_size = Vector2(22.0, 22.0)
+	icon_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_rect.texture = AmberTheme.get_tab_icon(_get_tab_icon_key(_site, id))
+	content.add_child(icon_rect)
+
+	var alert_lbl: Label = Label.new()
+	alert_lbl.name = "AlertBadge"
+	alert_lbl.text = "!"
+	alert_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	alert_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	alert_lbl.add_theme_font_size_override("font_size", 16)
+	alert_lbl.add_theme_color_override("font_color", Color("#1488ff"))
+	alert_lbl.add_theme_color_override("font_outline_color", Color("#0b182c"))
+	alert_lbl.add_theme_constant_override("outline_size", 3)
+	alert_lbl.visible = false
+	content.add_child(alert_lbl)
+
 	_groups.add_child(button)
 
 
@@ -535,10 +824,55 @@ func _update_group_labels() -> void:
 		var btn: Button = child as Button
 		if btn == null:
 			continue
-		btn.set_pressed_no_signal(StringName(btn.name) == _section)
-		if btn.name == "fossils":
-			var raw_cnt: int = GameState.raw_fossil_queue.size()
-			btn.text = "Fósseis (%d)" % raw_cnt if raw_cnt > 0 else "Fósseis"
+		var section_id: StringName = StringName(btn.name)
+		btn.set_pressed_no_signal(section_id == _section)
+		var tip: String = _get_tab_tooltip(_site, section_id)
+		btn.tooltip_text = tip
+		btn.accessibility_name = tip
+		var badge: Label = btn.get_node_or_null("Content/AlertBadge") as Label
+		if badge != null:
+			badge.visible = _has_affordable_item_in_section(_site, section_id)
+
+
+func _has_affordable_item_in_section(station: StringName, section: StringName) -> bool:
+	if station == &"" or not GameState.RUBBLE_DEFS.has(station):
+		return false
+	var def: Dictionary = GameState.RUBBLE_DEFS[station] as Dictionary
+	match section:
+		&"site":
+			if GameState.can_rebuild_rubble(station):
+				return true
+			if GameState.can_hire_station_worker(station):
+				return true
+			if GameState.is_station_built(station) and GameState.has_station_worker(station):
+				var gear_id: StringName = StringName(def.get("gear", &""))
+				if gear_id != &"" and GameState.can_purchase_upgrade(gear_id):
+					return true
+			if GameState.is_station_built(station) and GameState.can_revive_station_dino(station):
+				return true
+			return false
+		&"fossils":
+			return false
+		&"upgrades":
+			if station == &"rubble_bunker":
+				for origin_station: StringName in GameState.RUBBLE_ORDER:
+					var r_dino: StringName = GameState.get_station_revive_dino_id(origin_station)
+					if r_dino != &"" and GameState.get_fragments(r_dino) > 0 and GameState.can_revive_station_dino(origin_station):
+						return true
+			if GameState.is_station_built(station):
+				var category: UpgradeData.Category = def["category"]
+				for upg: UpgradeData in GameState.get_upgrades_by_category(category):
+					var lvl: int = GameState.get_upgrade_level(upg.id)
+					if not upg.is_maxed(lvl) and GameState.is_upgrade_unlocked(upg.id) and GameState.can_purchase_upgrade(upg.id):
+						return true
+			return false
+		&"amber":
+			for upg: UpgradeData in GameState.get_upgrades_by_category(UpgradeData.Category.AMBER):
+				var lvl: int = GameState.get_upgrade_level(upg.id)
+				if not upg.is_maxed(lvl) and GameState.is_upgrade_unlocked(upg.id) and GameState.can_purchase_upgrade(upg.id):
+					return true
+			return false
+	return false
 
 
 func _select_section(section: StringName) -> void:
@@ -605,10 +939,16 @@ func _update_header_text() -> void:
 	var has_worker: bool = GameState.has_station_worker(_site)
 	_site_name.text = String(def["title"])
 	if not is_built:
+		var cost_res: StringName = GameState.get_rubble_cost_resource(_site)
+		var cost_res_name: String = String(GameState.RESOURCE_NAMES.get(cost_res, cost_res)).capitalize()
 		if _site == &"rubble_bunker":
-			_stock.text = "Não construída · Brutos na fila: %d" % GameState.raw_fossil_queue.size()
+			_stock.text = "Não construída · Custo: %s %s · Brutos: %d" % [
+				GameState.format_number(GameState.get_rubble_cost(_site)),
+				cost_res_name,
+				GameState.raw_fossil_queue.size(),
+			]
 		else:
-			_stock.text = "Não construída · Custo: %s Rochas" % GameState.format_number(GameState.get_rubble_cost(_site))
+			_stock.text = "Não construída · Custo: %s %s" % [GameState.format_number(GameState.get_rubble_cost(_site)), cost_res_name]
 		return
 	var effective_rate: float = GameState.get_station_effective_rate(_site)
 	var worker_tag: String = String(def["worker"]) if has_worker else "Manual"
@@ -623,10 +963,11 @@ func _update_header_text() -> void:
 	else:
 		var t2_prod: StringName = StringName(def["tier2_product"])
 		var t2_rate: float = GameState.get_station_tier2_rate(_site)
-		var t2_txt: String = " · +%s/s %s" % [GameState.format_number(t2_rate), String(GameState.RESOURCE_NAMES[t2_prod])] if t2_rate > 0.0 else ""
+		var t2_name: String = String(GameState.RESOURCE_NAMES.get(t2_prod, t2_prod))
+		var t2_txt: String = " · +%s/s %s" % [GameState.format_number(t2_rate), t2_name] if t2_rate > 0.0 else ""
 		_stock.text = "%s%s · %s %s (+%.1f/s)%s" % [
 			worker_tag, hero_tag, GameState.format_number(GameState.get_resource(product)),
-			String(GameState.RESOURCE_NAMES[product]), effective_rate, t2_txt,
+			String(GameState.RESOURCE_NAMES.get(product, product)), effective_rate, t2_txt,
 		]
 
 
@@ -647,9 +988,6 @@ func _collect_section_items() -> Array[StringName]:
 		&"fossils":
 			for dino_id: StringName in GameState.raw_fossil_queue:
 				out.append(dino_id)
-		&"species":
-			for dino: DinoData in GameState.get_dinos_sorted():
-				out.append(dino.id)
 		_:
 			if _site == &"rubble_bunker" and _section == &"upgrades":
 				for origin_station: StringName in GameState.RUBBLE_ORDER:
@@ -898,11 +1236,12 @@ func _update_action_card(row: CardRow) -> void:
 	var item_id: StringName = row.item_id
 	var def: Dictionary = GameState.RUBBLE_DEFS[_site] as Dictionary
 	var product: StringName = StringName(def["product"])
-	var prod_name: String = String(GameState.RESOURCE_NAMES[product])
+	var prod_name: String = String(GameState.RESOURCE_NAMES.get(product, product))
 
 	if item_id == ITEM_BUILD_STATION:
 		var is_built: bool = GameState.is_station_built(_site)
-		_set_card_icon(row, AmberTheme.get_resource_icon(GameState.RES_ROCKS))
+		var build_res: StringName = GameState.get_rubble_cost_resource(_site) if not is_built else StringName(def.get("build_resource", GameState.RES_ROCKS))
+		_set_card_icon(row, AmberTheme.get_resource_icon(build_res))
 		if is_built:
 			_apply_card_visual_state(row, true)
 			row.title_lbl.text = "✓ %s construída" % String(def["title"])
@@ -911,8 +1250,8 @@ func _update_action_card(row: CardRow) -> void:
 		else:
 			_apply_card_visual_state(row, false)
 			row.title_lbl.text = "Construir %s" % String(def["title"])
-			row.desc_lbl.text = "Ergue a estrutura na bacia para liberar farm manual de %s e recrutamento de %s." % [prod_name, String(def["worker"])]
-			_set_btn_price(row.buy_btn, "Construir", GameState.RES_ROCKS, GameState.get_rubble_cost(_site), GameState.can_rebuild_rubble(_site))
+			row.desc_lbl.text = "Ergue a estrutura no bioma para liberar farm manual de %s e recrutamento de %s." % [prod_name, String(def["worker"])]
+			_set_btn_price(row.buy_btn, "Construir", build_res, GameState.get_rubble_cost(_site), GameState.can_rebuild_rubble(_site))
 		return
 
 	if item_id == ITEM_HIRE_WORKER:
@@ -933,11 +1272,12 @@ func _update_action_card(row: CardRow) -> void:
 
 	if item_id == ITEM_EXPAND_STATION:
 		var level: int = GameState.get_rubble_level(_site)
-		_set_card_icon(row, AmberTheme.get_resource_icon(GameState.RES_ROCKS))
+		var expand_res: StringName = GameState.get_rubble_cost_resource(_site)
+		_set_card_icon(row, AmberTheme.get_resource_icon(expand_res))
 		_apply_card_visual_state(row, false)
 		row.title_lbl.text = "Ampliar posto · Nv. %d" % level
 		row.desc_lbl.text = "%s. Produção automática +%.1f %s/s por nível." % [String(def["desc"]), float(def["rate"]), prod_name]
-		_set_btn_price(row.buy_btn, "Ampliar", GameState.RES_ROCKS, GameState.get_rubble_cost(_site), GameState.can_rebuild_rubble(_site))
+		_set_btn_price(row.buy_btn, "Ampliar", expand_res, GameState.get_rubble_cost(_site), GameState.can_rebuild_rubble(_site))
 		return
 
 	if item_id == STATION_REVIVE_ITEM:
@@ -947,10 +1287,6 @@ func _update_action_card(row: CardRow) -> void:
 	if String(item_id).begins_with(REVIVE_ORIGIN_PREFIX):
 		var origin_station: StringName = StringName(String(item_id).trim_prefix(REVIVE_ORIGIN_PREFIX))
 		_update_revive_card(row, origin_station, true)
-		return
-
-	if _section == &"species":
-		_update_species_card(row, item_id)
 		return
 
 	_update_upgrade_card(row, item_id)
@@ -965,8 +1301,15 @@ func _update_revive_card(row: CardRow, origin_station: StringName, show_origin: 
 	var frags: int = GameState.get_fragments(dino_id)
 	var req: int = GameState.STATION_REVIVE_FOSSILS_REQUIRED
 	var t2_prod: StringName = StringName(odef["tier2_product"])
-	var t2_label: String = "Ciência Avançada" if origin_station == &"rubble_bunker" else String(GameState.RESOURCE_NAMES[t2_prod]).capitalize()
+	var t2_label: String = String(GameState.RESOURCE_NAMES.get(t2_prod, t2_prod)).capitalize()
+	if origin_station == &"rubble_bunker":
+		t2_label = "Ciência Avançada (+60% limpeza, +35% global)"
+	elif origin_station == &"forest_sanctuary":
+		t2_label = "Frutas (+50% produção global)"
+	elif origin_station == &"snow_observatory":
+		t2_label = "Cristais (+15% escudo, +50% Âmbar)"
 	var t2_rate: float = float(odef.get("tier2_rate", 0.0))
+	var rmult: float = float(odef.get("revive_mult", 2.5))
 	var rname: String = String(odef["revive_name"])
 	var otitle: String = String(odef["title"])
 
@@ -983,7 +1326,7 @@ func _update_revive_card(row: CardRow, origin_station: StringName, show_origin: 
 	else:
 		var suffix: String = " · ×%d" % revived if revived > 0 else ""
 		row.title_lbl.text = "Reviver %s%s" % [rname, suffix]
-		row.desc_lbl.text = "Fósseis limpos: %d / %d · Gera %s (+%.2f/s) e ×1.75 produção." % [frags, req, t2_label, t2_rate]
+		row.desc_lbl.text = "Fósseis limpos: %d / %d · Gera %s (+%.2f/s) e ×%.1f produção." % [frags, req, t2_label, t2_rate, rmult]
 
 	if not GameState.is_station_built(origin_station):
 		_set_btn_status(row.buy_btn, "Construa %s" % otitle, null)
@@ -1029,35 +1372,6 @@ func _update_upgrade_card(row: CardRow, id: StringName) -> void:
 		var count: int = maxi(1, GameState.resolve_purchase_amount(id))
 		var action_lbl: String = "Comprar" if data.max_level == 1 else "Equipar +%d" % count
 		_set_btn_price(row.buy_btn, action_lbl, data.cost_resource, GameState.get_purchase_cost(id), GameState.can_purchase_upgrade(id))
-
-
-func _update_species_card(row: CardRow, id: StringName) -> void:
-	var data: DinoData = GameState.get_dino(id)
-	if data == null:
-		return
-	var count: int = GameState.get_dino_count(id)
-	var sprite_tex: Texture2D = AmberTheme.get_dino_sprite(id, data.sprite)
-	_set_card_icon(row, sprite_tex)
-
-	var desc_text: String = data.description
-	var needed: int = GameState.get_required_fragments_for_dino(id) if count == 0 or data.fragments_growth_per_unit > 0 else 0
-	if needed > 0 and data.can_spawn_more(count):
-		desc_text += "  Fósseis: %d/%d." % [GameState.get_fragments(id), needed]
-	row.desc_lbl.text = desc_text
-
-	if not data.can_spawn_more(count):
-		_apply_card_visual_state(row, true)
-		row.title_lbl.text = "✓ %s · %d no bando" % [data.display_name, count]
-		_set_btn_status(row.buy_btn, "Máximo", null)
-	elif GameState.current_era_index < data.unlock_era_index and GameState.get_fragments(id) == 0 and count == 0:
-		_apply_card_visual_state(row, false)
-		row.title_lbl.text = "%s · %d no bando" % [data.display_name, count]
-		_set_btn_status(row.buy_btn, "Era %s" % GameState.eras[data.unlock_era_index].display_name, null)
-	else:
-		_apply_card_visual_state(row, false)
-		row.title_lbl.text = "%s · %d no bando" % [data.display_name, count]
-		var action: String = "Reviver" if count == 0 else "Clonar +%d" % maxi(1, GameState.resolve_dino_purchase_amount(id))
-		_set_btn_price(row.buy_btn, action, GameState.RES_BONES, GameState.get_dino_purchase_cost(id), GameState.can_assemble_dino(id))
 
 
 func _build_info_row() -> void:
@@ -1136,15 +1450,15 @@ func _update_info_row() -> void:
 	if _section == &"fossils":
 		_set_card_icon(row, AmberTheme.get_icon(&"fragment"))
 		row.title_lbl.text = "Nenhum fóssil bruto na bancada"
-		row.desc_lbl.text = "Colete recursos nas estruturas da bacia para encontrar fósseis brutos. Cada limpeza leva %ds base e libera dinossauros especialistas." % roundi(GameState.BASE_FOSSIL_CLEAN_SECONDS)
+		row.desc_lbl.text = "Colete recursos nas estruturas dos biomas para encontrar fósseis brutos. Cada limpeza leva %ds base e libera dinossauros especialistas." % roundi(GameState.BASE_FOSSIL_CLEAN_SECONDS)
 	elif not GameState.is_station_built(_site):
-		_set_card_icon(row, AmberTheme.get_resource_icon(GameState.RES_ROCKS))
+		_set_card_icon(row, AmberTheme.get_resource_icon(GameState.get_rubble_cost_resource(_site)))
 		row.title_lbl.text = "Estrutura ainda não construída"
-		row.desc_lbl.text = "Construa %s na aba Ofício para desbloquear estes upgrades." % String(def["title"])
+		row.desc_lbl.text = "Construa %s na aba de Estrutura para desbloquear estes upgrades." % String(def["title"])
 	else:
 		_set_card_icon(row, _get_worker_icon(_site))
 		row.title_lbl.text = "Recrute o dinossauro trabalhador"
-		row.desc_lbl.text = "Recrute %s na aba Ofício para desbloquear os próximos upgrades." % String(def["worker"])
+		row.desc_lbl.text = "Recrute %s na aba de Estrutura para desbloquear os próximos upgrades." % String(def["worker"])
 
 
 func _build_fossil_rows() -> void:
@@ -1345,7 +1659,12 @@ func _on_field_action_pressed() -> void:
 		return
 	var target_station: StringName = _site if GameState.RUBBLE_DEFS.has(_site) else GameState.hero_station
 	if target_station == &"":
-		target_station = &"rubble_forge"
+		for st: StringName in GameState.get_stations_for_biome(GameState.current_biome):
+			if GameState.is_station_built(st):
+				target_station = st
+				break
+		if target_station == &"":
+			target_station = &"rubble_forge"
 	if _landmarks.has(target_station):
 		var landmark: FieldLandmark = _landmarks[target_station] as FieldLandmark
 		landmark.pulse = 1.0
@@ -1371,8 +1690,6 @@ func _on_item_buy_pressed(item_id: StringName) -> void:
 		var origin_station: StringName = StringName(String(item_id).trim_prefix(REVIVE_ORIGIN_PREFIX))
 		if GameState.revive_station_dino(origin_station) and _landmarks.has(origin_station):
 			(_landmarks[origin_station] as FieldLandmark).pulse = 1.0
-	elif _section == &"species":
-		Events.dino_assembly_requested.emit(item_id)
 	else:
 		Events.upgrade_purchase_requested.emit(item_id, GameState.buy_multiplier)
 	if _landmarks.has(_site):
@@ -1385,26 +1702,7 @@ func _on_loot_dropped(res_id: StringName, amount: float, world_pos: Vector2) -> 
 	if not is_visible_in_tree() or _active_floating_labels >= MAX_FLOATING_LABELS:
 		return
 	var unit: String = String(GameState.RESOURCE_NAMES.get(res_id, res_id)).capitalize()
-	var col: Color = Color(0.98, 0.94, 0.82)
-	match res_id:
-		GameState.RES_ROCKS:
-			col = Color(0.94, 0.74, 0.50)
-		GameState.RES_FISH:
-			col = Color(0.55, 0.90, 0.68)
-		GameState.RES_FEATHERS:
-			col = Color(0.56, 0.84, 0.98)
-		GameState.RES_SCIENCE:
-			col = Color(0.84, 0.72, 0.98)
-		GameState.RES_RAW_FOSSILS:
-			col = Color(1.0, 0.86, 0.30)
-		GameState.RES_METAL:
-			col = Color(0.75, 0.82, 0.92)
-		GameState.RES_SCALES:
-			col = Color(0.45, 0.92, 0.68)
-		GameState.RES_BEAKS:
-			col = Color(1.0, 0.72, 0.42)
-		GameState.RES_MINERALS:
-			col = Color(0.45, 0.88, 1.0)
+	var col: Color = AmberTheme.get_resource_color(res_id)
 	_spawn_floating_text("+%s %s" % [GameState.format_number(amount), unit], world_pos, col)
 
 

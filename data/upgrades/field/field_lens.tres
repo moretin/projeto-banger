@@ -5,13 +5,13 @@
 [resource]
 script = ExtResource("1")
 id = &"field_lens"
-display_name = "Lupa de bancada"
-description = "O Troodonte decifra amostras com precisão: +25% Ciência na Universidade e +15% velocidade de limpeza por nível."
+display_name = "Lupa de Bancada"
+description = "O Troodonte decifra amostras com precisão: +15% velocidade de limpeza por nível."
 category = 5
 required_station = &"rubble_bunker"
 cost_resource = &"science"
-base_cost = 10.0
-cost_growth = 1.65
+base_cost = 110.0
+cost_growth = 1.75
 max_level = 12
 stat_id = &"cleaning_speed"
 effect_type = 1

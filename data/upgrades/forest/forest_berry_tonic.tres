@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"forest_berry_tonic"
+display_name = "Elixir de Frutas"
+description = "Infusão botânica energiza sua coleta manual [E] (+35% por nível). Libera Estufa de Esporos."
+category = 7
+sort_order = 0
+cost_resource = &"berries"
+base_cost = 160.0
+cost_growth = 1.72
+max_level = 12
+stat_id = &"manual_yield"
+effect_type = 1
+effect_value = 0.35

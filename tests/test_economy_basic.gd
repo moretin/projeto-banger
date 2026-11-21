@@ -74,12 +74,15 @@ func _assert_bulk_matches_sequential(upgrade_id: StringName, bulk_amount: int, s
 func test_1x_10x_100x_purchases_match_individual_sum() -> void:
 	_assert_bulk_matches_sequential(&"tools_sharp_pickaxe", 1, 1000.0)
 	_assert_bulk_matches_sequential(&"tools_sharp_pickaxe", 10, 1.0e8)
-	_assert_bulk_matches_sequential(&"tools_sharp_pickaxe", 100, 1.0e14)
+	_assert_bulk_matches_sequential(&"tools_sharp_pickaxe", 100, 1.0e24)
 	_assert_bulk_matches_sequential(&"dinos_pack_instinct", 10, 1.0e8)
-	_assert_bulk_matches_sequential(&"dinos_pack_instinct", 100, 1.0e16)
+	_assert_bulk_matches_sequential(&"dinos_pack_instinct", 100, 1.0e24)
 	# Upgrade com max_level = 15: 10x completo e 100x limitado pelos 5 níveis restantes.
 	_assert_bulk_matches_sequential(&"defense_reinforced_bunker", 10, 1.0e8, 0)
 	_assert_bulk_matches_sequential(&"defense_reinforced_bunker", 100, 1.0e12, 10)
+	# Upgrades de Floresta e Neve com max_level = 12.
+	_assert_bulk_matches_sequential(&"forest_sawmill_blades", 10, 1.0e8, 0)
+	_assert_bulk_matches_sequential(&"snow_cryo_drill", 10, 1.0e8, 0)
 	# Upgrade permanente de Âmbar com max_level = 10.
 	_assert_bulk_matches_sequential(&"amber_ark_project", 10, 1.0e6, 0)
 
@@ -90,6 +93,8 @@ func test_buy_max_matches_sequential_individual_purchases() -> void:
 	_assert_bulk_matches_sequential(&"tools_sharp_pickaxe", GameState.BUY_MAX, 1.0e6)
 	_assert_bulk_matches_sequential(&"dinos_pack_instinct", GameState.BUY_MAX, 25000.0)
 	_assert_bulk_matches_sequential(&"defense_reinforced_bunker", GameState.BUY_MAX, 1.0e9)
+	_assert_bulk_matches_sequential(&"forest_sawmill_blades", GameState.BUY_MAX, 25000.0)
+	_assert_bulk_matches_sequential(&"snow_cryo_drill", GameState.BUY_MAX, 25000.0)
 	_assert_bulk_matches_sequential(&"amber_ark_project", GameState.BUY_MAX, 4000.0)
 
 
@@ -108,6 +113,25 @@ func test_unique_surface_upgrade_caps_at_level_1_and_surface_progress_earns_ambe
 	assert_almost_eq(GameState.get_resource(GameState.RES_ROCKS), before_rocks - brush.base_cost, 0.001)
 	assert_false(GameState.can_purchase_upgrade(&"tools_fine_brush", 1))
 	assert_true(GameState.is_upgrade_unlocked(&"tools_geologist_lens"))
+
+	# Upgrades de superfície realmente afetam coleta manual (STAT_MANUAL_YIELD) e produção automática (STAT_STATION_YIELD).
+	GameState.start_new_game()
+	Events.orange_rock_hit.emit(20.0, Vector2.ZERO)
+	assert_almost_eq(GameState.get_resource(GameState.RES_ROCKS), 5.0, 0.001, "Chocar o ovo deve render exatamente 5 Rochas")
+	var base_manual: Dictionary = GameState.hero_farm_action(&"rubble_forge")
+	var base_manual_gain: float = float(base_manual.get("amount", 0.0))
+	assert_almost_eq(base_manual_gain, 1.0, 0.001, "Farm manual inicial sem upgrades deve render 1.0 Rocha")
+	GameState.add_resource(GameState.RES_ROCKS, GameState.get_purchase_cost(&"tools_sharp_pickaxe", 1))
+	assert_true(GameState.purchase_upgrade(&"tools_sharp_pickaxe", 1))
+	var boosted_manual: Dictionary = GameState.hero_farm_action(&"rubble_forge")
+	assert_gt(float(boosted_manual.get("amount", 0.0)), base_manual_gain, "tools_sharp_pickaxe (manual_yield) deve aumentar ganho manual [E]")
+
+	GameState.add_resource(GameState.RES_ROCKS, GameState.get_station_worker_cost(&"rubble_forge"))
+	assert_true(GameState.hire_station_worker(&"rubble_forge"))
+	var rate_before_brush: float = GameState.get_station_rate(&"rubble_forge")
+	GameState.add_resource(GameState.RES_ROCKS, GameState.get_purchase_cost(&"tools_fine_brush", 1))
+	assert_true(GameState.purchase_upgrade(&"tools_fine_brush", 1))
+	assert_gt(GameState.get_station_rate(&"rubble_forge"), rate_before_brush, "tools_fine_brush (station_yield) deve aumentar taxa automática")
 
 	# Progresso exclusivo da superfície (run_surface_progress) deve render Âmbar mesmo com 0 ossos subterrâneos.
 	GameState.start_new_game()

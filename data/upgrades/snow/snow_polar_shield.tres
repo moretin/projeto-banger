@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"snow_polar_shield"
+display_name = "Escudo Polar"
+description = "Desbloqueio único: barreira de Cristais e Resina adiciona +15% de escudo contra o meteoro. Libera Cronômetro Ártico."
+category = 9
+sort_order = 1
+cost_resource = &"resin"
+base_cost = 40.0
+cost_growth = 1.0
+max_level = 1
+stat_id = &"meteor_shield"
+effect_type = 0
+effect_value = 0.15
+required_upgrade = &"snow_aurora_beacon"
+required_level = 1

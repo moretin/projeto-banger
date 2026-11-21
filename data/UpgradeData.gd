@@ -9,7 +9,18 @@ extends Resource
 ## Efeito:  aplicado sobre a estatística `stat_id` (ver constantes STAT_* em GameState).
 
 ## Famílias de equipamentos. Os índices fazem parte dos recursos .tres.
-enum Category { TOOLS, DINOS, MACHINES, DEFENSE, AMBER, FIELD }
+enum Category {
+	TOOLS,
+	DINOS,
+	MACHINES,
+	DEFENSE,
+	AMBER,
+	FIELD,
+	FOREST_GROVE,
+	FOREST_SANCTUARY,
+	SNOW_GLACIER,
+	SNOW_OBSERVATORY,
+}
 
 ## Como o efeito se acumula por nível.
 enum EffectType {
@@ -29,8 +40,8 @@ enum EffectType {
 @export var sort_order: int = 0
 
 @export_group("Custo")
-## Recurso gasto (GameState.RES_BONES, RES_MINERALS, RES_DNA, RES_AMBER).
-@export var cost_resource: StringName = &"bones"
+## Recurso gasto (ex.: GameState.RES_ROCKS, RES_FISH, RES_WOOD, RES_ICE, RES_AMBER).
+@export var cost_resource: StringName = &"rocks"
 @export var base_cost: float = 10.0
 ## Crescimento por nível. Típico: 1.07 a 1.15.
 @export_range(1.0, 10.0, 0.001) var cost_growth: float = 1.15

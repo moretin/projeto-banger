@@ -356,7 +356,7 @@ func _run_campaign_to_ark(strike_rate: float = 0.5, verbose: bool = true) -> Dic
 
 	var museum_fossils: int = int(_gs.total_fossils_evaluated)
 	var museum_legendaries: int = int(_gs.total_legendary_fossils)
-	var museum_species: int = int(_gs.fossil_catalog.size())
+	var museum_species: int = int(_gs.discovered_dinos.size())
 
 	if verbose:
 		print("\n| Run | Dur | Tempo Acum | Era Final | Prof | Recup R1 | Ossos | DPS Pico | Dinos | GP(P/G/M) | Fosseis(Lend) | Escudo | Ambar+ | Arca Nv | Compras Perm |")
@@ -726,7 +726,7 @@ func _simulate_run(strat: String, upgrade_counts: Dictionary, recover_depth_targ
 		"strikes_miss": strikes_miss,
 		"fossils_run": int(_gs.total_fossils_evaluated) - start_fossils,
 		"legendaries_run": int(_gs.total_legendary_fossils) - start_legendaries,
-		"museum_species": int(_gs.fossil_catalog.size()),
+		"museum_species": int(_gs.discovered_dinos.size()),
 	}
 
 

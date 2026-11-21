@@ -74,6 +74,8 @@ func test_all_events_signals_have_emitter_and_listener() -> void:
 		var has_connect: bool = combined.contains("Events.%s.connect" % sig)
 		assert_true(has_emit, "Signal Events.%s deve possuir ao menos um emissor" % sig)
 		assert_true(has_connect, "Signal Events.%s deve possuir ao menos um ouvinte" % sig)
+	assert_false("museum_modal_requested" in signals, "Events.museum_modal_requested deve ter sido removido com o Museu")
+	assert_true("biome_changed" in signals, "Events.biome_changed deve estar declarado e conectado")
 
 
 static func _collect_gd_texts(dir_path: String, out: PackedStringArray) -> void:

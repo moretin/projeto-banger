@@ -27,166 +27,302 @@ const RES_RAW_FOSSILS: StringName = &"raw_fossils"
 const RES_METAL: StringName = &"metal"
 const RES_SCALES: StringName = &"scales"
 const RES_BEAKS: StringName = &"beaks"
+const RES_WOOD: StringName = &"wood"
+const RES_BERRIES: StringName = &"berries"
+const RES_RESIN: StringName = &"resin"
+const RES_ICE: StringName = &"ice"
+const RES_CRYSTALS: StringName = &"crystals"
 const RESOURCE_NAMES: Dictionary = {
 	RES_BONES: "ossos", RES_ROCKS: "rochas", RES_MINERALS: "minérios", RES_DNA: "DNA",
 	RES_AMBER: "âmbar", RES_FISH: "peixes", RES_FEATHERS: "penas", RES_SCIENCE: "ciência",
 	RES_RAW_FOSSILS: "fósseis brutos", RES_METAL: "metal", RES_SCALES: "escamas", RES_BEAKS: "bicos de ave",
+	RES_WOOD: "madeira", RES_BERRIES: "frutas", RES_RESIN: "resina", RES_ICE: "gelo", RES_CRYSTALS: "cristais",
 }
 ## Recursos zerados a cada run (âmbar é permanente).
 const RUN_RESOURCES: Array[StringName] = [
 	RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA, RES_FISH, RES_FEATHERS, RES_SCIENCE,
 	RES_RAW_FOSSILS, RES_METAL, RES_SCALES, RES_BEAKS,
+	RES_WOOD, RES_BERRIES, RES_RESIN, RES_ICE, RES_CRYSTALS,
 ]
 const ALL_RESOURCES: Array[StringName] = [
 	RES_BONES, RES_ROCKS, RES_MINERALS, RES_DNA, RES_AMBER, RES_FISH, RES_FEATHERS, RES_SCIENCE,
 	RES_RAW_FOSSILS, RES_METAL, RES_SCALES, RES_BEAKS,
+	RES_WOOD, RES_BERRIES, RES_RESIN, RES_ICE, RES_CRYSTALS,
 ]
+
+## Biomas da Superfície (esquerda -> centro -> direita).
+const BIOME_FOREST: StringName = &"forest"
+const BIOME_AMBER: StringName = &"amber_basin"
+const BIOME_SNOW: StringName = &"snow"
+const BIOME_ORDER: Array[StringName] = [BIOME_FOREST, BIOME_AMBER, BIOME_SNOW]
+const BIOME_NAMES: Dictionary = {
+	BIOME_FOREST: "Floresta Ancestral",
+	BIOME_AMBER: "Bacia do Âmbar",
+	BIOME_SNOW: "Cordilheira Nevada",
+}
 
 ## Vida inicial da Rocha Laranja na Superfície.
 const ORANGE_ROCK_MAX_HP: float = 10.0
 const FIELD_GEAR_YIELD_BONUS: float = 0.25
-const HERO_BASE_FARM_RATE: float = 0.45
-const HERO_ASSIST_BONUS_MULT: float = 0.50
+const HERO_BASE_FARM_RATE: float = 0.20
+const HERO_ASSIST_BONUS_MULT: float = 0.35
 ## Probabilidade base de encontrar um fóssil bruto por coleta (1 em 1000).
 const BASE_RAW_FOSSIL_CHANCE: float = 0.001
 ## Tempo base (em segundos) para limpar um fóssil bruto na Universidade.
 const BASE_FOSSIL_CLEAN_SECONDS: float = 40.0
 ## Quantidade de fósseis limpos necessários para reviver o dinossauro especialista de cada estrutura.
 const STATION_REVIVE_FOSSILS_REQUIRED: int = 10
-const STATION_FOSSIL_FLASH_DURATION: float = 3.2
+const STATION_FOSSIL_FLASH_DURATION: float = 2.8
 
-## Escombros de pedra reconstruíveis na Superfície (custam RES_ROCKS).
+## Estruturas reconstruíveis nos 3 biomas da Superfície.
 const RUBBLE_ORDER: Array[StringName] = [
 	&"rubble_forge",
 	&"rubble_nest",
 	&"rubble_silo",
 	&"rubble_bunker",
+	&"forest_grove",
+	&"forest_sanctuary",
+	&"snow_glacier",
+	&"snow_observatory",
 ]
 const RUBBLE_DEFS: Dictionary = {
 	&"rubble_forge": {
 		"title": "Pedreira do Casco",
-		"biome": "Encosta Rochosa",
+		"biome": BIOME_AMBER,
 		"worker": "Paquicefalossauro",
-		"worker_desc": "Paquicefalossauro coleta Rochas automaticamente (+0.8/s base).",
+		"worker_desc": "Paquicefalossauro coleta Rochas automaticamente (+0.7/s base).",
+		"build_resource": RES_ROCKS,
+		"build_cost": 40.0,
+		"expand_resource": RES_ROCKS,
+		"base_cost": 90.0,
+		"cost_growth": 2.35,
 		"product": RES_ROCKS,
-		"rate": 0.8,
-		"build_cost": 15.0,
-		"worker_cost": 20.0,
+		"rate": 0.7,
+		"worker_cost": 65.0,
 		"gear": &"field_helmet",
 		"category": UpgradeData.Category.TOOLS,
-		"desc": "+50% de Dano de Clique por nível",
-		"base_cost": 15.0,
-		"cost_growth": 2.1,
-		"stat_id": &"click_damage",
-		"mult_per_level": 0.50,
+		"desc": "+15% de coleta manual por ampliação",
+		"stat_id": &"manual_yield",
+		"mult_per_level": 0.15,
 		"color": Color(0.92, 0.52, 0.24),
 		"fossils": [&"ankylosaurus", &"triceratops", &"trex"],
 		"revive_dino": &"ankylosaurus",
 		"revive_name": "Anquilossauro Minerador",
+		"revive_cost": 450.0,
+		"revive_mult": 2.5,
 		"tier2_product": RES_METAL,
-		"tier2_rate": 0.25,
+		"tier2_rate": 0.30,
 	},
 	&"rubble_nest": {
 		"title": "Pesqueiro do Junco",
-		"biome": "Várzea Aluvial",
+		"biome": BIOME_AMBER,
 		"worker": "Bariônix",
-		"worker_desc": "Bariônix pesca Peixes automaticamente (+0.7/s base).",
+		"worker_desc": "Bariônix pesca Peixes automaticamente (+0.65/s base).",
+		"build_resource": RES_ROCKS,
+		"build_cost": 120.0,
+		"expand_resource": RES_ROCKS,
+		"base_cost": 180.0,
+		"cost_growth": 2.4,
 		"product": RES_FISH,
-		"rate": 0.7,
-		"build_cost": 15.0,
-		"worker_cost": 25.0,
+		"rate": 0.65,
+		"worker_cost": 90.0,
 		"gear": &"field_fins",
 		"category": UpgradeData.Category.DINOS,
-		"desc": "+50% de Dano dos Dinos por nível",
-		"base_cost": 30.0,
-		"cost_growth": 2.2,
-		"stat_id": &"dino_damage",
-		"mult_per_level": 0.50,
+		"desc": "+8% de produção global das estruturas por nível",
+		"stat_id": &"station_yield",
+		"mult_per_level": 0.08,
 		"color": Color(0.52, 0.85, 0.38),
 		"fossils": [&"dilophosaurus", &"brachiosaurus"],
 		"revive_dino": &"dilophosaurus",
 		"revive_name": "Dilofossauro Escamoso",
+		"revive_cost": 550.0,
+		"revive_mult": 2.5,
 		"tier2_product": RES_SCALES,
-		"tier2_rate": 0.25,
+		"tier2_rate": 0.28,
 	},
 	&"rubble_silo": {
 		"title": "Torre dos Ventos",
-		"biome": "Penhasco das Dunas",
+		"biome": BIOME_AMBER,
 		"worker": "Pterodáctilo",
-		"worker_desc": "Pterodáctilo coleta Penas automaticamente (+0.6/s base).",
+		"worker_desc": "Pterodáctilo coleta Penas automaticamente (+0.55/s base).",
+		"build_resource": RES_ROCKS,
+		"build_cost": 420.0,
+		"expand_resource": RES_ROCKS,
+		"base_cost": 480.0,
+		"cost_growth": 2.45,
 		"product": RES_FEATHERS,
-		"rate": 0.6,
-		"build_cost": 45.0,
-		"worker_cost": 25.0,
+		"rate": 0.55,
+		"worker_cost": 130.0,
 		"gear": &"field_goggles",
 		"category": UpgradeData.Category.MACHINES,
-		"desc": "+45% de Produção e Coleta por nível",
-		"base_cost": 60.0,
-		"cost_growth": 2.3,
-		"stat_id": &"bones_mult",
-		"mult_per_level": 0.45,
+		"desc": "+18% de sorte de fósseis brutos por nível",
+		"stat_id": &"fossil_luck",
+		"mult_per_level": 0.18,
 		"color": Color(0.42, 0.75, 0.92),
 		"fossils": [&"velociraptor", &"pterodactyl", &"compsognathus"],
 		"revive_dino": &"velociraptor",
 		"revive_name": "Velociraptor Caçador",
+		"revive_cost": 750.0,
+		"revive_mult": 2.5,
 		"tier2_product": RES_BEAKS,
-		"tier2_rate": 0.22,
+		"tier2_rate": 0.25,
 	},
 	&"rubble_bunker": {
 		"title": "Universidade da Arca",
-		"biome": "Laboratório Paleontológico",
+		"biome": BIOME_AMBER,
 		"worker": "Troodonte",
-		"worker_desc": "Troodonte produz Ciência automaticamente (+0.5/s base) e acelera a limpeza de fósseis.",
+		"worker_desc": "Troodonte produz Ciência automaticamente (+0.45/s base) e acelera a limpeza de fósseis.",
+		"build_resource": RES_ROCKS,
+		"build_cost": 1100.0,
+		"expand_resource": RES_ROCKS,
+		"base_cost": 1200.0,
+		"cost_growth": 2.5,
 		"product": RES_SCIENCE,
-		"rate": 0.5,
-		"build_cost": 90.0,
-		"worker_cost": 25.0,
+		"rate": 0.45,
+		"worker_cost": 170.0,
 		"gear": &"field_lens",
 		"category": UpgradeData.Category.DEFENSE,
-		"desc": "+8% de Escudo Anti-Meteoro por nível",
-		"base_cost": 100.0,
-		"cost_growth": 2.4,
+		"desc": "+6% de Escudo Anti-Meteoro por nível",
 		"stat_id": &"meteor_shield",
-		"add_per_level": 0.08,
+		"add_per_level": 0.06,
 		"color": Color(0.75, 0.65, 0.88),
 		"fossils": [&"brachiosaurus", &"compsognathus", &"velociraptor", &"triceratops", &"trex", &"pterodactyl", &"ankylosaurus", &"dilophosaurus"],
 		"revive_dino": &"brachiosaurus",
 		"revive_name": "Braquiossauro Decano",
+		"revive_cost": 950.0,
+		"revive_mult": 2.5,
 		"tier2_product": RES_SCIENCE,
-		"tier2_rate": 0.8,
+		"tier2_rate": 1.2,
+	},
+	&"forest_grove": {
+		"title": "Bosque das Sequoias",
+		"biome": BIOME_FOREST,
+		"worker": "Tricerátopo",
+		"worker_desc": "Tricerátopo colhe Madeira ancestral automaticamente (+0.85/s base).",
+		"build_resource": RES_METAL,
+		"build_cost": 15.0,
+		"expand_resource": RES_WOOD,
+		"base_cost": 220.0,
+		"cost_growth": 2.4,
+		"product": RES_WOOD,
+		"rate": 0.85,
+		"worker_cost": 120.0,
+		"gear": &"field_timber_harness",
+		"category": UpgradeData.Category.FOREST_GROVE,
+		"desc": "+12% de produção global das estruturas por nível",
+		"stat_id": &"station_yield",
+		"mult_per_level": 0.12,
+		"color": Color(0.32, 0.72, 0.36),
+		"fossils": [&"triceratops", &"ankylosaurus"],
+		"revive_dino": &"triceratops",
+		"revive_name": "Tricerátopo Alfa",
+		"revive_cost": 900.0,
+		"revive_mult": 2.5,
+		"tier2_product": RES_RESIN,
+		"tier2_rate": 0.30,
+	},
+	&"forest_sanctuary": {
+		"title": "Clareira das Samambaias",
+		"biome": BIOME_FOREST,
+		"worker": "Estegossauro",
+		"worker_desc": "Estegossauro colhe Frutas silvestres automaticamente (+0.80/s base).",
+		"build_resource": RES_SCALES,
+		"build_cost": 18.0,
+		"expand_resource": RES_BERRIES,
+		"base_cost": 280.0,
+		"cost_growth": 2.45,
+		"product": RES_BERRIES,
+		"rate": 0.80,
+		"worker_cost": 150.0,
+		"gear": &"field_botanic_basket",
+		"category": UpgradeData.Category.FOREST_SANCTUARY,
+		"desc": "+15% de recursos raros Tier-2 por nível",
+		"stat_id": &"tier2_yield",
+		"mult_per_level": 0.15,
+		"color": Color(0.86, 0.42, 0.48),
+		"fossils": [&"trex", &"dilophosaurus"],
+		"revive_dino": &"trex",
+		"revive_name": "T-Rex Guardião",
+		"revive_cost": 1200.0,
+		"revive_mult": 2.5,
+		"tier2_product": RES_BERRIES,
+		"tier2_rate": 1.5,
+	},
+	&"snow_glacier": {
+		"title": "Geleira Cristalina",
+		"biome": BIOME_SNOW,
+		"worker": "Criolofossauro",
+		"worker_desc": "Criolofossauro extrai Gelo glacial automaticamente (+0.75/s base).",
+		"build_resource": RES_BEAKS,
+		"build_cost": 18.0,
+		"expand_resource": RES_ICE,
+		"base_cost": 340.0,
+		"cost_growth": 2.45,
+		"product": RES_ICE,
+		"rate": 0.75,
+		"worker_cost": 180.0,
+		"gear": &"field_ice_crampons",
+		"category": UpgradeData.Category.SNOW_GLACIER,
+		"desc": "+22% de sorte de fósseis brutos por nível",
+		"stat_id": &"fossil_luck",
+		"mult_per_level": 0.22,
+		"color": Color(0.55, 0.88, 0.98),
+		"fossils": [&"pterodactyl", &"velociraptor"],
+		"revive_dino": &"pterodactyl",
+		"revive_name": "Pterodáctilo Polar",
+		"revive_cost": 1400.0,
+		"revive_mult": 2.5,
+		"tier2_product": RES_CRYSTALS,
+		"tier2_rate": 0.28,
+	},
+	&"snow_observatory": {
+		"title": "Santuário Ártico",
+		"biome": BIOME_SNOW,
+		"worker": "Paquirrinossauro",
+		"worker_desc": "Paquirrinossauro lapida Cristais árticos automaticamente (+0.65/s base).",
+		"build_resource": RES_RESIN,
+		"build_cost": 25.0,
+		"expand_resource": RES_CRYSTALS,
+		"base_cost": 420.0,
+		"cost_growth": 2.5,
+		"product": RES_CRYSTALS,
+		"rate": 0.65,
+		"worker_cost": 220.0,
+		"gear": &"field_aurora_prism",
+		"category": UpgradeData.Category.SNOW_OBSERVATORY,
+		"desc": "+12% de recompensa de Âmbar por nível",
+		"stat_id": &"amber_mult",
+		"mult_per_level": 0.12,
+		"color": Color(0.68, 0.76, 1.0),
+		"fossils": [&"compsognathus", &"brachiosaurus"],
+		"revive_dino": &"compsognathus",
+		"revive_name": "Compsognato Ártico",
+		"revive_cost": 1800.0,
+		"revive_mult": 3.0,
+		"tier2_product": RES_CRYSTALS,
+		"tier2_rate": 1.8,
 	},
 }
 
-## Pools de peças anatômicas para catalogação de fósseis no Museu.
-const FOSSIL_PART_POOLS: Dictionary = {
-	&"compsognathus": ["Falange Ligeira", "Crânio em Miniatura", "Vértebra Caudal"],
-	&"velociraptor": ["Garra Falciforme", "Osso Nasal", "Dente Serrilhado"],
-	&"triceratops": ["Chifre Supraorbital", "Placa do Escudo", "Bico Ossificado"],
-	&"trex": ["Mandíbula Petrificada", "Presa de 22 cm", "Coroa Dorsal"],
-	&"pterodactyl": ["Falange Alar", "Crista Pneumática", "Bico Fendido"],
-	&"brachiosaurus": ["Vértebra Cervical", "Fêmur Colossal", "Arco Torácico"],
-	&"ankylosaurus": ["Placa Osteoderma", "Clava da Cauda", "Espinho Lateral"],
-	&"dilophosaurus": ["Crista Craniana Dupla", "Dente Canaliculado", "Escápula Ágil"],
-}
-
 ## IDs de estatísticas afetadas por upgrades (UpgradeData.stat_id).
-## Para dano de uma espécie use DinoData.get_damage_stat_id() → &"dino_damage:<id>".
 const BalanceConfig = preload("res://data/BalanceConfig.gd")
 
+const STAT_MANUAL_YIELD: StringName = &"manual_yield"        ## Multiplicador da coleta manual [E]
+const STAT_STATION_YIELD: StringName = &"station_yield"      ## Multiplicador global da produção automática das estruturas
 const STAT_CLICK_DAMAGE: StringName = &"click_damage"
 const STAT_CLICK_CRIT_CHANCE: StringName = &"click_crit_chance"
-const STAT_DINO_DAMAGE: StringName = &"dino_damage"        ## Global (todos os dinos)
-const STAT_DINO_EVO_MULT: StringName = &"dino_evo_mult"     ## Evolução genética em DNA (multiplica em separado)
+const STAT_DINO_DAMAGE: StringName = &"dino_damage"          ## Legado (escavação subterrânea)
+const STAT_DINO_EVO_MULT: StringName = &"dino_evo_mult"      ## Legado (escavação subterrânea)
 const STAT_BONES_MULT: StringName = &"bones_mult"
-const STAT_PRESTIGE_BONES_MULT: StringName = &"prestige_bones_mult"  ## Multiplicador permanente de prestígio
-const STAT_MINERAL_CHANCE: StringName = &"mineral_chance"  ## Multiplicador da chance base da era
+const STAT_PRESTIGE_BONES_MULT: StringName = &"prestige_bones_mult"
+const STAT_MINERAL_CHANCE: StringName = &"mineral_chance"
 const STAT_FRAGMENT_CHANCE: StringName = &"fragment_chance"
 const STAT_DNA_MULT: StringName = &"dna_mult"
-const STAT_METEOR_TIME: StringName = &"meteor_time"        ## Segundos extras (ADD)
-const STAT_METEOR_SHIELD: StringName = &"meteor_shield"    ## 0..1 de proteção
+const STAT_METEOR_TIME: StringName = &"meteor_time"          ## Segundos extras (ADD)
+const STAT_METEOR_SHIELD: StringName = &"meteor_shield"      ## 0..1 de proteção
 const STAT_AMBER_MULT: StringName = &"amber_mult"
 const STAT_OFFLINE_MULT: StringName = &"offline_mult"
-const STAT_AUTO_DPS: StringName = &"auto_dps"              ## DPS passivo legado
+const STAT_AUTO_DPS: StringName = &"auto_dps"                ## DPS passivo legado
 const STAT_FOSSIL_LUCK: StringName = &"fossil_luck"
 const STAT_CLEANING_SPEED: StringName = &"cleaning_speed"
 const STAT_CLEAN_DOUBLE_CHANCE: StringName = &"clean_double_chance"
@@ -197,7 +333,7 @@ const BUY_MAX: int = -1
 const BUY_MULTIPLIERS: Array[int] = [1, 10, 100, BUY_MAX]
 
 ## Timer base do meteoro (segundos) — fallback caso balance.tres ainda não tenha sido carregado.
-const BASE_METEOR_TIME: float = 600.0
+const BASE_METEOR_TIME: float = 1200.0
 ## A partir de qual run o meteoro aparece (1 = desde a primeira).
 const METEOR_FIRST_RUN: int = 1
 ## Requisitos do Projeto Arca (condição de vitória do GDD §7).
@@ -247,6 +383,7 @@ var meteor_time_left: float = 0.0
 var meteor_total_time: float = 0.0
 var is_impacting: bool = false
 var _dig_cycle_damage: float = 0.0
+var current_biome: StringName = BIOME_AMBER
 var hero_station: StringName = &""
 var raw_fossil_queue: Array[StringName] = []
 var fossil_cleaning_progress: float = 0.0
@@ -261,14 +398,11 @@ var run_number: int = 1
 var max_depth_ever: int = 0
 var lifetime_bones: float = 0.0
 var total_amber_earned: float = 0.0
-## Espécies já revividas alguma vez (para bestiário e progressão de cor).
+## Espécies já revividas alguma vez (para progressão visual).
 var discovered_dinos: Dictionary = {}
 var ark_completed: bool = false
-## Catálogo persistente do Museu Paleontológico (`dino_id -> {"count", "best_rarity", "parts"}`).
-var fossil_catalog: Dictionary = {}
 var total_fossils_evaluated: int = 0
 var total_legendary_fossils: int = 0
-var last_evaluated_fossil: Dictionary = {}
 #endregion
 
 
@@ -316,10 +450,8 @@ func _connect_events() -> void:
 func start_new_game() -> void:
 	permanent_upgrade_levels.clear()
 	discovered_dinos.clear()
-	fossil_catalog.clear()
 	total_fossils_evaluated = 0
 	total_legendary_fossils = 0
-	last_evaluated_fossil.clear()
 	ark_completed = false
 	run_number = 1
 	max_depth_ever = 0
@@ -354,6 +486,7 @@ func _reset_run_state() -> void:
 	meteor_active = false
 	is_impacting = false
 	_dig_cycle_damage = 0.0
+	current_biome = BIOME_AMBER
 	hero_station = &""
 	raw_fossil_queue.clear()
 	fossil_cleaning_progress = 0.0
@@ -378,6 +511,7 @@ func _emit_full_refresh() -> void:
 		Events.orange_rock_broken.emit()
 	for rubble_id: StringName in RUBBLE_ORDER:
 		Events.rubble_rebuilt.emit(rubble_id, get_rubble_level(rubble_id))
+	Events.biome_changed.emit(current_biome)
 	Events.era_changed.emit(current_era_index)
 	Events.layer_hp_changed.emit(layer_hp, layer_max_hp)
 	Events.meteor_timer_changed.emit(meteor_time_left, meteor_total_time)
@@ -563,17 +697,20 @@ func recalculate_stats() -> void:
 		else:
 			_stat_mult[data.stat_id] = _stat_mult.get(data.stat_id, 1.0) + (effect - 1.0)
 
-	# Bônus dos escombros/estações reconstruídas na Superfície (mesmo stat_id soma multiplicadores).
+	# Bônus das estações reconstruídas/ampliadas na Superfície (mesmo stat_id soma multiplicadores).
 	for rubble_id: StringName in RUBBLE_ORDER:
 		var r_lvl: int = get_rubble_level(rubble_id)
-		if r_lvl <= 0:
+		var bonus_lvl: int = maxi(r_lvl - 1, 0) if rubble_id == &"rubble_forge" else r_lvl
+		if bonus_lvl <= 0:
 			continue
-		var def: Dictionary = RUBBLE_DEFS[rubble_id]
-		var st_id: StringName = def.get("stat_id", &"")
+		var def: Dictionary = RUBBLE_DEFS[rubble_id] as Dictionary
+		var st_id: StringName = StringName(def.get("stat_id", &""))
+		if st_id == &"":
+			continue
 		if def.has("add_per_level"):
-			_stat_flat[st_id] = _stat_flat.get(st_id, 0.0) + float(def["add_per_level"]) * float(r_lvl)
+			_stat_flat[st_id] = float(_stat_flat.get(st_id, 0.0)) + float(def["add_per_level"]) * float(bonus_lvl)
 		elif def.has("mult_per_level"):
-			_stat_mult[st_id] = _stat_mult.get(st_id, 1.0) + float(def["mult_per_level"]) * float(r_lvl)
+			_stat_mult[st_id] = float(_stat_mult.get(st_id, 1.0)) + float(def["mult_per_level"]) * float(bonus_lvl)
 
 	var base_time: float = balance.base_meteor_time if balance != null else BASE_METEOR_TIME
 	var expected_meteor_total: float = get_stat(STAT_METEOR_TIME, base_time)
@@ -672,23 +809,14 @@ func get_fortified_excavation_multiplier() -> float:
 	return 1.0 + get_shield_ratio() * ratio
 
 
-## Bônus permanente do Museu Paleontológico (+3% por peça anatômica única e +5% por holótipo lendário, teto +50%).
+## Museu removido: mantido em 1.0 sem bônus adicional.
 func get_museum_collection_multiplier() -> float:
-	if total_fossils_evaluated <= 0:
-		return 1.0
-	var unique_parts: int = 0
-	for rec_val: Variant in fossil_catalog.values():
-		if rec_val is Dictionary:
-			var parts_val: Variant = (rec_val as Dictionary).get("parts", [])
-			if parts_val is Array:
-				unique_parts += (parts_val as Array).size()
-	var legend_bonus: float = minf(float(total_legendary_fossils) * 0.05, 0.50)
-	return 1.0 + float(unique_parts) * 0.03 + legend_bonus
+	return 1.0
 
 
-## Multiplicador combinado de ossos: bônus da run × prestígio permanente × coletores × acervo do Museu.
+## Multiplicador combinado de ossos (legado subterrâneo).
 func get_total_bones_multiplier() -> float:
-	return get_multiplier(STAT_BONES_MULT) * get_multiplier(STAT_PRESTIGE_BONES_MULT) * get_collector_bones_multiplier() * get_museum_collection_multiplier()
+	return get_multiplier(STAT_BONES_MULT) * get_multiplier(STAT_PRESTIGE_BONES_MULT) * get_collector_bones_multiplier()
 
 
 ## Parcela da Mestria Paleontológica convertida em poder direto de escavação (evita estagnação pós-prestígio).
@@ -1166,20 +1294,18 @@ func _on_dig_hit(damage: float, world_position: Vector2, _is_crit: bool) -> void
 	apply_dig_damage(damage, world_position)
 
 
-#region Superfície: Rocha Laranja & Escombros
+#region Superfície: Rocha Laranja, Biomas & Estruturas
 func _on_orange_rock_hit(damage: float, world_position: Vector2) -> void:
 	if orange_rock_broken or damage <= 0.0:
 		return
 	var effective: float = minf(damage, orange_rock_hp)
 	orange_rock_hp = maxf(orange_rock_hp - effective, 0.0)
-	add_resource(RES_ROCKS, 1.0)
-	Events.loot_dropped.emit(RES_ROCKS, 1.0, world_position)
 	Events.orange_rock_hp_changed.emit(orange_rock_hp, ORANGE_ROCK_MAX_HP)
 
 	if orange_rock_hp <= 0.0:
 		orange_rock_broken = true
-		# Garante ao menos 15 Rochas ao chocar o ovo para construir o Pesqueiro ou avançar na Pedreira.
-		var shell_bonus: float = maxf(5.0, 15.0 - get_resource(RES_ROCKS))
+		# Chocar o Ovo concede apenas 5 Rochas: o jogador caminha até a Pedreira e farma manualmente primeiro.
+		var shell_bonus: float = 5.0
 		add_resource(RES_ROCKS, shell_bonus)
 		Events.loot_dropped.emit(RES_ROCKS, shell_bonus, world_position)
 		# Ao quebrar a Rocha Laranja, nasce o 1º Dinossauro (protagonista)!
@@ -1191,6 +1317,29 @@ func _on_orange_rock_hit(damage: float, world_position: Vector2) -> void:
 			_update_color_progress()
 		Events.orange_rock_broken.emit()
 		Events.notification_requested.emit("🦖 O Ovo de Âmbar se partiu! Use WASD para mover seu Dinossauro!", null)
+
+
+func get_station_biome(station: StringName) -> StringName:
+	if not RUBBLE_DEFS.has(station):
+		return BIOME_AMBER
+	return StringName((RUBBLE_DEFS[station] as Dictionary).get("biome", BIOME_AMBER))
+
+
+func get_stations_for_biome(biome: StringName) -> Array[StringName]:
+	var result: Array[StringName] = []
+	for station: StringName in RUBBLE_ORDER:
+		if get_station_biome(station) == biome:
+			result.append(station)
+	return result
+
+
+func set_current_biome(biome: StringName) -> void:
+	if not (biome in BIOME_ORDER):
+		return
+	current_biome = biome
+	if hero_station != &"" and get_station_biome(hero_station) != current_biome:
+		hero_station = &""
+	Events.biome_changed.emit(current_biome)
 
 
 func set_hero_station(station: StringName) -> void:
@@ -1212,7 +1361,7 @@ func has_station_worker(station: StringName) -> bool:
 func get_station_worker_cost(station: StringName) -> float:
 	if not RUBBLE_DEFS.has(station):
 		return 0.0
-	return float(RUBBLE_DEFS[station].get("worker_cost", 25.0))
+	return float((RUBBLE_DEFS[station] as Dictionary).get("worker_cost", 65.0))
 
 
 func can_hire_station_worker(station: StringName) -> bool:
@@ -1220,15 +1369,15 @@ func can_hire_station_worker(station: StringName) -> bool:
 		return false
 	if not is_station_built(station) or has_station_worker(station):
 		return false
-	var product: StringName = RUBBLE_DEFS[station]["product"]
+	var product: StringName = StringName((RUBBLE_DEFS[station] as Dictionary)["product"])
 	return can_afford(product, get_station_worker_cost(station))
 
 
 func hire_station_worker(station: StringName) -> bool:
 	if not can_hire_station_worker(station):
 		return false
-	var def: Dictionary = RUBBLE_DEFS[station]
-	var product: StringName = def["product"]
+	var def: Dictionary = RUBBLE_DEFS[station] as Dictionary
+	var product: StringName = StringName(def["product"])
 	var cost: float = get_station_worker_cost(station)
 	if not spend(product, cost):
 		return false
@@ -1250,6 +1399,19 @@ func get_station_for_dino(dino_id: StringName) -> StringName:
 	return &""
 
 
+func get_total_revived_station_dinos() -> int:
+	var total: int = 0
+	for station: StringName in RUBBLE_ORDER:
+		total += get_station_revived_count(station)
+	return total
+
+
+func get_global_revive_station_multiplier() -> float:
+	return 1.0 \
+		+ 0.35 * float(get_station_revived_count(&"rubble_bunker")) \
+		+ 0.50 * float(get_station_revived_count(&"forest_sanctuary"))
+
+
 func get_active_surface_resources() -> Array[StringName]:
 	var active: Array[StringName] = [RES_ROCKS]
 	if is_station_built(&"rubble_nest") or get_resource(RES_FISH) > 0.0:
@@ -1266,6 +1428,16 @@ func get_active_surface_resources() -> Array[StringName]:
 		active.append(RES_SCALES)
 	if get_station_revived_count(&"rubble_silo") > 0 or get_resource(RES_BEAKS) > 0.0:
 		active.append(RES_BEAKS)
+	if is_station_built(&"forest_grove") or get_resource(RES_WOOD) > 0.0:
+		active.append(RES_WOOD)
+	if is_station_built(&"forest_sanctuary") or get_resource(RES_BERRIES) > 0.0:
+		active.append(RES_BERRIES)
+	if get_station_revived_count(&"forest_grove") > 0 or get_resource(RES_RESIN) > 0.0:
+		active.append(RES_RESIN)
+	if is_station_built(&"snow_glacier") or get_resource(RES_ICE) > 0.0:
+		active.append(RES_ICE)
+	if is_station_built(&"snow_observatory") or get_station_revived_count(&"snow_glacier") > 0 or get_resource(RES_CRYSTALS) > 0.0:
+		active.append(RES_CRYSTALS)
 	if get_resource(RES_AMBER) > 0.0 or total_amber_earned > 0.0:
 		active.append(RES_AMBER)
 	return active
@@ -1274,10 +1446,10 @@ func get_active_surface_resources() -> Array[StringName]:
 func get_resource_rate(res_id: StringName) -> float:
 	var total: float = 0.0
 	for station: StringName in RUBBLE_ORDER:
-		var def: Dictionary = RUBBLE_DEFS[station]
-		if def["product"] == res_id:
+		var def: Dictionary = RUBBLE_DEFS[station] as Dictionary
+		if StringName(def["product"]) == res_id:
 			total += get_station_effective_rate(station)
-		if def["tier2_product"] == res_id:
+		if StringName(def["tier2_product"]) == res_id:
 			total += get_station_tier2_rate(station)
 	return total
 
@@ -1296,7 +1468,7 @@ func get_biome_fossil_pool(station: StringName, include_future_fallback: bool = 
 	var pool: Array[DinoData] = []
 	if not RUBBLE_DEFS.has(station):
 		return pool
-	var ids: Variant = RUBBLE_DEFS[station].get("fossils", [])
+	var ids: Variant = (RUBBLE_DEFS[station] as Dictionary).get("fossils", [])
 	var all_station: Array[DinoData] = []
 	if ids is Array:
 		for raw_id: Variant in (ids as Array):
@@ -1318,7 +1490,7 @@ func get_biome_fossil_names(station: StringName) -> String:
 	if not RUBBLE_DEFS.has(station):
 		return ""
 	var names: PackedStringArray = []
-	var ids: Variant = RUBBLE_DEFS[station].get("fossils", [])
+	var ids: Variant = (RUBBLE_DEFS[station] as Dictionary).get("fossils", [])
 	if ids is Array:
 		for raw_id: Variant in (ids as Array):
 			var dino: DinoData = get_dino(StringName(raw_id))
@@ -1333,7 +1505,7 @@ func extract_biome_fossil(station: StringName, world_position: Vector2 = Vector2
 	var pool: Array[DinoData] = get_biome_fossil_pool(station, true)
 	if pool.is_empty():
 		return &""
-	var chance: float = clampf(0.28 * get_multiplier(STAT_FRAGMENT_CHANCE) * get_collector_drop_multiplier(), 0.05, 0.90)
+	var chance: float = clampf(0.28 * get_multiplier(STAT_FOSSIL_LUCK) * get_multiplier(STAT_FRAGMENT_CHANCE) * get_collector_drop_multiplier(), 0.05, 0.90)
 	if not guarantee and randf() >= chance:
 		return &""
 	var candidates: Array[DinoData] = []
@@ -1371,15 +1543,15 @@ func get_station_revived_count(station: StringName) -> int:
 func get_station_revive_dino_id(station: StringName) -> StringName:
 	if not RUBBLE_DEFS.has(station):
 		return &""
-	return StringName(RUBBLE_DEFS[station].get("revive_dino", &""))
+	return StringName((RUBBLE_DEFS[station] as Dictionary).get("revive_dino", &""))
 
 
 func get_station_revive_cost(station: StringName) -> float:
 	if not RUBBLE_DEFS.has(station):
 		return 0.0
-	var def: Dictionary = RUBBLE_DEFS[station]
+	var def: Dictionary = RUBBLE_DEFS[station] as Dictionary
 	var lvl: int = get_station_revived_count(station)
-	return roundf(float(def["base_cost"]) * 1.5 * pow(2.2, float(lvl)))
+	return roundf(float(def.get("revive_cost", 450.0)) * pow(2.5, float(lvl)))
 
 
 func can_revive_station_dino(station: StringName) -> bool:
@@ -1388,14 +1560,15 @@ func can_revive_station_dino(station: StringName) -> bool:
 	var dino_id: StringName = get_station_revive_dino_id(station)
 	if dino_id == &"" or get_fragments(dino_id) < STATION_REVIVE_FOSSILS_REQUIRED:
 		return false
-	var product: StringName = RUBBLE_DEFS[station]["product"]
+	var product: StringName = StringName((RUBBLE_DEFS[station] as Dictionary)["product"])
 	return can_afford(product, get_station_revive_cost(station))
 
 
 func revive_station_dino(station: StringName) -> bool:
 	if not can_revive_station_dino(station):
 		return false
-	var product: StringName = RUBBLE_DEFS[station]["product"]
+	var def: Dictionary = RUBBLE_DEFS[station] as Dictionary
+	var product: StringName = StringName(def["product"])
 	var cost: float = get_station_revive_cost(station)
 	if not spend(product, cost):
 		return false
@@ -1412,8 +1585,9 @@ func revive_station_dino(station: StringName) -> bool:
 	Events.dino_count_changed.emit(dino_id, prev_count + 1)
 	Events.rubble_rebuilt.emit(station, get_rubble_level(station))
 	recalculate_stats()
-	var rname: String = String(RUBBLE_DEFS[station].get("revive_name", dino_id))
-	Events.notification_requested.emit("🦖 %s revivido em %s!" % [rname, String(RUBBLE_DEFS[station]["title"])], null)
+	var rname: String = String(def.get("revive_name", dino_id))
+	var mult_val: float = float(def.get("revive_mult", 2.5))
+	Events.notification_requested.emit("🦖 %s revivido em %s! (×%.1f produção)" % [rname, String(def["title"]), mult_val], null)
 	return true
 
 
@@ -1442,6 +1616,7 @@ func get_university_cleaning_speed() -> float:
 		base_speed += 0.25
 	if orange_rock_broken and hero_station == &"rubble_bunker":
 		base_speed += 0.35
+	base_speed += 0.60 * float(get_station_revived_count(&"rubble_bunker"))
 	return base_speed * get_multiplier(STAT_CLEANING_SPEED)
 
 
@@ -1487,7 +1662,7 @@ func _tick_university_cleaning(delta: float) -> void:
 
 
 func get_university_prep_cost() -> float:
-	return 5.0 + float(current_era_index) * 4.0
+	return 25.0 + float(current_era_index) * 15.0
 
 
 func can_prepare_fossil_at_university() -> bool:
@@ -1535,19 +1710,21 @@ func hero_farm_action(station: StringName = hero_station, world_position: Vector
 		return {"kind": &"egg"}
 	var target_station: StringName = station if RUBBLE_DEFS.has(station) else &"rubble_forge"
 	if not is_station_built(target_station):
-		var title: String = String(RUBBLE_DEFS[target_station]["title"])
+		var title: String = String((RUBBLE_DEFS[target_station] as Dictionary)["title"])
 		Events.notification_requested.emit("Construa %s primeiro para farmar!" % title, null)
 		return {"kind": &"locked", "station": target_station}
-	var product: StringName = RUBBLE_DEFS[target_station]["product"]
-	var gain: float = maxf(1.0, (1.2 + get_station_effective_rate(target_station)) * 1.5)
+	var def: Dictionary = RUBBLE_DEFS[target_station] as Dictionary
+	var product: StringName = StringName(def["product"])
+	var base_manual: float = (1.0 + get_station_rate(target_station) * 0.25) * get_multiplier(STAT_MANUAL_YIELD)
+	var gain: float = maxf(1.0, base_manual)
 	add_resource(product, gain)
 	Events.loot_dropped.emit(product, gain, world_position)
 	if get_station_revived_count(target_station) > 0:
-		var t2_product: StringName = RUBBLE_DEFS[target_station]["tier2_product"]
-		var t2_gain: float = maxf(0.5, get_station_tier2_rate(target_station) * 1.5)
+		var t2_product: StringName = StringName(def["tier2_product"])
+		var t2_gain: float = maxf(0.25, get_station_tier2_rate(target_station) * 0.35 * get_multiplier(STAT_MANUAL_YIELD))
 		add_resource(t2_product, t2_gain)
 		Events.loot_dropped.emit(t2_product, t2_gain, world_position)
-	var progress_gain: float = maxf(15.0, gain * 25.0 * maxf(get_click_damage(), 1.0) * get_total_bones_multiplier())
+	var progress_gain: float = maxf(10.0, gain * 18.0 * get_multiplier(STAT_STATION_YIELD))
 	run_surface_progress += progress_gain
 	var found_raw: bool = roll_station_raw_fossil(target_station, 5, false, world_position)
 	var cleaned_dino: StringName = &""
@@ -1580,14 +1757,23 @@ func get_rubble_level(rubble_id: StringName) -> int:
 	return rubble_levels.get(rubble_id, 0)
 
 
+func get_rubble_cost_resource(rubble_id: StringName) -> StringName:
+	if not RUBBLE_DEFS.has(rubble_id):
+		return RES_ROCKS
+	var def: Dictionary = RUBBLE_DEFS[rubble_id] as Dictionary
+	if get_rubble_level(rubble_id) <= 0:
+		return StringName(def.get("build_resource", RES_ROCKS))
+	return StringName(def.get("expand_resource", RES_ROCKS))
+
+
 func get_rubble_cost(rubble_id: StringName) -> float:
 	if not RUBBLE_DEFS.has(rubble_id):
 		return 0.0
-	var def: Dictionary = RUBBLE_DEFS[rubble_id]
+	var def: Dictionary = RUBBLE_DEFS[rubble_id] as Dictionary
 	var lvl: int = get_rubble_level(rubble_id)
 	if lvl <= 0:
 		return float(def.get("build_cost", def["base_cost"]))
-	return roundf(float(def["base_cost"]) * pow(float(def["cost_growth"]), float(lvl)))
+	return roundf(float(def["base_cost"]) * pow(float(def["cost_growth"]), float(lvl - 1)))
 
 
 func can_rebuild_rubble(rubble_id: StringName) -> bool:
@@ -1596,21 +1782,22 @@ func can_rebuild_rubble(rubble_id: StringName) -> bool:
 	var lvl: int = get_rubble_level(rubble_id)
 	if lvl >= 1 and not has_station_worker(rubble_id):
 		return false
-	return can_afford(RES_ROCKS, get_rubble_cost(rubble_id))
+	return can_afford(get_rubble_cost_resource(rubble_id), get_rubble_cost(rubble_id))
 
 
 func rebuild_rubble(rubble_id: StringName) -> bool:
 	if not can_rebuild_rubble(rubble_id):
 		return false
+	var res_id: StringName = get_rubble_cost_resource(rubble_id)
 	var cost: float = get_rubble_cost(rubble_id)
-	if not spend(RES_ROCKS, cost):
+	if not spend(res_id, cost):
 		return false
 	var new_lvl: int = get_rubble_level(rubble_id) + 1
 	rubble_levels[rubble_id] = new_lvl
 	recalculate_stats()
 	_update_color_progress()
 	Events.rubble_rebuilt.emit(rubble_id, new_lvl)
-	var def: Dictionary = RUBBLE_DEFS[rubble_id]
+	var def: Dictionary = RUBBLE_DEFS[rubble_id] as Dictionary
 	var msg: String = "🏗️ %s construída!" % String(def["title"]) if new_lvl == 1 else "🏗️ %s ampliada (Nv. %d)!" % [String(def["title"]), new_lvl]
 	Events.notification_requested.emit(msg, null)
 	return true
@@ -1693,12 +1880,15 @@ func calculate_amber_reward(shield_ratio: float = -1.0) -> float:
 	var layer_progress: float = clampf(1.0 - (layer_hp / maxf(layer_max_hp, 1.0)), 0.0, 1.0)
 	var depth_factor: float = 1.0 + float(depth) * depth_weight + layer_progress * layer_weight
 	var survival_factor: float = 1.0 + clampf(shield_ratio, 0.0, 1.0) * shield_weight
-	return floorf(from_bones * depth_factor * survival_factor * get_multiplier(STAT_AMBER_MULT))
+	var snow_revive_mult: float = 1.0 + 0.50 * float(get_station_revived_count(&"snow_observatory"))
+	var surface_milestones: float = 1.0 + 0.12 * float(get_total_revived_station_dinos())
+	return floorf(from_bones * depth_factor * survival_factor * snow_revive_mult * surface_milestones * get_multiplier(STAT_AMBER_MULT))
 
 
-## Proteção atual contra o meteoro (upgrades de defesa + dinos DEFENSE).
+## Proteção atual contra o meteoro (upgrades de defesa + Santuário Ártico + dinos DEFENSE).
 func get_shield_ratio() -> float:
 	var shield: float = get_stat(STAT_METEOR_SHIELD, 0.0)
+	shield += 0.15 * float(get_station_revived_count(&"snow_observatory"))
 	for dino_id: Variant in dino_counts:
 		var data: DinoData = get_dino(dino_id)
 		if data != null and data.meteor_damage_reduction > 0.0:
@@ -1734,7 +1924,7 @@ func get_ark_progress() -> Dictionary:
 	var req_era: int = balance.ark_required_era if balance != null else ARK_REQUIRED_ERA
 	var ark_lvl: int = get_upgrade_level(&"amber_ark_project")
 	var shield: float = get_shield_ratio()
-	var ready: bool = ark_lvl >= req_lvl and shield >= req_shield and current_era_index >= req_era
+	var ready: bool = ark_lvl >= req_lvl and shield >= req_shield and (current_era_index >= req_era or get_total_revived_station_dinos() >= 4)
 	return {
 		"ark_level": ark_lvl,
 		"ark_required": req_lvl,
@@ -1770,10 +1960,14 @@ func activate_ark_victory() -> bool:
 
 
 #region Progressão cromática
-## 0 = cinza/terroso, 1 = colorido. Baseado em espécies descobertas e eras alcançadas.
+## 0 = cinza/terroso, 1 = colorido. Baseado em espécies descobertas e estruturas construídas nos 3 biomas.
 func _update_color_progress() -> void:
-	var total_steps: int = maxi(dinos_db.size() + eras.size(), 1)
-	var steps: int = discovered_dinos.size() + current_era_index
+	var built_count: int = 0
+	for station: StringName in RUBBLE_ORDER:
+		if is_station_built(station):
+			built_count += 1
+	var total_steps: int = maxi(dinos_db.size() + RUBBLE_ORDER.size(), 1)
+	var steps: int = discovered_dinos.size() + built_count
 	var progress: float = clampf(float(steps) / float(total_steps), 0.0, 1.0)
 	if is_equal_approx(progress, color_progress):
 		return
@@ -1790,36 +1984,45 @@ var _field_elapsed: float = 0.0
 func get_station_rate(station: StringName) -> float:
 	if not RUBBLE_DEFS.has(station) or not is_station_built(station) or not has_station_worker(station):
 		return 0.0
-	var site: Dictionary = RUBBLE_DEFS[station]
-	var gear_level: int = get_upgrade_level(site["gear"])
+	var site: Dictionary = RUBBLE_DEFS[station] as Dictionary
+	var gear_level: int = get_upgrade_level(StringName(site["gear"]))
 	var revived: int = get_station_revived_count(station)
-	var revive_mult: float = pow(1.75, float(revived)) if revived > 0 else 1.0
-	return float(site["rate"]) * float(get_rubble_level(station)) * (1.0 + FIELD_GEAR_YIELD_BONUS * float(gear_level)) * revive_mult * get_multiplier(STAT_TIER2_YIELD)
+	var base_revive_mult: float = float(site.get("revive_mult", 2.5))
+	var revive_mult: float = pow(base_revive_mult, float(revived)) if revived > 0 else 1.0
+	return float(site["rate"]) \
+		* float(get_rubble_level(station)) \
+		* (1.0 + FIELD_GEAR_YIELD_BONUS * float(gear_level)) \
+		* revive_mult \
+		* get_multiplier(STAT_STATION_YIELD) \
+		* get_global_revive_station_multiplier()
 
 
 func get_station_tier2_rate(station: StringName) -> float:
 	var revived: int = get_station_revived_count(station)
 	if revived <= 0 or not RUBBLE_DEFS.has(station) or not is_station_built(station):
 		return 0.0
-	var site: Dictionary = RUBBLE_DEFS[station]
+	var site: Dictionary = RUBBLE_DEFS[station] as Dictionary
 	var base_t2: float = float(site.get("tier2_rate", 0.0))
 	return base_t2 * float(revived) * get_multiplier(STAT_TIER2_YIELD)
 
 
 func _harvest_stations(seconds: float, gains: Dictionary) -> void:
+	var yield_mult: float = get_multiplier(STAT_STATION_YIELD)
+	var t2_mult: float = get_multiplier(STAT_TIER2_YIELD)
 	for station: StringName in RUBBLE_ORDER:
+		var def: Dictionary = RUBBLE_DEFS[station] as Dictionary
 		var amount: float = seconds * get_station_effective_rate(station)
 		if amount > 0.0:
-			var product: StringName = RUBBLE_DEFS[station]["product"]
+			var product: StringName = StringName(def["product"])
 			add_resource(product, amount)
 			gains[product] = float(gains.get(product, 0.0)) + amount
-			run_surface_progress += amount * 15.0 * get_multiplier(STAT_PRESTIGE_BONES_MULT)
+			run_surface_progress += amount * 12.0 * yield_mult
 		var t2_amount: float = seconds * get_station_tier2_rate(station)
 		if t2_amount > 0.0:
-			var t2_product: StringName = RUBBLE_DEFS[station]["tier2_product"]
+			var t2_product: StringName = StringName(def["tier2_product"])
 			add_resource(t2_product, t2_amount)
 			gains[t2_product] = float(gains.get(t2_product, 0.0)) + t2_amount
-			run_surface_progress += t2_amount * 40.0 * get_multiplier(STAT_PRESTIGE_BONES_MULT)
+			run_surface_progress += t2_amount * 45.0 * t2_mult
 
 
 func _tick_passive_income(delta: float) -> void:
@@ -1878,7 +2081,7 @@ func apply_offline_progress(seconds: float) -> Dictionary:
 #endregion
 
 
-#region Museu de Fósseis & Golpe Preciso
+#region Fósseis & Golpe Preciso
 ## Sorteia a raridade do fóssil (0=Comum .. 3=Lendário) segundo os pesos em `balance.tres`.
 func roll_fossil_rarity() -> int:
 	var weights: Array[float] = [55.0, 27.0, 13.0, 5.0]
@@ -1896,53 +2099,18 @@ func roll_fossil_rarity() -> int:
 	return 0
 
 
-## Registra um fóssil no catálogo permanente do Museu e emite `Events.fossil_found`.
+## Registra estatísticas simples do fóssil encontrado e emite `Events.fossil_found` para áudio/VFX.
 func register_fossil_found(dino_id: StringName, forced_rarity: int = -1) -> Dictionary:
 	var rarity: int = clampi(forced_rarity, 0, 3) if forced_rarity >= 0 else roll_fossil_rarity()
 	total_fossils_evaluated += 1
 	if rarity >= 3:
 		total_legendary_fossils += 1
-
-	var data: DinoData = get_dino(dino_id)
-	var dname: String = data.display_name if data != null else String(dino_id)
-	var fallback_part: String = data.get_fossil_display_name() if data != null else "Fragmento Fóssil"
-	var parts_raw: Variant = FOSSIL_PART_POOLS.get(dino_id, [fallback_part])
-	var parts: Array = parts_raw as Array if parts_raw is Array and not (parts_raw as Array).is_empty() else [fallback_part]
-	var part_name: String = String(parts[randi() % parts.size()])
-
-	var rec: Dictionary = fossil_catalog.get(dino_id, {}) as Dictionary
-	if rec.is_empty():
-		var empty_parts: Array[String] = []
-		rec = {
-			"count": 0,
-			"best_rarity": 0,
-			"parts": empty_parts,
-		}
-	rec["count"] = int(rec.get("count", 0)) + 1
-	rec["best_rarity"] = maxi(int(rec.get("best_rarity", 0)), rarity)
-	var found_parts: Array[String] = []
-	var existing_parts: Variant = rec.get("parts", [])
-	if existing_parts is Array:
-		for p: Variant in (existing_parts as Array):
-			found_parts.append(String(p))
-	if not found_parts.has(part_name):
-		found_parts.append(part_name)
-	rec["parts"] = found_parts
-	fossil_catalog[dino_id] = rec
-
-	var era: EraData = get_current_era()
-	var era_name: String = era.display_name if era != null else "Crosta"
-	last_evaluated_fossil = {
-		"dino_id": dino_id,
-		"display_name": dname,
-		"rarity": rarity,
-		"part_name": part_name,
-		"record_number": total_fossils_evaluated,
-		"depth": depth,
-		"era_name": era_name,
-	}
 	Events.fossil_found.emit(dino_id, rarity)
-	return last_evaluated_fossil
+	return {
+		"dino_id": dino_id,
+		"rarity": rarity,
+		"record_number": total_fossils_evaluated,
+	}
 
 
 ## Retorna o multiplicador de clique para um resultado do sismógrafo Golpe Preciso.
@@ -1974,6 +2142,7 @@ func to_save_dict() -> Dictionary:
 		"upgrade_levels": _sn_dict_to_json(upgrade_levels),
 		"rubble_levels": _sn_dict_to_json(rubble_levels),
 		"station_worker_unlocked": _sn_dict_to_json(station_worker_unlocked),
+		"current_biome": String(current_biome),
 		"orange_rock_hp": orange_rock_hp,
 		"orange_rock_broken": orange_rock_broken,
 		"permanent_upgrade_levels": _sn_dict_to_json(permanent_upgrade_levels),
@@ -1991,7 +2160,6 @@ func to_save_dict() -> Dictionary:
 		"total_amber_earned": total_amber_earned,
 		"buy_multiplier": buy_multiplier,
 		"ark_completed": ark_completed,
-		"fossil_catalog": _fossil_catalog_to_json(fossil_catalog),
 		"total_fossils_evaluated": total_fossils_evaluated,
 		"total_legendary_fossils": total_legendary_fossils,
 		"raw_fossil_queue": raw_fossil_queue.map(func(k: StringName) -> String: return String(k)),
@@ -2006,7 +2174,6 @@ func load_save_dict(data: Dictionary) -> void:
 	_field_elapsed = 0.0
 	hero_station = &""
 	station_last_fossil_time.clear()
-	last_evaluated_fossil.clear()
 	resources.clear()
 	for res_id: StringName in ALL_RESOURCES:
 		resources[res_id] = 0.0
@@ -2027,6 +2194,8 @@ func load_save_dict(data: Dictionary) -> void:
 	var raw_workers: Variant = data.get("station_worker_unlocked", {})
 	if raw_workers is Dictionary:
 		_json_to_bool_dict(raw_workers as Dictionary, station_worker_unlocked)
+	var saved_biome: StringName = StringName(str(data.get("current_biome", String(BIOME_AMBER))))
+	current_biome = saved_biome if saved_biome in BIOME_ORDER else BIOME_AMBER
 	station_revived_dinos.clear()
 	_json_to_int_dict(data.get("station_revived_dinos", {}), station_revived_dinos)
 	raw_fossil_queue.clear()
@@ -2045,7 +2214,6 @@ func load_save_dict(data: Dictionary) -> void:
 	for dino_id: Variant in data.get("discovered_dinos", []):
 		discovered_dinos[StringName(str(dino_id))] = true
 
-	_json_to_fossil_catalog(data.get("fossil_catalog", {}))
 	total_fossils_evaluated = maxi(int(data.get("total_fossils_evaluated", 0)), 0)
 	total_legendary_fossils = maxi(int(data.get("total_legendary_fossils", 0)), 0)
 
@@ -2091,48 +2259,6 @@ static func _json_to_int_dict(source: Dictionary, target: Dictionary) -> void:
 static func _json_to_bool_dict(source: Dictionary, target: Dictionary) -> void:
 	for key: Variant in source:
 		target[StringName(str(key))] = bool(source[key])
-
-
-static func _fossil_catalog_to_json(source: Dictionary) -> Dictionary:
-	var out: Dictionary = {}
-	for key: Variant in source:
-		var rec_val: Variant = source[key]
-		if not rec_val is Dictionary:
-			continue
-		var rec: Dictionary = rec_val as Dictionary
-		var parts_out: Array[String] = []
-		var raw_parts: Variant = rec.get("parts", [])
-		if raw_parts is Array:
-			for p: Variant in (raw_parts as Array):
-				parts_out.append(String(p))
-		out[String(key)] = {
-			"count": int(rec.get("count", 0)),
-			"best_rarity": clampi(int(rec.get("best_rarity", 0)), 0, 3),
-			"parts": parts_out,
-		}
-	return out
-
-
-func _json_to_fossil_catalog(raw: Variant) -> void:
-	fossil_catalog.clear()
-	if not raw is Dictionary:
-		return
-	var dict_raw: Dictionary = raw as Dictionary
-	for key: Variant in dict_raw:
-		var rec_val: Variant = dict_raw[key]
-		if not rec_val is Dictionary:
-			continue
-		var rec: Dictionary = rec_val as Dictionary
-		var parts_in: Array[String] = []
-		var raw_parts: Variant = rec.get("parts", [])
-		if raw_parts is Array:
-			for p: Variant in (raw_parts as Array):
-				parts_in.append(String(p))
-		fossil_catalog[StringName(str(key))] = {
-			"count": maxi(int(rec.get("count", 0)), 0),
-			"best_rarity": clampi(int(rec.get("best_rarity", 0)), 0, 3),
-			"parts": parts_in,
-		}
 #endregion
 
 

@@ -5,14 +5,14 @@
 [resource]
 script = ExtResource("1")
 id = &"field_fins"
-display_name = "Nadadeiras de junco"
-description = "O Bariônix pesca exemplares maiores: +25% produção do Pesqueiro e +8% força dos dinos por nível."
+display_name = "Nadadeiras de Junco"
+description = "O Bariônix alcança cardumes fundos: +12% recursos raros Tier-2 por nível."
 category = 5
 required_station = &"rubble_nest"
 cost_resource = &"fish"
-base_cost = 14.0
-cost_growth = 1.65
+base_cost = 70.0
+cost_growth = 1.75
 max_level = 12
-stat_id = &"dino_damage"
+stat_id = &"tier2_yield"
 effect_type = 1
-effect_value = 0.08
+effect_value = 0.12

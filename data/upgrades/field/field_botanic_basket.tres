@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"field_botanic_basket"
+display_name = "Cesto Botânico"
+description = "O Estegossauro colhe frutos maduros: +15% recursos raros Tier-2 por nível."
+category = 5
+required_station = &"forest_sanctuary"
+cost_resource = &"berries"
+base_cost = 135.0
+cost_growth = 1.78
+max_level = 12
+stat_id = &"tier2_yield"
+effect_type = 1
+effect_value = 0.15

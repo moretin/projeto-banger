@@ -1,7 +1,8 @@
 extends SceneTree
-## Exercita o HUD inferior dinâmico, o botão de configurações e as janelas flutuantes compactas nos três formatos de janela suportados.
+## Exercita o HUD inferior dinâmico (14 recursos), os 3 biomas, as abas de ícones e as janelas flutuantes compactas nos três formatos de janela suportados.
 
 const SIZES: Array[Vector2i] = [Vector2i(1920, 1080), Vector2i(2560, 1080), Vector2i(1920, 1440)]
+const BIOMES: Array[StringName] = [&"amber_basin", &"forest", &"snow"]
 const MAX_DOCK_HEIGHT: float = 280.0
 var _failures: int = 0
 
@@ -36,20 +37,25 @@ func _run() -> void:
 		await process_frame
 		var screen: Rect2 = Rect2(Vector2.ZERO, dimensions)
 
+		# 0) Museu removido de Main.tscn.
+		_check(main.get_node_or_null("FossilMuseum") == null, "FossilMuseum não deve existir em Main.tscn (%s)" % dimensions)
+
 		# 1) Validação do HUD no estado inicial (somente Rochas + barra do meteoro sem timer numérico).
 		var hud: Control = main.get_node_or_null("RootVBox/HUD") as Control
 		_check(hud != null, "HUD ausente em %s" % dimensions)
 		if hud != null:
 			_validate_hud(hud, screen, dimensions, "inicial")
 
-			# 1b) Stress-test do HUD com TODOS os 9 recursos ativos da superfície simultaneamente.
+			# 1b) Stress-test do HUD com TODOS os 14 recursos ativos dos 3 biomas simultaneamente.
 			if game_state != null:
 				_activate_all_surface_resources(game_state)
 				await process_frame
 				await process_frame
 				var displayed: Array = hud.call("get_displayed_resources") as Array
-				_check(displayed.size() == 9, "HUD deveria exibir 9 recursos ativos no stress-test em %s (viu %d)" % [dimensions, displayed.size()])
-				_validate_hud(hud, screen, dimensions, "9-recursos")
+				_check(displayed.size() == 14, "HUD deveria exibir 14 recursos ativos no stress-test em %s (viu %d)" % [dimensions, displayed.size()])
+				var row_bottom: Control = hud.get_node_or_null("%RowBottom") as Control
+				_check(row_bottom != null and row_bottom.visible, "HUD deveria ativar 2ª linha compacta com 14 recursos em %s" % dimensions)
+				_validate_hud(hud, screen, dimensions, "14-recursos")
 				game_state.call("start_new_game")
 				await process_frame
 				await process_frame
@@ -73,7 +79,7 @@ func _run() -> void:
 				close_btn.pressed.emit()
 			await process_frame
 
-		# 3) Marcos da superfície, janelas flutuantes compactas (Dock <= 280px) e aba Fósseis.
+		# 3) Marcos da superfície em todos os 3 biomas, abas de ícones e janelas flutuantes compactas (Dock <= 280px).
 		if events != null:
 			var egg_sig: Signal = events.get("orange_rock_hit") as Signal
 			egg_sig.emit(20.0, Vector2.ZERO)
@@ -94,48 +100,66 @@ func _run() -> void:
 			_check(map != null and dock != null and items_scroll != null and items_list != null and action_btn != null and groups != null, "Nós essenciais do Dock ausentes em %s" % dimensions)
 
 			if map != null and dock != null and items_scroll != null and items_list != null and action_btn != null and groups != null:
-				var previous: Rect2 = Rect2()
-				for child: Node in map.get_children():
-					var location: Button = child as Button
-					if location == null:
-						continue
-					var bounds: Rect2 = location.get_global_rect()
-					_check(map.get_global_rect().encloses(bounds), "%s fora do mapa em %s" % [location.name, dimensions])
-					_check(not bounds.intersects(previous), "Alvos sobrepostos em %s" % dimensions)
-					previous = bounds
-					if location.name == "egg":
-						continue
-
-					surface.call("move_hero_to_station", StringName(location.name))
+				# 3a) Validação de marcos por bioma (sem sobreposição e dentro do mapa) + estado inicial das bancadas.
+				for biome_id: StringName in BIOMES:
+					if game_state != null:
+						game_state.call("set_current_biome", biome_id)
 					await process_frame
 					await process_frame
-					_validate_dock(surface, dock, items_scroll, items_list, action_btn, screen, dimensions, String(location.name), "site")
-
-					for group_node: Node in groups.get_children():
-						var group_btn: Button = group_node as Button
-						if group_btn == null:
+					var visible_rects: Array[Rect2] = []
+					var visible_names: Array[String] = []
+					var biome_stations: Array[StringName] = []
+					for child: Node in map.get_children():
+						var location: Button = child as Button
+						if location == null or not location.visible:
 							continue
-						group_btn.pressed.emit()
+						var bounds: Rect2 = location.get_global_rect()
+						_check(map.get_global_rect().encloses(bounds), "%s (%s) fora do mapa em %s" % [location.name, biome_id, dimensions])
+						for i: int in range(visible_rects.size()):
+							_check(
+								not bounds.intersects(visible_rects[i]),
+								"Alvos sobrepostos (%s vs %s) em %s (%s)" % [location.name, visible_names[i], biome_id, dimensions]
+							)
+						visible_rects.append(bounds)
+						visible_names.append(location.name)
+						if location.name != "egg":
+							biome_stations.append(StringName(location.name))
+					_check(not biome_stations.is_empty(), "Bioma %s sem estruturas visíveis em %s" % [biome_id, dimensions])
+
+					for st_id: StringName in biome_stations:
+						surface.call("move_hero_to_station", st_id)
 						await process_frame
 						await process_frame
-						_validate_dock(surface, dock, items_scroll, items_list, action_btn, screen, dimensions, String(location.name), group_btn.name)
+						_validate_dock(surface, dock, groups, items_scroll, items_list, action_btn, screen, dimensions, String(st_id), "site")
 
-						if location.name == "rubble_bunker" and group_btn.name == "fossils":
-							var frow: Control = items_list.get_node_or_null("FossilRow_0") as Control
-							_check(frow != null and frow.is_visible_in_tree(), "FossilRow_0 ausente na aba Fósseis em %s" % dimensions)
-							if frow != null:
-								var ficon: TextureRect = frow.get_node_or_null("Margin/Row/IconSlot/Icon") as TextureRect
-								var fbar: ProgressBar = frow.get_node_or_null("Margin/Row/Info/CleanProgress") as ProgressBar
-								_check(ficon != null and ficon.texture != null, "Ícone de fóssil ausente na aba Fósseis em %s" % dimensions)
-								_check(fbar != null and fbar.is_visible_in_tree(), "ProgressBar de fóssil ausente na aba Fósseis em %s" % dimensions)
+						for group_node: Node in groups.get_children():
+							var group_btn: Button = group_node as Button
+							if group_btn == null:
+								continue
+							group_btn.pressed.emit()
+							await process_frame
+							await process_frame
+							_validate_dock(surface, dock, groups, items_scroll, items_list, action_btn, screen, dimensions, String(st_id), group_btn.name)
 
-				# 3b) Validação das bancadas populadas (todas construídas + trabalhadores contratados + fósseis limpos).
+							if st_id == &"rubble_bunker" and group_btn.name == "fossils":
+								var frow: Control = items_list.get_node_or_null("FossilRow_0") as Control
+								_check(frow != null and frow.is_visible_in_tree(), "FossilRow_0 ausente na aba Fósseis em %s" % dimensions)
+								if frow != null:
+									var ficon: TextureRect = frow.get_node_or_null("Margin/Row/IconSlot/Icon") as TextureRect
+									var fbar: ProgressBar = frow.get_node_or_null("Margin/Row/Info/CleanProgress") as ProgressBar
+									_check(ficon != null and ficon.texture != null, "Ícone de fóssil ausente na aba Fósseis em %s" % dimensions)
+									_check(fbar != null and fbar.is_visible_in_tree(), "ProgressBar de fóssil ausente na aba Fósseis em %s" % dimensions)
+
+				# 3b) Validação das bancadas populadas (todas as 8 estações construídas + trabalhadores + fósseis limpos + 14 recursos).
 				if game_state != null:
 					_activate_all_surface_resources(game_state)
-					game_state.call("add_fragments", &"ankylosaurus", 4)
+					game_state.call("add_fragments", &"ankylosaurus", 10)
+					game_state.call("add_fragments", &"triceratops", 10)
 					await process_frame
-					for st_name: String in ["rubble_forge", "rubble_nest", "rubble_silo", "rubble_bunker"]:
-						surface.call("move_hero_to_station", StringName(st_name))
+					var all_stations: Array = game_state.get("RUBBLE_ORDER") as Array
+					for st_val: Variant in all_stations:
+						var st_id: StringName = st_val as StringName
+						surface.call("move_hero_to_station", st_id)
 						await process_frame
 						await process_frame
 						for group_node: Node in groups.get_children():
@@ -145,7 +169,9 @@ func _run() -> void:
 							group_btn.pressed.emit()
 							await process_frame
 							await process_frame
-							_validate_dock(surface, dock, items_scroll, items_list, action_btn, screen, dimensions, st_name + "-cheia", group_btn.name)
+							_validate_dock(surface, dock, groups, items_scroll, items_list, action_btn, screen, dimensions, String(st_id) + "-cheia", group_btn.name)
+					if hud != null:
+						_validate_hud(hud, screen, dimensions, "14-recursos-com-dock")
 
 		_check(viewport.gui_get_focus_owner() != null, "Sem foco inicial em %s" % dimensions)
 		viewport.free()
@@ -159,23 +185,27 @@ func _run() -> void:
 
 
 func _activate_all_surface_resources(game_state: Node) -> void:
-	game_state.call("add_resource", &"rocks", 1000.0)
-	for st: StringName in [&"rubble_nest", &"rubble_silo", &"rubble_bunker"]:
-		game_state.call("rebuild_rubble", st)
-	for st: StringName in [&"rubble_forge", &"rubble_nest", &"rubble_silo", &"rubble_bunker"]:
-		var defs: Dictionary = game_state.get("RUBBLE_DEFS") as Dictionary
+	game_state.call("add_resource", &"rocks", 5000.0)
+	game_state.call("add_resource", &"metal", 50.0)
+	game_state.call("add_resource", &"scales", 50.0)
+	game_state.call("add_resource", &"beaks", 50.0)
+	game_state.call("add_resource", &"resin", 50.0)
+	var all_stations: Array = game_state.get("RUBBLE_ORDER") as Array
+	var defs: Dictionary = game_state.get("RUBBLE_DEFS") as Dictionary
+	for st_val: Variant in all_stations:
+		var st: StringName = st_val as StringName
+		if not bool(game_state.call("is_station_built", st)):
+			game_state.call("rebuild_rubble", st)
 		var def: Dictionary = defs[st] as Dictionary
 		var prod: StringName = def["product"] as StringName
-		game_state.call("add_resource", prod, 100.0)
+		game_state.call("add_resource", prod, 500.0)
 		game_state.call("hire_station_worker", st)
 	game_state.call("roll_station_raw_fossil", &"rubble_forge", 1, true)
-	game_state.call("add_resource", &"metal", 12.0)
-	game_state.call("add_resource", &"scales", 12.0)
-	game_state.call("add_resource", &"beaks", 12.0)
 	game_state.call("add_resource", &"amber", 42.0)
 
 
 func _validate_hud(hud: Control, screen: Rect2, dimensions: Vector2i, tag: String) -> void:
+	_check(hud.get_node_or_null("%MuseumButton") == null, "MuseumButton não deve existir no HUD (%s) em %s" % [tag, dimensions])
 	_check(hud.size.y >= hud.get_combined_minimum_size().y - 0.5, "HUD (%s) comprimido verticalmente em %s (%s < %s)" % [tag, dimensions, hud.size.y, hud.get_combined_minimum_size().y])
 	_check(screen.encloses(hud.get_global_rect()), "HUD (%s) fora da tela em %s" % [tag, dimensions])
 	var meteor_bar: ProgressBar = hud.get_node_or_null("%MeteorBar") as ProgressBar
@@ -194,6 +224,7 @@ func _validate_hud(hud: Control, screen: Rect2, dimensions: Vector2i, tag: Strin
 func _validate_dock(
 	surface: Control,
 	dock: Control,
+	groups: HBoxContainer,
 	items_scroll: ScrollContainer,
 	items_list: VBoxContainer,
 	action_btn: Button,
@@ -212,6 +243,16 @@ func _validate_dock(
 	_check(dock_rect.encloses(scroll_rect), "ItemsScroll (%s/%s) ultrapassou o Dock em %s" % [station_name, tab_name, dimensions])
 	_check(screen.encloses(scroll_rect), "ItemsScroll (%s/%s) fora da tela em %s" % [station_name, tab_name, dimensions])
 	_check(action_btn.is_visible_in_tree() and screen.encloses(action_btn.get_global_rect()), "ToDigSiteButton (%s/%s) fora da tela em %s" % [station_name, tab_name, dimensions])
+
+	# Abas de ícones minimalistas dentro do Dock.
+	for g_node: Node in groups.get_children():
+		var tab_btn: Button = g_node as Button
+		if tab_btn == null or not tab_btn.is_visible_in_tree():
+			continue
+		_check(tab_btn.text == "", "Aba %s (%s) deve usar somente ícone sem texto em %s" % [tab_btn.name, station_name, dimensions])
+		_check(dock_rect.encloses(tab_btn.get_global_rect()), "Aba %s (%s/%s) saiu do Dock em %s" % [tab_btn.name, station_name, tab_name, dimensions])
+		var tab_icon: TextureRect = tab_btn.get_node_or_null("Content/Icon") as TextureRect
+		_check(tab_icon != null and tab_icon.visible and tab_icon.texture != null, "Ícone da aba %s (%s) ausente em %s" % [tab_btn.name, station_name, dimensions])
 
 	# Botões visíveis fora da lista rolável devem ficar integralmente dentro da tela.
 	for control: Node in surface.find_children("*", "Button", true, false):

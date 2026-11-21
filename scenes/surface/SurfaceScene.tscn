@@ -48,7 +48,7 @@ theme_override_colors/font_color = Color(0.98, 0.87, 0.73, 1)
 theme_override_colors/font_outline_color = Color(0.24, 0.12, 0.16, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 14
-text = "Mova o dino com WASD · Aproxime-se das estruturas · [E] Ajudar no farm"
+text = "Mova o dino com WASD · Aproxime-se das estruturas · [E] Farmar · Bordas: outros biomas"
 
 [node name="Dock" type="PanelContainer" parent="."]
 unique_name_in_owner = true
@@ -100,7 +100,7 @@ theme_override_constants/separation = 5
 
 [node name="ItemsScroll" type="ScrollContainer" parent="Dock/Margin/Layout"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(582, 136)
+custom_minimum_size = Vector2(582, 124)
 layout_mode = 2
 size_flags_vertical = 0
 follow_focus = true
@@ -138,3 +138,12 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 12
 tooltip_text = "Ajuda este posto com [E] para coletar recursos e procurar fósseis brutos"
 text = "Ajudar [E]"
+
+[node name="BiomeFade" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+z_index = 20
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.08, 0.06, 0.09, 0)

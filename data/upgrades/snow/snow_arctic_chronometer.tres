@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"snow_arctic_chronometer"
+display_name = "Cronômetro Ártico"
+description = "Desacelera a queda atmosférica com Cristais puros: +45 segundos extras antes do meteoro por nível."
+category = 9
+sort_order = 2
+cost_resource = &"crystals"
+base_cost = 350.0
+cost_growth = 1.88
+max_level = 6
+stat_id = &"meteor_time"
+effect_type = 0
+effect_value = 45.0
+required_upgrade = &"snow_polar_shield"
+required_level = 1

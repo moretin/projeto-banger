@@ -6,14 +6,14 @@
 script = ExtResource("1_y3u2d")
 id = &"amber_ark_project"
 display_name = "Projeto Arca"
-description = "Permanente: +8% de Âmbar por nível. Nv 5 + Escudo >=75% + Era >= Magma libera a vitória da Arca!"
+description = "Permanente: +12% de Âmbar por nível. Nv 5 + Escudo >=75% + 4 dinos revividos libera a vitória da Arca!"
 category = 4
-sort_order = 4
+sort_order = 5
 cost_resource = &"amber"
-base_cost = 140.0
-cost_growth = 2.09
+base_cost = 120.0
+cost_growth = 2.0
 max_level = 10
 stat_id = &"amber_mult"
 effect_type = 1
-effect_value = 0.08
+effect_value = 0.12
 is_permanent = true
