@@ -340,6 +340,18 @@ const METEOR_FIRST_RUN: int = 1
 const ARK_REQUIRED_LEVEL: int = 5
 const ARK_REQUIRED_SHIELD: float = 0.75
 const ARK_REQUIRED_ERA: int = 3
+const ARK_SITE_ID: StringName = &"ark"
+const ARK_MODULE_HULL: StringName = &"hull_reinforcement"
+const ARK_MODULES: Dictionary = {
+	&"hull_reinforcement": {
+		"title": "Reforço de Casco",
+		"desc": "+40% Âmbar no impacto e +10% escudo permanente da Arca.",
+		"costs": { &"rocks": 80.0, &"metal": 6.0 },
+		"amber_bonus_mult": 0.40,
+		"shield_bonus": 0.10,
+	},
+}
+const QUARRY_STARTER_METAL_BURST: float = 3.0
 
 const BALANCE_PATH: String = "res://data/balance.tres"
 const DINOS_DIR: String = "res://data/dinos"
@@ -403,6 +415,12 @@ var discovered_dinos: Dictionary = {}
 var ark_completed: bool = false
 var total_fossils_evaluated: int = 0
 var total_legendary_fossils: int = 0
+var rescued_station_dinos: Dictionary = {}
+var quarry_clue_active: bool = false
+var quarry_special_plate_found: bool = false
+var quarry_ankylo_rescued: bool = false
+var ark_modules_built: Dictionary = {}
+var last_impact_summary: Dictionary = {}
 #endregion
 
 
@@ -450,6 +468,15 @@ func _connect_events() -> void:
 func start_new_game() -> void:
 	permanent_upgrade_levels.clear()
 	discovered_dinos.clear()
+	rescued_station_dinos.clear()
+	quarry_clue_active = false
+	quarry_special_plate_found = false
+	quarry_ankylo_rescued = false
+	ark_modules_built.clear()
+	last_impact_summary.clear()
+	fragments.clear()
+	raw_fossil_queue.clear()
+	fossil_cleaning_progress = 0.0
 	total_fossils_evaluated = 0
 	total_legendary_fossils = 0
 	ark_completed = false
@@ -468,7 +495,7 @@ func _reset_run_state() -> void:
 	_field_elapsed = 0.0
 	for res_id: StringName in RUN_RESOURCES:
 		resources[res_id] = 0.0
-	fragments.clear()
+	resources[RES_RAW_FOSSILS] = float(raw_fossil_queue.size())
 	dino_counts.clear()
 	upgrade_levels.clear()
 	rubble_levels.clear()
@@ -476,6 +503,7 @@ func _reset_run_state() -> void:
 	station_worker_unlocked.clear()
 	orange_rock_hp = ORANGE_ROCK_MAX_HP
 	orange_rock_broken = false
+	quarry_clue_active = false
 	current_era_index = 0
 	current_layer_index = 0
 	depth = 0
@@ -488,9 +516,14 @@ func _reset_run_state() -> void:
 	_dig_cycle_damage = 0.0
 	current_biome = BIOME_AMBER
 	hero_station = &""
-	raw_fossil_queue.clear()
-	fossil_cleaning_progress = 0.0
 	station_revived_dinos.clear()
+	for st: StringName in RUBBLE_ORDER:
+		if is_station_dino_rescued(st):
+			station_revived_dinos[st] = 1
+			var revive_dino: StringName = get_station_revive_dino_id(st)
+			if revive_dino != &"":
+				dino_counts[revive_dino] = maxi(get_dino_count(revive_dino), 1)
+				discovered_dinos[revive_dino] = true
 	station_last_fossil_time.clear()
 	recalculate_stats()
 	_setup_layer()
@@ -1315,8 +1348,15 @@ func _on_orange_rock_hit(damage: float, world_position: Vector2) -> void:
 			Events.dino_unlocked.emit(&"compsognathus")
 			Events.dino_count_changed.emit(&"compsognathus", 1)
 			_update_color_progress()
+		if not quarry_ankylo_rescued and not quarry_special_plate_found:
+			quarry_clue_active = true
 		Events.orange_rock_broken.emit()
-		Events.notification_requested.emit("🦖 O Ovo de Âmbar se partiu! Use WASD para mover seu Dinossauro!", null)
+		if not quarry_ankylo_rescued and not quarry_special_plate_found:
+			Events.notification_requested.emit("🦖 O Ovo se partiu! Uma batida ecoa na Pedreira do Casco — vá investigar!", null)
+		elif quarry_ankylo_rescued:
+			Events.notification_requested.emit("🦖 O Ovo se partiu! O Anquilossauro já está firme no veio da Pedreira!", null)
+		else:
+			Events.notification_requested.emit("🦖 O Ovo se partiu! Leve a Placa Especial à Pedreira do Casco para despertar o Anquilossauro!", null)
 
 
 func get_station_biome(station: StringName) -> StringName:
@@ -1564,6 +1604,73 @@ func can_revive_station_dino(station: StringName) -> bool:
 	return can_afford(product, get_station_revive_cost(station))
 
 
+func is_quarry_extraction_available() -> bool:
+	return orange_rock_broken and not quarry_special_plate_found and not quarry_ankylo_rescued
+
+
+func claim_quarry_special_plate() -> bool:
+	if quarry_special_plate_found or quarry_ankylo_rescued:
+		return false
+	quarry_special_plate_found = true
+	quarry_clue_active = false
+	register_fossil_found(&"ankylosaurus")
+	Events.notification_requested.emit("🦴 Placa Especial do Anquilossauro extraída! Desperte-o na Pedreira do Casco!", null)
+	return true
+
+
+func can_awaken_quarry_ankylosaurus() -> bool:
+	return orange_rock_broken and quarry_special_plate_found and not quarry_ankylo_rescued
+
+
+func awaken_quarry_ankylosaurus() -> bool:
+	if not can_awaken_quarry_ankylosaurus():
+		return false
+	quarry_ankylo_rescued = true
+	quarry_clue_active = false
+	rescued_station_dinos[&"rubble_forge"] = true
+	station_revived_dinos[&"rubble_forge"] = maxi(get_station_revived_count(&"rubble_forge"), 1)
+	dino_counts[&"ankylosaurus"] = maxi(get_dino_count(&"ankylosaurus"), 1)
+	discovered_dinos[&"ankylosaurus"] = true
+	add_resource(RES_METAL, QUARRY_STARTER_METAL_BURST)
+	recalculate_stats()
+	_update_color_progress()
+	Events.dino_unlocked.emit(&"ankylosaurus")
+	Events.dino_count_changed.emit(&"ankylosaurus", get_dino_count(&"ankylosaurus"))
+	Events.rubble_rebuilt.emit(&"rubble_forge", get_rubble_level(&"rubble_forge"))
+	Events.quarry_vein_opened.emit()
+	Events.notification_requested.emit("🦕 Anquilossauro despertou e derrubou a laje! Veio de Metal aberto na Pedreira!", null)
+	return true
+
+
+func is_quarry_slab_broken() -> bool:
+	return quarry_ankylo_rescued or bool(rescued_station_dinos.get(&"rubble_forge", false)) or get_station_revived_count(&"rubble_forge") > 0
+
+
+func is_station_dino_rescued(station: StringName) -> bool:
+	if bool(rescued_station_dinos.get(station, false)):
+		return true
+	if station == &"rubble_forge" and quarry_ankylo_rescued:
+		return true
+	return false
+
+
+func get_rescued_companion_count() -> int:
+	var count: int = 0
+	for st: StringName in RUBBLE_ORDER:
+		if is_station_dino_rescued(st):
+			count += 1
+	return count
+
+
+func get_rescued_companion_names() -> Array[String]:
+	var names: Array[String] = []
+	for st: StringName in RUBBLE_ORDER:
+		if is_station_dino_rescued(st) and RUBBLE_DEFS.has(st):
+			var def: Dictionary = RUBBLE_DEFS[st] as Dictionary
+			names.append(String(def.get("revive_name", st)))
+	return names
+
+
 func revive_station_dino(station: StringName) -> bool:
 	if not can_revive_station_dino(station):
 		return false
@@ -1576,6 +1683,13 @@ func revive_station_dino(station: StringName) -> bool:
 	add_fragments(dino_id, -STATION_REVIVE_FOSSILS_REQUIRED)
 	var new_revived: int = get_station_revived_count(station) + 1
 	station_revived_dinos[station] = new_revived
+	rescued_station_dinos[station] = true
+	var opened_quarry_vein: bool = false
+	if station == &"rubble_forge" and not quarry_ankylo_rescued:
+		quarry_ankylo_rescued = true
+		quarry_special_plate_found = true
+		quarry_clue_active = false
+		opened_quarry_vein = true
 	var prev_count: int = get_dino_count(dino_id)
 	dino_counts[dino_id] = prev_count + 1
 	if prev_count == 0:
@@ -1584,6 +1698,8 @@ func revive_station_dino(station: StringName) -> bool:
 		_update_color_progress()
 	Events.dino_count_changed.emit(dino_id, prev_count + 1)
 	Events.rubble_rebuilt.emit(station, get_rubble_level(station))
+	if opened_quarry_vein:
+		Events.quarry_vein_opened.emit()
 	recalculate_stats()
 	var rname: String = String(def.get("revive_name", dino_id))
 	var mult_val: float = float(def.get("revive_mult", 2.5))
@@ -1839,7 +1955,8 @@ func can_trigger_early_impact() -> bool:
 		return false
 	var min_depth: int = balance.early_impact_min_depth if balance != null else 3
 	var min_amber: float = balance.early_impact_min_amber if balance != null else 1.0
-	return (depth >= min_depth or run_surface_progress >= 2700.0) and calculate_amber_reward() >= min_amber
+	var has_progress: bool = depth >= min_depth or run_surface_progress >= 2700.0 or quarry_ankylo_rescued or get_ark_built_module_count() > 0
+	return has_progress and calculate_amber_reward() >= min_amber
 
 
 func _on_meteor_early_impact_requested() -> void:
@@ -1863,6 +1980,98 @@ func trigger_meteor_impact() -> void:
 	Events.meteor_impact_started.emit()
 
 
+func is_ark_module_built(module_id: StringName) -> bool:
+	return bool(ark_modules_built.get(module_id, false))
+
+
+func get_ark_built_module_count() -> int:
+	var count: int = 0
+	for mod_id: Variant in ARK_MODULES:
+		if is_ark_module_built(StringName(mod_id)):
+			count += 1
+	return count
+
+
+func get_ark_module_costs(module_id: StringName) -> Dictionary:
+	if not ARK_MODULES.has(module_id):
+		return {}
+	var def: Dictionary = ARK_MODULES[module_id] as Dictionary
+	var raw_costs: Variant = def.get("costs", {})
+	if raw_costs is Dictionary:
+		return (raw_costs as Dictionary).duplicate()
+	return {}
+
+
+func can_build_ark_module(module_id: StringName) -> bool:
+	if not ARK_MODULES.has(module_id) or is_ark_module_built(module_id):
+		return false
+	var costs: Dictionary = get_ark_module_costs(module_id)
+	if costs.is_empty():
+		return false
+	for res_key: Variant in costs:
+		var res_id: StringName = StringName(res_key)
+		var amt: float = float(costs[res_key])
+		if not can_afford(res_id, amt):
+			return false
+	return true
+
+
+func build_ark_module(module_id: StringName) -> bool:
+	if not can_build_ark_module(module_id):
+		return false
+	var def: Dictionary = ARK_MODULES[module_id] as Dictionary
+	var costs: Dictionary = get_ark_module_costs(module_id)
+	for res_key: Variant in costs:
+		var res_id: StringName = StringName(res_key)
+		var amt: float = float(costs[res_key])
+		if not spend(res_id, amt):
+			return false
+	ark_modules_built[module_id] = true
+	recalculate_stats()
+	_update_color_progress()
+	Events.ark_module_built.emit(module_id, get_ark_built_module_count())
+	var title: String = String(def.get("title", module_id))
+	Events.notification_requested.emit("🛡️ Módulo '%s' concluído na Arca dos Vivos!" % title, null)
+	return true
+
+
+func get_ark_impact_amber_multiplier() -> float:
+	return 1.0 + (0.40 if is_ark_module_built(ARK_MODULE_HULL) else 0.0)
+
+
+func get_campaign_next_goal_text() -> String:
+	if not orange_rock_broken:
+		if quarry_ankylo_rescued:
+			return "Objetivo: Quebre o Ovo de Âmbar — o Anquilossauro já aguarda no veio da Pedreira!"
+		return "Objetivo: Quebre o Ovo de Âmbar para iniciar a expedição."
+	if is_quarry_extraction_available():
+		return "Objetivo: Vá à Pedreira do Casco e investigue a trinca na jazida."
+	if can_awaken_quarry_ankylosaurus():
+		return "Objetivo: Desperte o Anquilossauro na Pedreira do Casco para abrir o veio de Metal."
+	if not is_ark_module_built(ARK_MODULE_HULL):
+		return "Objetivo: Junte 80 Rochas e 6 Metal para construir o Reforço de Casco na Arca dos Vivos."
+	if not is_station_built(&"forest_grove"):
+		return "Objetivo: Use Metal para abrir o Bosque das Sequoias à esquerda ou prepare a Arca para o impacto."
+	if not can_activate_ark_victory():
+		return "Objetivo: Resgate dinos (%d/8) e fortaleça a Arca dos Vivos (%d%% escudo)." % [
+			get_rescued_companion_count(),
+			roundi(get_shield_ratio() * 100.0),
+		]
+	return "Objetivo: Arca dos Vivos pronta! Ative a proteção contra o meteoro."
+
+
+func fast_forward_meteor_to(seconds_left: float = 5.0) -> void:
+	if is_impacting:
+		return
+	if meteor_total_time <= 0.0:
+		var base_time: float = balance.base_meteor_time if balance != null else BASE_METEOR_TIME
+		meteor_total_time = get_stat(STAT_METEOR_TIME, base_time)
+	meteor_active = true
+	meteor_time_left = clampf(seconds_left, 0.0, meteor_total_time)
+	_set_danger_level(1.0 - meteor_time_left / maxf(meteor_total_time, 0.001))
+	Events.meteor_timer_changed.emit(meteor_time_left, meteor_total_time)
+
+
 ## Prévia do âmbar que o jogador receberia agora (para a UI "Antecipar impacto").
 ## shield_ratio: 0..1 — quanto do impacto foi absorvido pelas defesas.
 func calculate_amber_reward(shield_ratio: float = -1.0) -> float:
@@ -1882,13 +2091,21 @@ func calculate_amber_reward(shield_ratio: float = -1.0) -> float:
 	var survival_factor: float = 1.0 + clampf(shield_ratio, 0.0, 1.0) * shield_weight
 	var snow_revive_mult: float = 1.0 + 0.50 * float(get_station_revived_count(&"snow_observatory"))
 	var surface_milestones: float = 1.0 + 0.12 * float(get_total_revived_station_dinos())
-	return floorf(from_bones * depth_factor * survival_factor * snow_revive_mult * surface_milestones * get_multiplier(STAT_AMBER_MULT))
+	var ark_mult: float = get_ark_impact_amber_multiplier()
+	var amber_mult: float = get_multiplier(STAT_AMBER_MULT)
+	var computed: float = floorf(from_bones * depth_factor * survival_factor * snow_revive_mult * surface_milestones * ark_mult * amber_mult)
+	if (quarry_ankylo_rescued or get_ark_built_module_count() > 0) and effective_progress > 0.0:
+		var floor_amber: float = floorf((2.0 + float(get_ark_built_module_count()) * 2.0) * ark_mult * amber_mult)
+		return maxf(computed, floor_amber)
+	return computed
 
 
-## Proteção atual contra o meteoro (upgrades de defesa + Santuário Ártico + dinos DEFENSE).
+## Proteção atual contra o meteoro (upgrades de defesa + Santuário Ártico + Arca + dinos DEFENSE).
 func get_shield_ratio() -> float:
 	var shield: float = get_stat(STAT_METEOR_SHIELD, 0.0)
 	shield += 0.15 * float(get_station_revived_count(&"snow_observatory"))
+	if is_ark_module_built(ARK_MODULE_HULL):
+		shield += 0.10
 	for dino_id: Variant in dino_counts:
 		var data: DinoData = get_dino(dino_id)
 		if data != null and data.meteor_damage_reduction > 0.0:
@@ -1902,6 +2119,19 @@ func perform_prestige(shield_ratio: float = -1.0) -> float:
 	add_resource(RES_AMBER, amber)
 	total_amber_earned += amber
 	var finished_run: int = run_number
+	var effective_shield: float = get_shield_ratio() if shield_ratio < 0.0 else clampf(shield_ratio, 0.0, 1.0)
+	last_impact_summary = {
+		"amber_gained": amber,
+		"run_number": finished_run,
+		"rescued_names": get_rescued_companion_names(),
+		"rescued_count": get_rescued_companion_count(),
+		"ankylo_rescued": quarry_ankylo_rescued,
+		"slab_broken": is_quarry_slab_broken(),
+		"hull_built": is_ark_module_built(ARK_MODULE_HULL),
+		"ark_modules_count": get_ark_built_module_count(),
+		"shield_pct": roundi(effective_shield * 100.0),
+		"next_goal": get_campaign_next_goal_text(),
+	}
 	run_number += 1
 	_reset_run_state()
 	Events.prestige_completed.emit(amber, finished_run)
@@ -2165,6 +2395,12 @@ func to_save_dict() -> Dictionary:
 		"raw_fossil_queue": raw_fossil_queue.map(func(k: StringName) -> String: return String(k)),
 		"fossil_cleaning_progress": fossil_cleaning_progress,
 		"station_revived_dinos": _sn_dict_to_json(station_revived_dinos),
+		"rescued_station_dinos": _sn_dict_to_json(rescued_station_dinos),
+		"quarry_clue_active": quarry_clue_active,
+		"quarry_special_plate_found": quarry_special_plate_found,
+		"quarry_ankylo_rescued": quarry_ankylo_rescued,
+		"ark_modules_built": _sn_dict_to_json(ark_modules_built),
+		"last_impact_summary": last_impact_summary.duplicate(true),
 		"sfx_volume": sfx_volume,
 		"music_volume": music_volume,
 	}
@@ -2198,6 +2434,18 @@ func load_save_dict(data: Dictionary) -> void:
 	current_biome = saved_biome if saved_biome in BIOME_ORDER else BIOME_AMBER
 	station_revived_dinos.clear()
 	_json_to_int_dict(data.get("station_revived_dinos", {}), station_revived_dinos)
+	rescued_station_dinos.clear()
+	var raw_rescued: Variant = data.get("rescued_station_dinos", {})
+	if raw_rescued is Dictionary:
+		_json_to_bool_dict(raw_rescued as Dictionary, rescued_station_dinos)
+	ark_modules_built.clear()
+	var raw_ark: Variant = data.get("ark_modules_built", {})
+	if raw_ark is Dictionary:
+		_json_to_bool_dict(raw_ark as Dictionary, ark_modules_built)
+	last_impact_summary.clear()
+	var raw_summary: Variant = data.get("last_impact_summary", {})
+	if raw_summary is Dictionary:
+		last_impact_summary = (raw_summary as Dictionary).duplicate(true)
 	raw_fossil_queue.clear()
 	for raw_d: Variant in data.get("raw_fossil_queue", []):
 		raw_fossil_queue.append(StringName(str(raw_d)))
@@ -2207,12 +2455,37 @@ func load_save_dict(data: Dictionary) -> void:
 	music_volume = clampf(float(data.get("music_volume", 1.0)), 0.0, 1.0)
 	orange_rock_broken = bool(data.get("orange_rock_broken", false))
 	orange_rock_hp = 0.0 if orange_rock_broken else clampf(float(data.get("orange_rock_hp", ORANGE_ROCK_MAX_HP)), 0.01, ORANGE_ROCK_MAX_HP)
+	quarry_clue_active = bool(data.get("quarry_clue_active", false))
+	quarry_special_plate_found = bool(data.get("quarry_special_plate_found", false))
+	quarry_ankylo_rescued = bool(data.get("quarry_ankylo_rescued", false))
 	permanent_upgrade_levels.clear()
 	_json_to_int_dict(data.get("permanent_upgrade_levels", {}), permanent_upgrade_levels)
 
 	discovered_dinos.clear()
 	for dino_id: Variant in data.get("discovered_dinos", []):
 		discovered_dinos[StringName(str(dino_id))] = true
+
+	for st_key: Variant in station_revived_dinos:
+		if int(station_revived_dinos[st_key]) > 0:
+			rescued_station_dinos[StringName(st_key)] = true
+	if bool(rescued_station_dinos.get(&"rubble_forge", false)) or int(station_revived_dinos.get(&"rubble_forge", 0)) > 0:
+		quarry_ankylo_rescued = true
+	if quarry_ankylo_rescued:
+		quarry_special_plate_found = true
+		quarry_clue_active = false
+		rescued_station_dinos[&"rubble_forge"] = true
+	elif quarry_special_plate_found:
+		quarry_clue_active = false
+	elif not orange_rock_broken:
+		quarry_clue_active = false
+	for st: StringName in RUBBLE_ORDER:
+		if is_station_dino_rescued(st):
+			rescued_station_dinos[st] = true
+			station_revived_dinos[st] = maxi(get_station_revived_count(st), 1)
+			var revive_dino: StringName = get_station_revive_dino_id(st)
+			if revive_dino != &"":
+				dino_counts[revive_dino] = maxi(get_dino_count(revive_dino), 1)
+				discovered_dinos[revive_dino] = true
 
 	total_fossils_evaluated = maxi(int(data.get("total_fossils_evaluated", 0)), 0)
 	total_legendary_fossils = maxi(int(data.get("total_legendary_fossils", 0)), 0)

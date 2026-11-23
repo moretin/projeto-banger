@@ -803,8 +803,8 @@ func test_fossil_found_block_texture_and_overlay_text_duration() -> void:
 
 
 func test_icon_tabs_minimalist_outline_and_blue_alert_badge() -> void:
-	# 1) Todos os 9 ícones de aba são 24x24, fundo transparente e exclusivamente contorno preto minimalista.
-	for tab_key: StringName in [&"site", &"tools", &"dinos", &"scouts", &"university", &"fossils", &"amber", &"forest", &"snow"]:
+	# 1) Todos os 10 ícones de aba são 24x24, fundo transparente e exclusivamente contorno preto minimalista.
+	for tab_key: StringName in [&"site", &"ark", &"tools", &"dinos", &"scouts", &"university", &"fossils", &"amber", &"forest", &"snow"]:
 		var icon_tex: Texture2D = AmberTheme.get_tab_icon(tab_key)
 		assert_not_null(icon_tex, "Ícone de aba %s deve existir" % tab_key)
 		var img: Image = icon_tex.get_image()
@@ -847,7 +847,17 @@ func test_icon_tabs_minimalist_outline_and_blue_alert_badge() -> void:
 		assert_eq(badge_node.text, "!")
 		assert_eq(badge_node.get_theme_color("font_color"), Color("#1488ff"), "Badge '!' deve ser azul (#1488ff)")
 
-	assert_false(surface.is_tab_alert_visible(&"site"), "Sem Rochas, badge '!' da aba Estrutura deve ficar oculto")
+	# Logo após quebrar o Ovo, a trinca/placa da Pedreira mantém o badge azul '!' aceso na aba Estrutura.
+	assert_true(surface.is_tab_alert_visible(&"site"), "Com extração da Pedreira disponível, badge '!' da aba Estrutura deve acender")
+	assert_true(GameState.claim_quarry_special_plate())
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_true(surface.is_tab_alert_visible(&"site"), "Com Placa Especial pronta para despertar, badge '!' da aba Estrutura deve seguir aceso")
+	assert_true(GameState.awaken_quarry_ankylosaurus())
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	assert_false(surface.is_tab_alert_visible(&"site"), "Sem Rochas e após resgatar o Anquilossauro, badge '!' da aba Estrutura deve ficar oculto")
 	assert_false(surface.is_tab_alert_visible(&"upgrades"), "Sem Rochas, badge '!' da aba Upgrades deve ficar oculto")
 
 	# 45 Rochas: compra tools_sharp_pickaxe (45), mas ainda NÃO compra trabalhador (65).

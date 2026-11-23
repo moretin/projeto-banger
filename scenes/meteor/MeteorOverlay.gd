@@ -60,6 +60,9 @@ func _ready() -> void:
 	Events.prestige_modal_requested.connect(open_prestige_modal)
 	Events.resource_changed.connect(_on_resource_changed)
 	Events.upgrade_purchased.connect(_on_upgrade_purchased)
+	Events.ark_module_built.connect(_on_campaign_modal_state_changed.unbind(2))
+	Events.quarry_vein_opened.connect(_on_campaign_modal_state_changed)
+	Events.dino_count_changed.connect(_on_campaign_modal_state_changed.unbind(2))
 	Events.game_loaded.connect(_refresh_modal)
 
 	_refresh_modal()
@@ -82,38 +85,78 @@ func open_prestige_modal() -> void:
 
 
 ## Exibe a capa da Gazeta do Cratera para o impacto atual ou resumo simulado.
-func show_prehistoric_newspaper(gained_amber: float, snapshot_depth: int, snapshot_era: String, snapshot_shield_pct: int, snapshot_run: int) -> void:
+func show_prehistoric_newspaper(gained_amber: float = -1.0, snapshot_depth: int = 0, snapshot_era: String = "Bacia do Âmbar", snapshot_shield_pct: int = -1, snapshot_run: int = -1) -> void:
 	_modal_backdrop.visible = false
-	_edition_meta_label.text = "EXPEDIÇÃO #%d · BOLETIM SÍSMICO DO CATACLISMA · CRATERA %s" % [
-		maxi(snapshot_run - 1, 1),
-		snapshot_era.to_upper(),
-	]
+	var summary: Dictionary = GameState.last_impact_summary
+	var has_summary: bool = not summary.is_empty()
+	var effective_amber: float = gained_amber if gained_amber >= 0.0 else float(summary.get("amber_gained", 0.0))
+	var finished_run: int = int(summary.get("run_number", maxi(snapshot_run - 1, 1))) if has_summary else maxi(snapshot_run - 1, 1)
+	var shield_pct: int = int(summary.get("shield_pct", snapshot_shield_pct)) if has_summary else snapshot_shield_pct
+	if shield_pct < 0:
+		shield_pct = roundi(GameState.get_shield_ratio() * 100.0)
+
+	var rescued_names: Array[String] = []
+	if has_summary and summary.get("rescued_names", null) is Array:
+		for raw_name: Variant in summary["rescued_names"] as Array:
+			rescued_names.append(String(raw_name))
+	else:
+		rescued_names = GameState.get_rescued_companion_names()
+	var rescued_count: int = int(summary.get("rescued_count", rescued_names.size()))
+	var slab_broken: bool = bool(summary.get("slab_broken", GameState.is_quarry_slab_broken()))
+	var hull_built: bool = bool(summary.get("hull_built", GameState.is_ark_module_built(GameState.ARK_MODULE_HULL)))
+	var ark_modules_count: int = int(summary.get("ark_modules_count", GameState.get_ark_built_module_count()))
+	var next_goal: String = String(summary.get("next_goal", ""))
+	if next_goal.is_empty():
+		next_goal = GameState.get_campaign_next_goal_text()
+
+	var amber_str: String = GameState.format_number(effective_amber)
+	var total_amber_str: String = GameState.format_number(GameState.get_resource(GameState.RES_AMBER))
 
 	if snapshot_depth <= 0:
-		_news_headline_label.text = "BÓLIDO ATINGE A SUPERFÍCIE! ACAMPAMENTO RECUPERA +%s DE ÂMBAR PURO!" % GameState.format_number(gained_amber)
-	elif snapshot_shield_pct >= 50:
-		_news_headline_label.text = "IMPACTO CONTIDO NA COTA -%dm! BASTIÕES SALVAM %d%% DO ACERVO FÓSSIL!" % [snapshot_depth, snapshot_shield_pct]
+		_edition_meta_label.text = "EXPEDIÇÃO #%d · BOLETIM DA ARCA DOS VIVOS · BACIA DO ÂMBAR" % finished_run
+		if hull_built and rescued_count > 0:
+			_news_headline_label.text = "ARCA PROTEGE %d COMPANHEIRO(S)! +%s ÂMBAR CRISTALIZADO NA BACIA!" % [rescued_count, amber_str]
+		elif rescued_count > 0:
+			_news_headline_label.text = "IMPACTO NA BACIA! %s RESISTE NA ARCA (+%s ÂMBAR)!" % [rescued_names[0].to_upper(), amber_str]
+		else:
+			_news_headline_label.text = "BÓLIDO ATINGE A BACIA DO ÂMBAR! CÁPSULA SALVA +%s DE ÂMBAR PURO!" % amber_str
+
+		var companion_line: String = "• Bando salvo na Arca (%d/8): %s — seguem ao seu lado na nova expedição!" % [rescued_count, ", ".join(rescued_names)] if not rescued_names.is_empty() else "• Nenhum companheiro resgatado ainda — quebre o Ovo e investigue a trinca da Pedreira!"
+		var quarry_line: String = "• Veio de Metal da Pedreira aberto! A laje permanece quebrada e o veio segue acessível." if slab_broken else "• A laje da Pedreira ainda bloqueia o veio de Metal — escove a Placa Especial após chocar o Ovo."
+		var ark_line: String = "• Módulos construídos na Arca: %d (Reforço de Casco ativo · Escudo %d%%)." % [ark_modules_count, shield_pct] if (hull_built or ark_modules_count > 0) else "• Base da Arca instalada (Escudo %d%%) — construa o Reforço de Casco com 80 Rochas e 6 Metal." % shield_pct
+		var clean_goal: String = next_goal.trim_prefix("Objetivo: ")
+		var goal_line: String = "• Próximo objetivo: %s" % clean_goal
+
+		_news_body_label.text = "CRÔNICA DA SUPERFÍCIE — O meteoro atingiu a Bacia do Âmbar, mas a Arca dos Vivos preservou suas conquistas permanentes.\n\n%s\n%s\n%s\n%s" % [
+			companion_line,
+			quarry_line,
+			ark_line,
+			goal_line,
+		]
 	else:
-		_news_headline_label.text = "CRATERA ABERTA EM %s (-%dm): CÁPSULA DA ARCA CRISTALIZA +%s ÂMBAR!" % [
+		_edition_meta_label.text = "EXPEDIÇÃO #%d · BOLETIM SÍSMICO DO CATACLISMA · CRATERA %s" % [
+			finished_run,
+			snapshot_era.to_upper(),
+		]
+		_news_headline_label.text = "CRATERA ABERTA EM %s (-%dm): ARCA CRISTALIZA +%s ÂMBAR!" % [
 			snapshot_era.to_upper(),
 			snapshot_depth,
-			GameState.format_number(gained_amber),
+			amber_str,
+		]
+		var companion_txt: String = ", ".join(rescued_names) if not rescued_names.is_empty() else "Nenhum"
+		_news_body_label.text = "CRÔNICA DE CAMPO — Após avançar até -%dm na faixa de %s, a Arca dos Vivos absorveu o impacto.\n\n• Bando salvo na Arca (%d/8): %s.\n• Módulos da Arca: %d · Escudo permanente: %d%%.\n• Próximo passo: %s" % [
+			snapshot_depth,
+			snapshot_era,
+			rescued_count,
+			companion_txt,
+			ark_modules_count,
+			shield_pct,
+			next_goal,
 		]
 
-	var species_count: int = 0
-	for id: Variant in GameState.discovered_dinos:
-		if bool(GameState.discovered_dinos[id]):
-			species_count += 1
-
-	_news_body_label.text = "CRÔNICA DE CAMPO — Após perfurar até a cota -%dm na faixa de %s, os sismógrafos registraram a reentrada final do meteoro.\n\n• Escudo estrutural e Anquilossauros preservaram %d%% dos espécimes da expedição.\n• Espécies já catalogadas na história da expedição: %d de 8.\n• Toda a pesquisa permanente permanece intacta no Laboratório da Arca para a nova escavação." % [
-		snapshot_depth,
-		snapshot_era,
-		snapshot_shield_pct,
-		species_count,
-	]
 	_news_amber_banner.text = "Âmbar Cristalizado na Cápsula da Arca: +%s (Total disponível: %s)" % [
-		GameState.format_number(gained_amber),
-		GameState.format_number(GameState.get_resource(GameState.RES_AMBER)),
+		amber_str,
+		total_amber_str,
 	]
 	_newspaper_backdrop.visible = true
 
@@ -122,13 +165,15 @@ func _refresh_modal() -> void:
 	var amber: float = GameState.get_resource(GameState.RES_AMBER)
 	var reward: float = GameState.calculate_amber_reward()
 	var shield_pct: int = roundi(GameState.get_shield_ratio() * 100.0)
+	var companion_count: int = GameState.get_rescued_companion_count()
+	var ark_modules: int = GameState.get_ark_built_module_count()
 	_amber_balance_label.text = "Resina de Âmbar Disponível: %s   (Total acumulado: %s)" % [
 		GameState.format_number(amber),
 		GameState.format_number(GameState.total_amber_earned),
 	]
-	_run_summary_label.text = "Cota atual: -%dm (Recorde: -%dm)  ·  Escudo da Arca: %d%%  ·  Evacuação agora rende: +%s Âmbar" % [
-		GameState.depth,
-		GameState.max_depth_ever,
+	_run_summary_label.text = "Bando na Arca: %d/8 · Módulos da Arca: %d · Escudo: %d%% · Evacuar agora rende: +%s Âmbar" % [
+		companion_count,
+		ark_modules,
 		shield_pct,
 		GameState.format_number(reward),
 	]
@@ -173,6 +218,11 @@ func _on_resource_changed(_res_id: StringName, _amount: float, _delta: float) ->
 
 
 func _on_upgrade_purchased(_upg_id: StringName, _new_level: int) -> void:
+	if _modal_backdrop.visible:
+		_refresh_modal()
+
+
+func _on_campaign_modal_state_changed() -> void:
 	if _modal_backdrop.visible:
 		_refresh_modal()
 

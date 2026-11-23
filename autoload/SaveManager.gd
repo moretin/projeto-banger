@@ -12,7 +12,7 @@ const SAVE_PATH: String = "user://savegame.json"
 const BACKUP_PATH: String = "user://savegame.bak.json"
 const TEMP_PATH: String = "user://savegame.tmp"
 
-const SAVE_VERSION: int = 6
+const SAVE_VERSION: int = 7
 const AUTOSAVE_INTERVAL: float = 30.0
 ## Limite de tempo offline recompensado (8 horas).
 const MAX_OFFLINE_SECONDS: float = 8.0 * 3600.0
@@ -215,6 +215,38 @@ func _migrate(payload: Dictionary) -> Dictionary:
 			game.erase("fossil_catalog")
 			payload["game"] = game
 		version = 6
+	if version == 6:
+		# v6 → v7: campanha contínua (resgate permanente, pista/placa da Pedreira e módulos da Arca).
+		var raw_v6: Variant = payload.get("game", {})
+		if raw_v6 is Dictionary:
+			var game: Dictionary = raw_v6 as Dictionary
+			var raw_revived: Variant = game.get("station_revived_dinos", {})
+			var revived_dict: Dictionary = raw_revived as Dictionary if raw_revived is Dictionary else {}
+			var raw_rescued: Variant = game.get("rescued_station_dinos", {})
+			var rescued_dict: Dictionary = raw_rescued as Dictionary if raw_rescued is Dictionary else {}
+			for key: Variant in revived_dict:
+				if int(revived_dict[key]) > 0:
+					rescued_dict[String(key)] = true
+			game["rescued_station_dinos"] = rescued_dict
+
+			var forge_rescued: bool = int(revived_dict.get("rubble_forge", 0)) > 0 or bool(rescued_dict.get("rubble_forge", false))
+			if forge_rescued:
+				game["quarry_ankylo_rescued"] = true
+				game["quarry_special_plate_found"] = true
+				game["quarry_clue_active"] = false
+			else:
+				if not game.has("quarry_ankylo_rescued"):
+					game["quarry_ankylo_rescued"] = false
+				if not game.has("quarry_special_plate_found"):
+					game["quarry_special_plate_found"] = false
+				if not game.has("quarry_clue_active"):
+					game["quarry_clue_active"] = bool(game.get("orange_rock_broken", false)) and not bool(game.get("quarry_special_plate_found", false))
+			if not game.has("ark_modules_built") or not (game["ark_modules_built"] is Dictionary):
+				game["ark_modules_built"] = {}
+			if not game.has("last_impact_summary") or not (game["last_impact_summary"] is Dictionary):
+				game["last_impact_summary"] = {}
+			payload["game"] = game
+		version = 7
 	if version > SAVE_VERSION:
 		push_warning("[SaveManager] Save de versão mais nova (%d > %d)." % [version, SAVE_VERSION])
 	payload["version"] = SAVE_VERSION

@@ -1,5 +1,5 @@
 extends GutTest
-## Testes do sistema de Save v6 (multi-bioma, remoção do Museu e migrações v1/v2/v3/v4/v5→v6), proteção de Âmbar no prestígio.
+## Testes do sistema de Save v7 (multi-bioma, campanha contínua da Arca, remoção do Museu e migrações v1..v6→v7), proteção de Âmbar no prestígio.
 
 var _bak_main: Dictionary = {}
 var _bak_backup: Dictionary = {}
@@ -364,18 +364,18 @@ func test_v4_and_v5_saves_migrate_to_v6_preserving_progress_workers_and_biomes()
 	f.store_string(JSON.stringify(v4_payload))
 	f.close()
 
-	assert_true(SaveManager.load_game(), "Save v4 deve migrar para v6 sem falhar")
-	assert_eq(SaveManager.last_migrated_reset_version, -1, "Migração v4→v6 NÃO pode descartar progresso")
-	assert_eq(SaveManager.SAVE_VERSION, 6)
+	assert_true(SaveManager.load_game(), "Save v4 deve migrar para v7 sem falhar")
+	assert_eq(SaveManager.last_migrated_reset_version, -1, "Migração v4→v7 NÃO pode descartar progresso")
+	assert_eq(SaveManager.SAVE_VERSION, 7)
 
 	# Pedreira que estava 0 na v4 passa a 1 (sem trabalhador); estações já construídas preservam trabalhadores.
 	assert_eq(GameState.get_rubble_level(&"rubble_forge"), 1)
 	assert_false(GameState.has_station_worker(&"rubble_forge"))
 	assert_eq(GameState.get_rubble_level(&"rubble_nest"), 2)
-	assert_true(GameState.has_station_worker(&"rubble_nest"), "Pesqueiro já construído na v4 preserva trabalhador na v6")
+	assert_true(GameState.has_station_worker(&"rubble_nest"), "Pesqueiro já construído na v4 preserva trabalhador na v7")
 	assert_gt(GameState.get_station_rate(&"rubble_nest"), 0.0)
 	assert_eq(GameState.get_rubble_level(&"rubble_bunker"), 1)
-	assert_true(GameState.has_station_worker(&"rubble_bunker"), "Universidade já construída na v4 preserva trabalhador na v6")
+	assert_true(GameState.has_station_worker(&"rubble_bunker"), "Universidade já construída na v4 preserva trabalhador na v7")
 	assert_eq(GameState.get_rubble_level(&"rubble_silo"), 0)
 	assert_false(GameState.has_station_worker(&"rubble_silo"))
 	assert_eq(GameState.current_biome, GameState.BIOME_AMBER)
@@ -392,9 +392,10 @@ func test_v4_and_v5_saves_migrate_to_v6_preserving_progress_workers_and_biomes()
 	assert_eq(GameState.raw_fossil_queue, [&"ankylosaurus"])
 	assert_almost_eq(GameState.fossil_cleaning_progress, 0.4, 0.01)
 	assert_eq(GameState.get_station_revived_count(&"rubble_nest"), 1)
+	assert_true(GameState.is_station_dino_rescued(&"rubble_nest"))
 	assert_eq(GameState.total_fossils_evaluated, 4)
 
-	# Migração explícita v5 -> v6 com fossil_catalog legado deve funcionar sem erro e remover fossil_catalog.
+	# Migração explícita v5 -> v7 com fossil_catalog legado deve funcionar sem erro e remover fossil_catalog.
 	var v5_payload: Dictionary = {
 		"version": 5,
 		"saved_at": Time.get_unix_time_from_system(),
@@ -409,12 +410,12 @@ func test_v4_and_v5_saves_migrate_to_v6_preserving_progress_workers_and_biomes()
 		},
 	}
 	var migrated_v5: Dictionary = SaveManager._migrate(v5_payload)
-	assert_eq(int(migrated_v5.get("version", 0)), 6)
+	assert_eq(int(migrated_v5.get("version", 0)), 7)
 	var mig_game: Dictionary = migrated_v5.get("game", {}) as Dictionary
 	assert_eq(String(mig_game.get("current_biome", "")), "amber_basin")
-	assert_false(mig_game.has("fossil_catalog"), "Migração v5→v6 deve apagar fossil_catalog legado")
+	assert_false(mig_game.has("fossil_catalog"), "Migração v5→v7 deve apagar fossil_catalog legado")
 
-	# Round-trip completo em v6 (incluindo current_biome, recursos de Floresta/Neve, station_worker_unlocked e run_surface_progress).
+	# Round-trip completo em v7 (incluindo current_biome, recursos de Floresta/Neve, station_worker_unlocked e run_surface_progress).
 	GameState.set_current_biome(GameState.BIOME_SNOW)
 	GameState.add_resource(GameState.RES_WOOD, 77.5)
 	GameState.add_resource(GameState.RES_BERRIES, 33.0)
@@ -426,13 +427,13 @@ func test_v4_and_v5_saves_migrate_to_v6_preserving_progress_workers_and_biomes()
 	GameState.run_surface_progress = 12345.0
 	assert_true(SaveManager.save_game())
 	var re_parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
-	assert_eq(int((re_parsed as Dictionary).get("version", 0)), 6)
-	var saved_v6_game: Dictionary = (re_parsed as Dictionary).get("game", {}) as Dictionary
-	assert_false(saved_v6_game.has("fossil_catalog"))
+	assert_eq(int((re_parsed as Dictionary).get("version", 0)), 7)
+	var saved_v7_game: Dictionary = (re_parsed as Dictionary).get("game", {}) as Dictionary
+	assert_false(saved_v7_game.has("fossil_catalog"))
 
 	GameState.start_new_game()
 	assert_true(SaveManager.load_game())
-	assert_eq(GameState.current_biome, GameState.BIOME_SNOW, "Save v6 deve restaurar current_biome")
+	assert_eq(GameState.current_biome, GameState.BIOME_SNOW, "Save v7 deve restaurar current_biome")
 	assert_almost_eq(GameState.get_resource(GameState.RES_WOOD), 77.5, 0.01)
 	assert_almost_eq(GameState.get_resource(GameState.RES_BERRIES), 33.0, 0.01)
 	assert_almost_eq(GameState.get_resource(GameState.RES_RESIN), 14.0, 0.01)
@@ -444,3 +445,111 @@ func test_v4_and_v5_saves_migrate_to_v6_preserving_progress_workers_and_biomes()
 	assert_almost_eq(GameState.run_surface_progress, 12345.0, 0.01)
 	assert_eq(GameState.raw_fossil_queue, [&"ankylosaurus"])
 	assert_almost_eq(GameState.fossil_cleaning_progress, 0.4, 0.01)
+
+
+func test_v6_to_v7_migration_and_prestige_continuity_of_ark_campaign() -> void:
+	assert_eq(SaveManager.SAVE_VERSION, 7, "SAVE_VERSION oficial deve ser 7")
+
+	# 1) Save v6 com Ovo quebrado e Pedreira ainda bloqueada -> v7 ativa quarry_clue_active.
+	var v6_clue_payload: Dictionary = {
+		"version": 6,
+		"saved_at": Time.get_unix_time_from_system(),
+		"game": {
+			"resources": {"rocks": 22.0, "amber": 5.0},
+			"rubble_levels": {"rubble_forge": 1},
+			"station_revived_dinos": {},
+			"orange_rock_hp": 0.0,
+			"orange_rock_broken": true,
+			"current_biome": "amber_basin",
+			"run_number": 1,
+			"meteor_time_left": 900.0,
+		},
+	}
+	var f_clue: FileAccess = FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
+	f_clue.store_string(JSON.stringify(v6_clue_payload))
+	f_clue.close()
+	assert_true(SaveManager.load_game(), "Save v6 sem Anquilossauro deve migrar para v7")
+	assert_eq(SaveManager.last_migrated_reset_version, -1)
+	assert_true(GameState.quarry_clue_active, "Migração v6→v7 com Ovo quebrado deve ativar pista na Pedreira")
+	assert_false(GameState.quarry_ankylo_rescued)
+	assert_false(GameState.is_quarry_slab_broken())
+	assert_true(GameState.ark_modules_built.is_empty())
+	assert_true(GameState.last_impact_summary.is_empty())
+
+	# 2) Save v6 com Anquilossauro & Dilofossauro revividos + fragmentos + fila bruta -> v7 preserva tudo sem duplicação.
+	var v6_rescued_payload: Dictionary = {
+		"version": 6,
+		"saved_at": Time.get_unix_time_from_system(),
+		"game": {
+			"resources": {"rocks": 80.0, "metal": 6.0, "amber": 12.0},
+			"fragments": {"triceratops": 6, "velociraptor": 3},
+			"dino_counts": {"compsognathus": 1, "ankylosaurus": 1, "dilophosaurus": 1},
+			"rubble_levels": {"rubble_forge": 2, "rubble_nest": 1},
+			"station_revived_dinos": {"rubble_forge": 1, "rubble_nest": 1},
+			"raw_fossil_queue": ["triceratops", "velociraptor"],
+			"fossil_cleaning_progress": 0.65,
+			"orange_rock_hp": 0.0,
+			"orange_rock_broken": true,
+			"current_biome": "amber_basin",
+			"run_number": 2,
+			"meteor_time_left": 850.0,
+		},
+	}
+	var f_res: FileAccess = FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
+	f_res.store_string(JSON.stringify(v6_rescued_payload))
+	f_res.close()
+	assert_true(SaveManager.load_game(), "Save v6 com dinos revividos deve migrar para v7")
+	assert_true(GameState.quarry_ankylo_rescued)
+	assert_true(GameState.quarry_special_plate_found)
+	assert_false(GameState.quarry_clue_active)
+	assert_true(GameState.is_quarry_slab_broken())
+	assert_true(GameState.is_station_dino_rescued(&"rubble_forge"))
+	assert_true(GameState.is_station_dino_rescued(&"rubble_nest"))
+	assert_eq(GameState.get_rescued_companion_count(), 2)
+	assert_eq(GameState.get_fragments(&"triceratops"), 6)
+	assert_eq(GameState.raw_fossil_queue, [&"triceratops", &"velociraptor"])
+	assert_almost_eq(GameState.fossil_cleaning_progress, 0.65, 0.001)
+
+	# Constrói Reforço de Casco, aplica prestígio e garante continuidade + round-trip v7 completo.
+	assert_true(GameState.build_ark_module(GameState.ARK_MODULE_HULL))
+	GameState.run_surface_progress = 12000.0
+	var amber_gained: float = GameState.perform_prestige()
+	assert_gt(amber_gained, 0.0)
+
+	assert_eq(GameState.run_number, 3)
+	assert_true(GameState.quarry_ankylo_rescued)
+	assert_true(GameState.quarry_special_plate_found)
+	assert_false(GameState.quarry_clue_active)
+	assert_true(GameState.is_quarry_slab_broken())
+	assert_eq(GameState.get_station_revived_count(&"rubble_forge"), 1, "Anquilossauro não pode duplicar após prestígio")
+	assert_eq(GameState.get_station_revived_count(&"rubble_nest"), 1, "Dilofossauro não pode duplicar após prestígio")
+	assert_eq(GameState.get_dino_count(&"ankylosaurus"), 1)
+	assert_eq(GameState.get_dino_count(&"dilophosaurus"), 1)
+	assert_true(GameState.is_ark_module_built(GameState.ARK_MODULE_HULL))
+	assert_eq(GameState.get_fragments(&"triceratops"), 6, "Fragmentos parciais devem sobreviver ao prestígio")
+	assert_eq(GameState.get_fragments(&"velociraptor"), 3)
+	assert_eq(GameState.raw_fossil_queue, [&"triceratops", &"velociraptor"], "Fila de fósseis brutos deve sobreviver ao prestígio")
+	assert_almost_eq(GameState.get_resource(GameState.RES_RAW_FOSSILS), 2.0, 0.001)
+	assert_almost_eq(GameState.fossil_cleaning_progress, 0.65, 0.001)
+	assert_eq(int(GameState.last_impact_summary.get("rescued_count", 0)), 2)
+	assert_true(bool(GameState.last_impact_summary.get("hull_built", false)))
+
+	assert_true(SaveManager.save_game())
+	var exported: String = SaveManager.export_save_string()
+	GameState.start_new_game()
+	assert_true(SaveManager.load_game(), "Save v7 pós-prestígio deve recarregar tudo")
+	assert_eq(GameState.run_number, 3)
+	assert_eq(GameState.get_rescued_companion_count(), 2)
+	assert_eq(GameState.get_station_revived_count(&"rubble_forge"), 1)
+	assert_eq(GameState.get_station_revived_count(&"rubble_nest"), 1)
+	assert_true(GameState.is_ark_module_built(GameState.ARK_MODULE_HULL))
+	assert_eq(GameState.get_fragments(&"triceratops"), 6)
+	assert_eq(GameState.raw_fossil_queue, [&"triceratops", &"velociraptor"])
+	assert_almost_eq(GameState.fossil_cleaning_progress, 0.65, 0.001)
+	assert_true(bool(GameState.last_impact_summary.get("hull_built", false)))
+
+	GameState.start_new_game()
+	assert_true(SaveManager.import_save_string(exported))
+	assert_eq(GameState.get_rescued_companion_count(), 2)
+	assert_true(GameState.is_ark_module_built(GameState.ARK_MODULE_HULL))
+	assert_eq(GameState.raw_fossil_queue, [&"triceratops", &"velociraptor"])

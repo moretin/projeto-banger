@@ -102,7 +102,6 @@ alignment = 2
 
 [node name="PrestigeButton" type="Button" parent="Margin/VBox/TopRow/ButtonsGroup"]
 unique_name_in_owner = true
-texture_filter = 1
 custom_minimum_size = Vector2(132, 34)
 layout_mode = 2
 focus_mode = 2
@@ -112,7 +111,6 @@ text = "Arca / Âmbar"
 [node name="SettingsButton" type="Button" parent="Margin/VBox/TopRow/ButtonsGroup"]
 unique_name_in_owner = true
 visible = false
-texture_filter = 1
 custom_minimum_size = Vector2(88, 34)
 layout_mode = 2
 focus_neighbor_left = NodePath("../PrestigeButton")

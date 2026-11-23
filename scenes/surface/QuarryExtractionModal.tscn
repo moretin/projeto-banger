@@ -1,0 +1,218 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scenes/surface/QuarryExtractionModal.gd" id="1_qmodal"]
+[ext_resource type="Theme" path="res://scenes/ui/ui_theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_workshop"]
+bg_color = Color(0.145, 0.098, 0.062, 0.98)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.84, 0.62, 0.30, 0.96)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.58)
+shadow_size = 14
+shadow_offset = Vector2(0, 6)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bedframe"]
+content_margin_left = 3.0
+content_margin_top = 3.0
+content_margin_right = 3.0
+content_margin_bottom = 3.0
+bg_color = Color(0.08, 0.048, 0.03, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.56, 0.37, 0.19, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_complete_btn"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+bg_color = Color(0.55, 0.34, 0.10, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.98, 0.78, 0.28, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_complete_btn_hover"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+bg_color = Color(0.68, 0.43, 0.13, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.88, 0.42, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="QuarryExtractionModal" type="Control"]
+visible = false
+z_index = 26
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+theme = ExtResource("2_theme")
+script = ExtResource("1_qmodal")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.03, 0.02, 0.8)
+
+[node name="CenterWrap" type="CenterContainer" parent="Backdrop"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="WorkshopPanel" type="PanelContainer" parent="Backdrop/CenterWrap"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(604, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_workshop")
+
+[node name="Margin" type="MarginContainer" parent="Backdrop/CenterWrap/WorkshopPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox" type="VBoxContainer" parent="Backdrop/CenterWrap/WorkshopPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HeaderRow" type="HBoxContainer" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderIcon" type="TextureRect" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox/HeaderRow"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TitleLabel" type="Label" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.9, 0.64, 1)
+theme_override_font_sizes/font_size = 20
+text = "Jazida da Pedreira — Extração de Fóssil"
+
+[node name="CloseButton" type="Button" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox/HeaderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 34)
+layout_mode = 2
+text = "Voltar"
+
+[node name="ProgressRow" type="HBoxContainer" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ExtractionProgressBar" type="ProgressBar" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox/ProgressRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 100.0
+step = 0.1
+show_percentage = false
+
+[node name="ProgressPercentLabel" type="Label" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox/ProgressRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(54, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.99, 0.85, 0.48, 1)
+theme_override_font_sizes/font_size = 15
+text = "0%"
+horizontal_alignment = 2
+
+[node name="HintLabel" type="Label" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.82, 0.64, 0.94)
+theme_override_font_sizes/font_size = 13
+text = "Arraste a escova sobre o arenito para revelar a placa da cauda do Anquilossauro."
+horizontal_alignment = 1
+
+[node name="BedFrame" type="PanelContainer" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_bedframe")
+
+[node name="SedimentBed" type="Control" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox/BedFrame"]
+unique_name_in_owner = true
+texture_filter = 1
+clip_contents = true
+custom_minimum_size = Vector2(540, 280)
+layout_mode = 2
+focus_mode = 2
+mouse_default_cursor_shape = 2
+
+[node name="SeismographBar" type="Control" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(546, 92)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="StatusLabel" type="Label" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(546, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.88, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "Escove com o botão esquerdo do mouse; acerte o Sismógrafo para acelerar!"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="CompleteReturnButton" type="Button" parent="Backdrop/CenterWrap/WorkshopPanel/Margin/VBox"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(260, 42)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(1, 0.95, 0.78, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_complete_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_complete_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_complete_btn_hover")
+text = "Voltar à Pedreira"

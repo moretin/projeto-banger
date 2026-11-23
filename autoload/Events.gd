@@ -87,6 +87,10 @@ signal precise_strike_resolved(result: StringName, bonus_damage: float)
 signal vein_cracked(bonus_bones: float, bonus_minerals: float, dino_id: StringName)
 ## Emissor: GameState. Bioma atual da Superfície mudou (&"forest", &"amber_basin", &"snow").
 signal biome_changed(biome_id: StringName)
+## Emissor: GameState. O Anquilossauro despertou e abriu o veio de Metal na Pedreira.
+signal quarry_vein_opened()
+## Emissor: Superfície. Jogador solicitou abrir a jazida de extração da Pedreira.
+signal quarry_extraction_requested()
 #endregion
 
 
@@ -116,6 +120,8 @@ signal prestige_completed(amber_gained: float, run_number: int)
 signal run_started(run_number: int)
 ## Emissor: GameState. Projeto Arca concluído e ativado contra o meteoro.
 signal ark_victory_achieved(run_number: int, total_amber_earned: float)
+## Emissor: GameState. Um módulo físico da Arca dos Vivos foi construído.
+signal ark_module_built(module_id: StringName, total_modules: int)
 #endregion
 
 

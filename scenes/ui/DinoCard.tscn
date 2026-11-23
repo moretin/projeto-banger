@@ -101,7 +101,6 @@ vertical_alignment = 1
 
 [node name="AssembleButton" type="Button" parent="Margin/HBox"]
 unique_name_in_owner = true
-texture_filter = 1
 custom_minimum_size = Vector2(142, 56)
 layout_mode = 2
 size_flags_vertical = 4

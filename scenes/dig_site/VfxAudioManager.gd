@@ -37,6 +37,9 @@ func _ready() -> void:
 
 	Events.dig_hit.connect(_on_dig_hit)
 	Events.orange_rock_hit.connect(_on_orange_rock_hit)
+	Events.orange_rock_broken.connect(_on_orange_rock_broken)
+	Events.quarry_vein_opened.connect(_on_quarry_vein_opened)
+	Events.ark_module_built.connect(_on_ark_module_built)
 	Events.brush_stroke.connect(_on_brush_stroke)
 	Events.fossil_found.connect(_on_fossil_found)
 	Events.precise_strike_resolved.connect(_on_precise_strike_resolved)
@@ -305,3 +308,37 @@ func _on_precise_strike_resolved(result: StringName, _bonus_damage: float) -> vo
 		_play_tone(440.0, 660.0, 0.16, 0.22)
 	else:
 		_play_tone(180.0, 120.0, 0.10, 0.12)
+
+
+func _surface_anchor(norm_pos: Vector2) -> Vector2:
+	if is_inside_tree() and get_viewport() != null:
+		var vp_rect: Rect2 = get_viewport_rect()
+		if vp_rect.size.x > 10.0 and vp_rect.size.y > 10.0:
+			return Vector2(vp_rect.size.x * norm_pos.x, vp_rect.size.y * norm_pos.y)
+	return Vector2(1280.0 * norm_pos.x, 720.0 * norm_pos.y)
+
+
+func _on_orange_rock_broken() -> void:
+	var pos: Vector2 = _surface_anchor(Vector2(0.496, 0.50))
+	_emit_burst(pos, Color(1.0, 0.72, 0.24), 2.2)
+	_emit_burst(pos, Color(1.0, 0.94, 0.68), 1.4)
+	_play_tone(210.0, 85.0, 0.11, 0.26, 0.35)
+	_play_tone(523.25, 783.99, 0.18, 0.22)
+	_play_tone(659.25, 987.77, 0.22, 0.16)
+
+
+func _on_quarry_vein_opened() -> void:
+	var pos: Vector2 = _surface_anchor(Vector2(0.121, 0.48))
+	_emit_burst(pos, Color(0.74, 0.62, 0.52), 2.4)
+	_emit_burst(pos, Color(0.843, 0.910, 0.961), 1.8)
+	_play_tone(130.0, 42.0, 0.26, 0.30, 0.42)
+	_play_tone(880.0, 1318.5, 0.24, 0.20, 0.05)
+
+
+func _on_ark_module_built(_module_id: StringName, _total_modules: int) -> void:
+	var pos: Vector2 = _surface_anchor(Vector2(0.642, 0.70))
+	_emit_burst(pos, Color(0.95, 0.74, 0.28), 2.3)
+	_emit_burst(pos, Color(0.843, 0.910, 0.961), 1.6)
+	_play_tone(196.0, 146.8, 0.12, 0.26, 0.22)
+	_play_tone(392.0, 587.33, 0.24, 0.22)
+	_play_tone(587.33, 783.99, 0.28, 0.18)

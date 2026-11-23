@@ -11,6 +11,14 @@ const GROUND: Texture2D = preload("res://assets/sprites/surface/background/amber
 const SKY_RECT: Rect2 = Rect2(0.0, 0.0, 480.0, 127.0)
 const RIDGE_RECT: Rect2 = Rect2(0.0, -46.0, 480.0, 220.0)
 const GROUND_RECT: Rect2 = Rect2(0.0, 100.0, 480.0, 148.0)
+const BIOME_HORIZON_RECT: Rect2 = Rect2(0.0, 0.0, 480.0, 144.0)
+const BIOME_GROUND_RECT: Rect2 = Rect2(0.0, 120.0, 480.0, 120.0)
+const FOREST_SKY: Texture2D = preload("res://assets/sprites/surface/background/forest_sky.png")
+const FOREST_RIDGES: Texture2D = preload("res://assets/sprites/surface/background/forest_ridges.png")
+const FOREST_GROUND: Texture2D = preload("res://assets/sprites/surface/background/forest_ground.png")
+const SNOW_SKY: Texture2D = preload("res://assets/sprites/surface/background/snow_sky.png")
+const SNOW_RIDGES: Texture2D = preload("res://assets/sprites/surface/background/snow_ridges.png")
+const SNOW_GROUND: Texture2D = preload("res://assets/sprites/surface/background/snow_ground.png")
 
 ## Borda superior do chão caminhável da Bacia do Âmbar (expandida para acomodar
 ## as estruturas sobre terreno sólido e amplo até a borda do cânion em y ~ 206).
@@ -57,33 +65,60 @@ const SNOW_FOOTPATH: Array[Vector2] = [
 const METEOR_REDRAW_FPS: float = 14.0
 const AMBIENT_REDRAW_FPS: float = 10.0
 const INK: Color = Color("#261820")
+const ARK_ANCHOR: Vector2 = Vector2(308.0, 196.0)
 
 var _ground_shape: PackedVector2Array = PackedVector2Array(TERRAIN)
 var _ground_uv: PackedVector2Array = PackedVector2Array()
 var _trail: PackedVector2Array = PackedVector2Array()
+var _egg_to_quarry_trail: PackedVector2Array = PackedVector2Array()
 var _forest_shape: PackedVector2Array = PackedVector2Array()
+var _forest_uv: PackedVector2Array = PackedVector2Array()
 var _forest_trail: PackedVector2Array = PackedVector2Array()
 var _snow_shape: PackedVector2Array = PackedVector2Array()
+var _snow_uv: PackedVector2Array = PackedVector2Array()
 var _snow_trail: PackedVector2Array = PackedVector2Array()
 var _meteor_anim_t: float = 0.0
 var _meteor_frame: int = -1
 var _last_danger: float = -1.0
 var _last_biome: StringName = &""
+var _last_quarry_clue: bool = false
+var _last_slab_broken: bool = false
+var _last_forest_built: bool = false
+var _edge_overlay: Control = null
+var _pending_edge_markers: Array[Dictionary] = []
 
 
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_edge_overlay = Control.new()
+	_edge_overlay.name = "EdgeMarkersOverlay"
+	_edge_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_edge_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_edge_overlay.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_edge_overlay.draw.connect(_on_edge_overlay_draw)
+	add_child(_edge_overlay)
+	move_child(_edge_overlay, 0)
 	for point: Vector2 in TERRAIN:
 		_ground_uv.append((point - GROUND_RECT.position) / GROUND_RECT.size)
 
 	_trail = _bake_smooth_path(FOOTPATH)
+	_egg_to_quarry_trail = _build_egg_to_quarry_trail(_trail)
 	_forest_shape = _build_ground_polygon(FOREST_TERRAIN_TOP)
+	_forest_uv = _build_ground_uv(_forest_shape)
 	_forest_trail = _bake_smooth_path(FOREST_FOOTPATH)
 	_snow_shape = _build_ground_polygon(SNOW_TERRAIN_TOP)
+	_snow_uv = _build_ground_uv(_snow_shape)
 	_snow_trail = _bake_smooth_path(SNOW_FOOTPATH)
 
 	Events.danger_level_changed.connect(_on_danger_changed)
 	Events.biome_changed.connect(_on_biome_changed)
+	Events.orange_rock_broken.connect(queue_redraw)
+	Events.quarry_vein_opened.connect(queue_redraw)
+	Events.rubble_rebuilt.connect(queue_redraw.unbind(2))
+	Events.ark_module_built.connect(queue_redraw.unbind(2))
+	Events.fossil_found.connect(queue_redraw.unbind(2))
+	Events.run_started.connect(queue_redraw.unbind(1))
+	Events.game_loaded.connect(queue_redraw)
 
 
 func _process(delta: float) -> void:
@@ -91,17 +126,25 @@ func _process(delta: float) -> void:
 		return
 	var d: float = clampf(GameState.danger_level, 0.0, 1.0)
 	var biome: StringName = _get_active_biome()
+	var clue_now: bool = GameState.quarry_clue_active
+	var slab_now: bool = GameState.is_quarry_slab_broken()
+	var forest_now: bool = GameState.is_station_built(&"forest_grove")
 	var danger_changed: bool = not is_equal_approx(d, _last_danger)
 	var biome_changed: bool = biome != _last_biome
-	var has_ambient_motion: bool = (biome == &"forest" or biome == &"snow")
-	if not GameState.meteor_active and not danger_changed and not biome_changed and not has_ambient_motion:
+	var world_changed: bool = (clue_now != _last_quarry_clue) or (slab_now != _last_slab_broken) or (forest_now != _last_forest_built)
+	var has_amber_motion: bool = (biome == &"amber_basin" and (clue_now or (slab_now and not forest_now)))
+	var has_ambient_motion: bool = (biome == &"forest" or biome == &"snow" or has_amber_motion)
+	if not GameState.meteor_active and not danger_changed and not biome_changed and not world_changed and not has_ambient_motion:
 		return
 	_last_danger = d
 	_last_biome = biome
+	_last_quarry_clue = clue_now
+	_last_slab_broken = slab_now
+	_last_forest_built = forest_now
 	_meteor_anim_t += delta
 	var fps: float = METEOR_REDRAW_FPS if GameState.meteor_active else AMBIENT_REDRAW_FPS
 	var frame: int = floori(_meteor_anim_t * fps)
-	if danger_changed or biome_changed or frame != _meteor_frame:
+	if danger_changed or biome_changed or world_changed or frame != _meteor_frame:
 		_meteor_frame = frame
 		queue_redraw()
 
@@ -149,6 +192,13 @@ static func _build_ground_polygon(top_edge: Array[Vector2]) -> PackedVector2Arra
 	return poly
 
 
+static func _build_ground_uv(polygon: PackedVector2Array) -> PackedVector2Array:
+	var uv: PackedVector2Array = PackedVector2Array()
+	for point: Vector2 in polygon:
+		uv.append((point - BIOME_GROUND_RECT.position) / BIOME_GROUND_RECT.size)
+	return uv
+
+
 static func _bake_smooth_path(points: Array[Vector2]) -> PackedVector2Array:
 	var path: Curve2D = Curve2D.new()
 	path.bake_interval = 3.0
@@ -182,6 +232,7 @@ static func _sample_terrain_top_y(profile: Array[Vector2], map_x: float) -> floa
 func _draw() -> void:
 	if size.x <= 1.0 or size.y <= 1.0:
 		return
+	_pending_edge_markers.clear()
 	draw_set_transform(Vector2.ZERO, 0.0, size / MAP_SIZE)
 	var danger: float = clampf(GameState.danger_level, 0.0, 1.0)
 	var biome: StringName = _get_active_biome()
@@ -191,6 +242,8 @@ func _draw() -> void:
 		_draw_snow(danger)
 	else:
 		_draw_amber_basin(danger)
+	if _edge_overlay != null:
+		_edge_overlay.queue_redraw()
 
 
 func _draw_amber_basin(danger: float) -> void:
@@ -204,153 +257,94 @@ func _draw_amber_basin(danger: float) -> void:
 	draw_colored_polygon(_ground_shape, ground_tint, _ground_uv, GROUND)
 	draw_polyline(_trail, Color(0.55, 0.34, 0.20, 0.28), 6.0)
 	draw_polyline(_trail, Color(0.95, 0.74, 0.46, 0.56), 3.2)
-	_draw_edge_marker("◀ Floresta", Vector2(10.0, 146.0), true, Color("#3a2822"), Color("#8db870"), Color("#fff2cc"))
+	_draw_ark_clearing()
+	if GameState.quarry_clue_active:
+		_draw_quarry_trail_clue()
+
+	var forest_label: String = "◀ Floresta"
+	var forest_bg: Color = Color("#3a2822")
+	var forest_border: Color = Color("#8db870")
+	var forest_text: Color = Color("#fff2cc")
+	if GameState.is_quarry_slab_broken() and not GameState.is_station_built(&"forest_grove"):
+		forest_label = "◀ Floresta (15 Metal)"
+		var highlight_p: float = 0.5 + 0.5 * sin(_meteor_anim_t * 3.6)
+		forest_bg = Color("#4a2d1e")
+		forest_border = Color("#edaa48").lerp(Color("#ffd875"), highlight_p * 0.55)
+		forest_text = Color("#fff5d4")
+	_draw_edge_marker(forest_label, Vector2(10.0, 158.0), true, forest_bg, forest_border, forest_text)
 	_draw_edge_marker("Neve ▶", Vector2(470.0, 152.0), false, Color("#263547"), Color("#94d0f0"), Color("#ecf8ff"))
 
 
+func _draw_ark_clearing() -> void:
+	var spur: PackedVector2Array = PackedVector2Array([
+		Vector2(265.0, 146.0), Vector2(278.0, 151.0), Vector2(286.0, 160.0),
+		Vector2(296.0, 176.0), Vector2(305.0, 189.0), ARK_ANCHOR,
+	])
+	draw_polyline(spur, Color(0.55, 0.34, 0.20, 0.24), 5.0)
+	draw_polyline(spur, Color(0.95, 0.74, 0.46, 0.42), 2.6)
+	var contact_shadow: PackedVector2Array = _build_ellipse_polygon(ARK_ANCHOR, 26.0, 5.0, 20)
+	draw_colored_polygon(contact_shadow, Color(0.30, 0.15, 0.12, 0.22))
+
+
+func _draw_quarry_trail_clue() -> void:
+	# Ondas sísmicas sutis irradiando da Pedreira pela trilha.
+	var ripple_origins: Array[Vector2] = [Vector2(58.0, 136.0), Vector2(106.0, 154.0)]
+	for idx: int in range(ripple_origins.size()):
+		var t: float = fposmod(_meteor_anim_t * 0.58 + float(idx) * 0.5, 1.0)
+		var rx: float = lerpf(7.0, 26.0, t)
+		var ry: float = rx * 0.35
+		var ring: PackedVector2Array = _build_ellipse_polygon(ripple_origins[idx], rx, ry, 20)
+		ring.append(ring[0])
+		draw_polyline(ring, Color(0.98, 0.79, 0.42, (1.0 - t) * 0.34), 1.2)
+
+	# Partículas pulsantes guiando o olhar do Ovo até a Pedreira ao longo da trilha.
+	if _egg_to_quarry_trail.size() < 2:
+		return
+	for mi: int in range(6):
+		var progress: float = fposmod(_meteor_anim_t * 0.34 + float(mi) / 6.0, 1.0)
+		var pos: Vector2 = _sample_polyline_point(_egg_to_quarry_trail, progress)
+		var alpha: float = sin(progress * PI) * (0.65 + 0.30 * sin(_meteor_anim_t * 5.0 + float(mi)))
+		draw_circle(pos, 2.8, Color(0.96, 0.72, 0.28, alpha * 0.28))
+		draw_rect(Rect2(roundf(pos.x - 1.0), roundf(pos.y - 1.0), 2.0, 2.0), Color(1.0, 0.90, 0.62, alpha))
+		var tail_pos: Vector2 = _sample_polyline_point(_egg_to_quarry_trail, maxf(progress - 0.035, 0.0))
+		draw_rect(Rect2(roundf(tail_pos.x), roundf(tail_pos.y), 1.5, 1.5), Color(0.95, 0.69, 0.28, alpha * 0.65))
+
+
+static func _build_egg_to_quarry_trail(trail: PackedVector2Array) -> PackedVector2Array:
+	var segment: PackedVector2Array = PackedVector2Array()
+	for idx: int in range(trail.size() - 1, -1, -1):
+		var pt: Vector2 = trail[idx]
+		if pt.x >= 56.0 and pt.x <= 240.0:
+			segment.append(pt)
+	return segment
+
+
+static func _build_ellipse_polygon(center: Vector2, rx: float, ry: float, steps: int = 24) -> PackedVector2Array:
+	var poly: PackedVector2Array = PackedVector2Array()
+	for i: int in range(steps):
+		var ang: float = float(i) / float(steps) * TAU
+		poly.append(center + Vector2(cos(ang) * rx, sin(ang) * ry))
+	return poly
+
+
+static func _sample_polyline_point(points: PackedVector2Array, progress: float) -> Vector2:
+	if points.is_empty():
+		return Vector2.ZERO
+	if points.size() == 1:
+		return points[0]
+	var clamped: float = clampf(progress, 0.0, 1.0)
+	var scaled: float = clamped * float(points.size() - 1)
+	var i0: int = mini(floori(scaled), points.size() - 2)
+	var frac: float = scaled - float(i0)
+	return points[i0].lerp(points[i0 + 1], frac)
+
+
 func _draw_forest(danger: float) -> void:
-	var warm_mix: float = danger * 0.58
-	# 1. Céu filtrado pela copa esmeralda-dourada.
-	var sky_bands: Array[Color] = [
-		Color("#1e4438").lerp(Color("#6b3b34"), warm_mix),
-		Color("#2e5f49").lerp(Color("#934f3d"), warm_mix),
-		Color("#467e59").lerp(Color("#be6d4a"), warm_mix),
-		Color("#74a068").lerp(Color("#db8d5c"), warm_mix),
-		Color("#b6bd7a").lerp(Color("#eea96d"), warm_mix),
-		Color("#e5d495").lerp(Color("#ffc484"), warm_mix),
-	]
-	var band_h: float = 136.0 / float(sky_bands.size())
-	for bi: int in range(sky_bands.size()):
-		draw_rect(Rect2(0.0, float(bi) * band_h, MAP_SIZE.x, band_h + 1.5), sky_bands[bi])
+	_draw_biome_layers(FOREST_SKY, FOREST_RIDGES, FOREST_GROUND, _forest_shape, _forest_uv, danger)
+	draw_polyline(_forest_trail, Color("#523d27", 0.64), 7.0)
+	draw_polyline(_forest_trail, Color("#b58b5b", 0.58), 3.0)
 
-	# Raios suaves de sol atravessando a névoa da floresta.
-	var beam_col: Color = Color(1.0, 0.94, 0.68, 0.10)
-	for ray_i: int in range(4):
-		var rx: float = 75.0 + float(ray_i) * 105.0
-		var beam := PackedVector2Array([
-			Vector2(rx, 0.0), Vector2(rx + 28.0, 0.0),
-			Vector2(rx - 22.0, 130.0), Vector2(rx - 52.0, 130.0),
-		])
-		draw_colored_polygon(beam, beam_col)
-
-	# Nuvens douradas suaves atrás das sequoias.
-	var cloud_col: Color = Color("#f6e5ad", 0.42).lerp(Color("#ffc399", 0.48), warm_mix)
-	draw_rect(Rect2(138.0, 34.0, 44.0, 7.0), cloud_col)
-	draw_rect(Rect2(146.0, 29.0, 26.0, 6.0), cloud_col)
-	draw_rect(Rect2(308.0, 26.0, 52.0, 8.0), cloud_col)
-	draw_rect(Rect2(320.0, 21.0, 28.0, 6.0), cloud_col)
-
-	# 2. Meteoro distante atrás das montanhas e sequoias.
-	_draw_background_meteor(danger)
-
-	# 3. Cadeia de serras enevoadas verde-petróleo.
-	var far_ridge_col: Color = Color("#2e5a54").lerp(Color("#5e4d4d"), danger * 0.45)
-	var far_rim_col: Color = Color("#6f9c74").lerp(Color("#b68b6c"), danger * 0.45)
-	var far_ridge := PackedVector2Array([
-		Vector2(0.0, 96.0), Vector2(46.0, 76.0), Vector2(98.0, 82.0), Vector2(154.0, 64.0),
-		Vector2(216.0, 78.0), Vector2(276.0, 68.0), Vector2(342.0, 80.0), Vector2(410.0, 62.0),
-		Vector2(480.0, 74.0), Vector2(480.0, 145.0), Vector2(0.0, 145.0),
-	])
-	draw_colored_polygon(far_ridge, far_ridge_col)
-	for ri: int in range(8):
-		draw_line(far_ridge[ri], far_ridge[ri + 1], far_rim_col, 1.5)
-
-	# 4. Silhuetas de sequoias gigantes e copas pré-históricas.
-	var trunk_far: Color = Color("#243f3a").lerp(Color("#473837"), danger * 0.35)
-	var canopy_dark: Color = Color("#1e4838").lerp(Color("#3d3e34"), danger * 0.35)
-	var canopy_mid: Color = Color("#2e6647").lerp(Color("#5d5d3f"), danger * 0.35)
-	var canopy_lit: Color = Color("#5b9454").lerp(Color("#93834d"), danger * 0.35)
-	var redwood_xs: Array[float] = [54.0, 108.0, 186.0, 244.0, 296.0, 378.0, 434.0]
-	for ti: int in range(redwood_xs.size()):
-		var tx: float = redwood_xs[ti]
-		var tw: float = 9.0 + float(ti % 3) * 3.0
-		var top_y: float = 42.0 + float((ti * 17) % 24)
-		draw_rect(Rect2(tx - tw * 0.5, top_y, tw, 138.0 - top_y), trunk_far)
-		draw_rect(Rect2(tx - tw * 0.5 + 1.0, top_y, 2.0, 138.0 - top_y), Color("#466452", 0.55))
-		draw_circle(Vector2(tx, top_y + 10.0), 18.0 + float(ti % 2) * 5.0, canopy_dark)
-		draw_circle(Vector2(tx - 10.0, top_y + 16.0), 13.0, canopy_mid)
-		draw_circle(Vector2(tx + 9.0, top_y + 14.0), 12.0, canopy_mid)
-		draw_circle(Vector2(tx - 3.0, top_y + 5.0), 10.0, canopy_lit)
-
-	# Folhagens e samambaias na base das árvores (mesmo ritmo visual de amber_ridges.png).
-	for fi: int in range(18):
-		var fx: float = float(fi) * 28.0 + 6.0
-		var fy: float = 114.0 + sin(float(fi) * 1.4) * 5.0
-		draw_circle(Vector2(fx, fy), 14.0, canopy_dark)
-		draw_circle(Vector2(fx + 6.0, fy - 4.0), 9.0, canopy_mid)
-		draw_rect(Rect2(fx - 4.0, fy - 11.0, 8.0, 2.0), canopy_lit)
-
-	# 5. Solo caminhável coberto de musgo + clareiras de sol + raízes.
-	var turf_base: Color = Color("#4c7946").lerp(Color("#736b44"), danger * 0.35)
-	draw_colored_polygon(_forest_shape, turf_base)
-	draw_polyline(PackedVector2Array(FOREST_TERRAIN_TOP), Color("#254229", 0.85), 2.5)
-	draw_polyline(PackedVector2Array(FOREST_TERRAIN_TOP), Color("#7ab360", 0.72), 1.2)
-
-	# Faixas de musgo sombreado e poças de luz filtrada pela copa.
-	var dapple_lit: Color = Color("#74a558", 0.55)
-	var dapple_sun: Color = Color("#a8c96b", 0.42)
-	var dapple_shade: Color = Color("#365a36", 0.50)
-	var patches: Array[Vector3] = [
-		Vector3(96.0, 146.0, 28.0), Vector3(162.0, 154.0, 34.0), Vector3(236.0, 178.0, 38.0),
-		Vector3(316.0, 152.0, 32.0), Vector3(392.0, 174.0, 30.0), Vector3(446.0, 146.0, 24.0),
-	]
-	for p: Vector3 in patches:
-		draw_rect(Rect2(p.x - p.z, p.y - 5.0, p.z * 2.0, 10.0), dapple_lit)
-		draw_rect(Rect2(p.x - p.z * 0.55, p.y - 3.0, p.z * 1.1, 5.0), dapple_sun)
-	draw_rect(Rect2(24.0, 184.0, 128.0, 12.0), dapple_shade)
-	draw_rect(Rect2(276.0, 188.0, 160.0, 11.0), dapple_shade)
-
-	# Trilha de terra quente ligando as estruturas até a Bacia do Âmbar à direita.
-	draw_polyline(_forest_trail, Color("#573726", 0.48), 9.0)
-	draw_polyline(_forest_trail, Color("#996945", 0.85), 6.0)
-	draw_polyline(_forest_trail, Color("#c79363", 0.60), 2.5)
-
-	# Samambaias, pedras com musgo e pequenas flores silvestres espalhadas.
-	var tufts: Array[Vector2] = [
-		Vector2(66.0, 138.0), Vector2(92.0, 182.0), Vector2(188.0, 144.0),
-		Vector2(226.0, 192.0), Vector2(272.0, 146.0), Vector2(368.0, 186.0),
-		Vector2(412.0, 136.0), Vector2(448.0, 178.0),
-	]
-	for idx: int in range(tufts.size()):
-		var pt: Vector2 = tufts[idx]
-		draw_rect(Rect2(pt.x - 4.0, pt.y, 9.0, 2.0), Color("#26442d"))
-		draw_rect(Rect2(pt.x - 3.0, pt.y - 2.0, 3.0, 2.0), Color("#5e9952"))
-		draw_rect(Rect2(pt.x + 1.0, pt.y - 3.0, 3.0, 3.0), Color("#7eb862"))
-		if idx % 2 == 0:
-			draw_rect(Rect2(pt.x + 5.0, pt.y - 1.0, 2.0, 2.0), Color("#f2d56e") if idx % 4 == 0 else Color("#ea767b"))
-
-	# Corte geológico inferior (mesma identidade visual em camadas de amber_ground.png).
-	draw_rect(Rect2(0.0, 208.0, MAP_SIZE.x, 4.0), Color("#2c4a2e"))
-	draw_rect(Rect2(0.0, 211.0, MAP_SIZE.x, 9.0), Color("#5c3a2a"))
-	draw_rect(Rect2(0.0, 220.0, MAP_SIZE.x, 10.0), Color("#422822"))
-	draw_rect(Rect2(0.0, 230.0, MAP_SIZE.x, 10.0), Color("#2a1e26"))
-	for seg_i: int in range(16):
-		var sx: float = float(seg_i) * 32.0
-		draw_rect(Rect2(sx + 6.0, 211.0, 12.0, 2.0), Color("#3c643b"))
-		draw_rect(Rect2(sx + 10.0, 215.0, 8.0, 2.0), Color("#7a4d36"))
-		draw_rect(Rect2(sx + 18.0, 224.0, 4.0, 2.0), Color("#edaa48", 0.55) if seg_i % 3 == 0 else Color("#5e3c32"))
-
-	# 6. Barreira fechada à esquerda: troncos colossais de sequoia ancestral + raízes.
-	draw_rect(Rect2(0.0, 0.0, 20.0, 216.0), Color("#46251f"))
-	draw_rect(Rect2(14.0, 0.0, 6.0, 214.0), Color("#69392c"))
-	draw_rect(Rect2(18.0, 0.0, 2.5, 212.0), Color("#94583c"))
-	draw_rect(Rect2(20.0, 0.0, 2.0, 212.0), INK)
-	# Fendas de casca e raízes avançando no chão esquerdo.
-	for by: int in range(6, 204, 14):
-		draw_rect(Rect2(4.0, float(by), 3.0, 9.0), Color("#2f1817"))
-		draw_rect(Rect2(11.0, float(by + 4), 2.0, 8.0), Color("#3a1f1c"))
-	var root_poly := PackedVector2Array([
-		Vector2(0.0, 174.0), Vector2(20.0, 182.0), Vector2(36.0, 196.0),
-		Vector2(42.0, 206.0), Vector2(0.0, 208.0),
-	])
-	draw_colored_polygon(root_poly, Color("#593026"))
-	draw_polyline(PackedVector2Array([Vector2(18.0, 182.0), Vector2(35.0, 196.0), Vector2(41.0, 205.0)]), Color("#94583c"), 1.5)
-	# Copa densa pendente no canto superior esquerdo.
-	draw_circle(Vector2(16.0, 18.0), 34.0, canopy_dark)
-	draw_circle(Vector2(34.0, 8.0), 22.0, canopy_mid)
-	draw_circle(Vector2(26.0, 22.0), 14.0, canopy_lit)
-
-	# Esporos dourados flutuando suavemente na floresta.
+	# Esporos dourados sobre o chão.
 	for sp_i: int in range(10):
 		var seed_f: float = float(sp_i) * 1.91
 		var px: float = fposmod(46.0 + seed_f * 41.0 + sin(_meteor_anim_t * 0.8 + seed_f) * 8.0, 446.0) + 18.0
@@ -358,140 +352,15 @@ func _draw_forest(danger: float) -> void:
 		var alpha: float = 0.35 + 0.35 * sin(_meteor_anim_t * 2.4 + seed_f)
 		draw_rect(Rect2(roundf(px), roundf(py), 1.5, 1.5), Color(0.97, 0.94, 0.56, alpha))
 
-	# 7. Placa de passagem à direita de volta para a Bacia do Âmbar.
 	_draw_edge_marker("Bacia do Âmbar ▶", Vector2(470.0, 146.0), false, Color("#402a20"), Color("#edaa48"), Color("#fff3cf"))
 
 
 func _draw_snow(danger: float) -> void:
-	var warm_mix: float = danger * 0.55
-	# 1. Céu crepuscular glacial (esquenta para coral com o meteoro).
-	var sky_bands: Array[Color] = [
-		Color("#1f2e4f").lerp(Color("#6b3648"), warm_mix),
-		Color("#2e4870").lerp(Color("#8e4c54"), warm_mix),
-		Color("#496e96").lerp(Color("#b66a65"), warm_mix),
-		Color("#749ec2").lerp(Color("#d88e7c"), warm_mix),
-		Color("#a8cae0").lerp(Color("#eeb29c"), warm_mix),
-		Color("#d6e9f5").lerp(Color("#ffd2bc"), warm_mix),
-	]
-	var band_h: float = 136.0 / float(sky_bands.size())
-	for bi: int in range(sky_bands.size()):
-		draw_rect(Rect2(0.0, float(bi) * band_h, MAP_SIZE.x, band_h + 1.5), sky_bands[bi])
+	_draw_biome_layers(SNOW_SKY, SNOW_RIDGES, SNOW_GROUND, _snow_shape, _snow_uv, danger)
+	draw_polyline(_snow_trail, Color("#719dbf", 0.45), 7.0)
+	draw_polyline(_snow_trail, Color("#dbf3ff", 0.64), 3.0)
 
-	# Aurora boreal sutil ondulando no céu polar.
-	for au_i: int in range(22):
-		var ax: float = 28.0 + float(au_i) * 14.0
-		var wave: float = sin(_meteor_anim_t * 1.1 + float(au_i) * 0.42) * 5.0
-		var ay: float = 16.0 + wave
-		var au_a: float = (0.14 + 0.08 * sin(_meteor_anim_t * 1.7 + float(au_i) * 0.6)) * (1.0 - danger * 0.45)
-		draw_rect(Rect2(ax, ay, 11.0, 12.0), Color(0.45, 0.95, 0.84, au_a))
-		draw_rect(Rect2(ax + 3.0, ay - 5.0, 8.0, 7.0), Color(0.64, 0.72, 1.0, au_a * 0.75))
-
-	# 2. Meteoro distante atrás dos picos nevados.
-	_draw_background_meteor(danger)
-
-	# 3. Picos alpinos recortados e geleiras ao fundo.
-	var peak_shade: Color = Color("#48668a").lerp(Color("#7c5d69"), danger * 0.45)
-	var peak_lit: Color = Color("#cfe5f5").lerp(Color("#f2cec4"), danger * 0.42)
-	var peaks := PackedVector2Array([
-		Vector2(0.0, 106.0), Vector2(36.0, 68.0), Vector2(78.0, 88.0), Vector2(126.0, 48.0),
-		Vector2(174.0, 84.0), Vector2(228.0, 58.0), Vector2(278.0, 86.0), Vector2(338.0, 44.0),
-		Vector2(394.0, 78.0), Vector2(442.0, 56.0), Vector2(480.0, 74.0),
-		Vector2(480.0, 145.0), Vector2(0.0, 145.0),
-	])
-	draw_colored_polygon(peaks, peak_shade)
-
-	# Faces nevadas iluminadas em cada pico.
-	var summits: Array[Vector2] = [
-		Vector2(36.0, 68.0), Vector2(126.0, 48.0), Vector2(228.0, 58.0),
-		Vector2(338.0, 44.0), Vector2(442.0, 56.0),
-	]
-	for sm: Vector2 in summits:
-		var snow_face := PackedVector2Array([
-			sm, sm + Vector2(22.0, 26.0), sm + Vector2(4.0, 18.0), sm + Vector2(-8.0, 22.0),
-		])
-		draw_colored_polygon(snow_face, peak_lit)
-
-	# Pinheiros nevados na base das montanhas.
-	var pine_col: Color = Color("#284357")
-	var pine_snow: Color = Color("#e3f2fc")
-	for pi: int in range(15):
-		var px: float = 18.0 + float(pi) * 30.0
-		var py: float = 122.0 + sin(float(pi) * 1.3) * 4.0
-		var tree := PackedVector2Array([
-			Vector2(px, py - 18.0), Vector2(px + 8.0, py + 4.0), Vector2(px - 8.0, py + 4.0),
-		])
-		draw_colored_polygon(tree, pine_col)
-		var cap := PackedVector2Array([
-			Vector2(px, py - 18.0), Vector2(px + 4.5, py - 8.0), Vector2(px - 4.5, py - 8.0),
-		])
-		draw_colored_polygon(cap, pine_snow)
-
-	# 4. Planalto de neve ampla e caminhável.
-	var snow_base: Color = Color("#dcebf6").lerp(Color("#f0d8cf"), danger * 0.28)
-	draw_colored_polygon(_snow_shape, snow_base)
-	draw_polyline(PackedVector2Array(SNOW_TERRAIN_TOP), Color("#6c95b8", 0.75), 2.5)
-	draw_polyline(PackedVector2Array(SNOW_TERRAIN_TOP), Color("#f4fbff", 0.90), 1.3)
-
-	# Ondulações de neve, reflexos cristalinos e riacho congelado.
-	draw_rect(Rect2(12.0, 136.0, 120.0, 8.0), Color("#eef7fe", 0.72))
-	draw_rect(Rect2(292.0, 130.0, 134.0, 9.0), Color("#eef7fe", 0.72))
-	draw_rect(Rect2(36.0, 182.0, 150.0, 12.0), Color("#b4cfe4", 0.55))
-	draw_rect(Rect2(280.0, 180.0, 148.0, 12.0), Color("#b4cfe4", 0.55))
-
-	# Riacho de gelo azul-cristalino cruzando o vale inferior.
-	var creek := PackedVector2Array([
-		Vector2(174.0, 137.0), Vector2(218.0, 156.0), Vector2(248.0, 182.0), Vector2(236.0, 206.0),
-		Vector2(212.0, 206.0), Vector2(222.0, 182.0), Vector2(194.0, 158.0), Vector2(158.0, 137.0),
-	])
-	draw_colored_polygon(creek, Color("#7eb7dc", 0.76))
-	draw_line(Vector2(176.0, 144.0), Vector2(218.0, 168.0), Color("#dcf6ff", 0.75), 1.5)
-	draw_line(Vector2(224.0, 178.0), Vector2(220.0, 198.0), Color("#eefaff", 0.65), 1.5)
-
-	# Trilha compactada na neve vinda da Bacia do Âmbar à esquerda.
-	draw_polyline(_snow_trail, Color("#88acc7", 0.55), 8.5)
-	draw_polyline(_snow_trail, Color("#bcd7ea", 0.85), 5.5)
-	draw_polyline(_snow_trail, Color("#e8f5fd", 0.72), 2.2)
-
-	# Rochas geladas e cristais de gelo no terreno.
-	var ice_nodes: Array[Vector2] = [
-		Vector2(56.0, 174.0), Vector2(106.0, 140.0), Vector2(276.0, 142.0),
-		Vector2(382.0, 184.0), Vector2(414.0, 142.0),
-	]
-	for ic: Vector2 in ice_nodes:
-		draw_rect(Rect2(ic.x - 4.0, ic.y, 9.0, 3.0), Color("#6288ab"))
-		draw_rect(Rect2(ic.x - 3.0, ic.y - 2.0, 6.0, 3.0), Color("#a8d6f0"))
-		draw_rect(Rect2(ic.x - 2.0, ic.y - 3.0, 3.0, 2.0), Color("#f4fbff"))
-
-	# Corte geológico glacial inferior.
-	draw_rect(Rect2(0.0, 207.0, MAP_SIZE.x, 4.0), Color("#94bedb"))
-	draw_rect(Rect2(0.0, 211.0, MAP_SIZE.x, 9.0), Color("#5888af"))
-	draw_rect(Rect2(0.0, 220.0, MAP_SIZE.x, 10.0), Color("#324968"))
-	draw_rect(Rect2(0.0, 230.0, MAP_SIZE.x, 10.0), Color("#1f273e"))
-	for seg_i: int in range(15):
-		var sx: float = float(seg_i) * 34.0
-		draw_rect(Rect2(sx + 6.0, 211.0, 10.0, 2.0), Color("#cde9fa", 0.65))
-		draw_rect(Rect2(sx + 14.0, 223.0, 6.0, 2.0), Color("#8be2ff", 0.50) if seg_i % 2 == 0 else Color("#466487"))
-
-	# 5. Barreira fechada à direita: paredão monumental de geleira cristalina.
-	var glacier_wall := PackedVector2Array([
-		Vector2(458.0, 0.0), Vector2(480.0, 0.0), Vector2(480.0, 216.0),
-		Vector2(442.0, 210.0), Vector2(448.0, 178.0), Vector2(454.0, 140.0),
-		Vector2(450.0, 96.0), Vector2(458.0, 52.0),
-	])
-	draw_colored_polygon(glacier_wall, Color("#5684ab"))
-	var glacier_facet := PackedVector2Array([
-		Vector2(458.0, 12.0), Vector2(474.0, 0.0), Vector2(474.0, 206.0),
-		Vector2(452.0, 198.0), Vector2(458.0, 146.0), Vector2(455.0, 94.0),
-	])
-	draw_colored_polygon(glacier_facet, Color("#93c8e8"))
-	var glacier_rim := PackedVector2Array([
-		Vector2(458.0, 0.0), Vector2(458.0, 52.0), Vector2(450.0, 96.0),
-		Vector2(454.0, 140.0), Vector2(448.0, 178.0), Vector2(442.0, 210.0),
-	])
-	draw_polyline(glacier_rim, INK, 1.8)
-	draw_line(Vector2(461.0, 18.0), Vector2(458.0, 186.0), Color("#e8f8ff", 0.72), 1.5)
-
-	# Flocos de neve caindo suavemente e brilhos de gelo.
+	# Flocos sobre as camadas, inclusive diante da montanha.
 	for fl_i: int in range(14):
 		var seed_f: float = float(fl_i) * 2.17
 		var fx: float = fposmod(seed_f * 37.0 + sin(_meteor_anim_t * 1.4 + seed_f) * 9.0, 444.0) + 10.0
@@ -499,11 +368,26 @@ func _draw_snow(danger: float) -> void:
 		var fsz: float = 1.5 if fl_i % 2 == 0 else 1.0
 		draw_rect(Rect2(roundf(fx), roundf(fy), fsz, fsz), Color(0.96, 0.99, 1.0, 0.68))
 
-	# 6. Placa de passagem à esquerda de volta para a Bacia do Âmbar.
 	_draw_edge_marker("◀ Bacia do Âmbar", Vector2(10.0, 152.0), true, Color("#3a2822"), Color("#edaa48"), Color("#fff3cf"))
 
 
-## Desenha uma placa sutil em pixel art nas bordas laterais para sinalizar passagem entre biomas.
+func _draw_biome_layers(
+		sky: Texture2D,
+		ridges: Texture2D,
+		ground: Texture2D,
+		shape: PackedVector2Array,
+		uv: PackedVector2Array,
+		danger: float
+) -> void:
+	var horizon_tint: Color = Color.WHITE.lerp(Color("#ffb58e"), danger * 0.7)
+	draw_texture_rect(sky, BIOME_HORIZON_RECT, false, horizon_tint)
+	_draw_background_meteor(danger)
+	draw_texture_rect(ridges, BIOME_HORIZON_RECT, false, horizon_tint)
+	var ground_tint: Color = Color.WHITE.lerp(Color("#ffd1b0"), danger * 0.55)
+	draw_colored_polygon(shape, ground_tint, uv, ground)
+
+
+## Registra uma placa sutil nas bordas laterais para desenho nítido no EdgeMarkersOverlay.
 func _draw_edge_marker(
 		label_text: String,
 		map_anchor: Vector2,
@@ -512,34 +396,53 @@ func _draw_edge_marker(
 		border_col: Color,
 		text_col: Color
 ) -> void:
+	_pending_edge_markers.append({
+		"label_text": label_text,
+		"map_anchor": map_anchor,
+		"align_left": align_left,
+		"bg_col": bg_col,
+		"border_col": border_col,
+		"text_col": text_col,
+	})
+
+
+func _on_edge_overlay_draw() -> void:
+	if _edge_overlay == null:
+		return
 	var font: Font = ThemeDB.fallback_font
 	if font == null:
 		return
 	var scale_v: Vector2 = size / MAP_SIZE
 	var bob: float = sin(_meteor_anim_t * 3.0) * 2.5
-	var anchor_px: Vector2 = Vector2(map_anchor.x * scale_v.x, map_anchor.y * scale_v.y)
-	var font_sz: int = clampi(roundi(11.0 + scale_v.y * 0.75), 12, 16)
-	var text_sz: Vector2 = font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_sz)
-	var pad_x: float = 10.0
-	var pad_y: float = 5.0
-	var box_w: float = text_sz.x + pad_x * 2.0
-	var box_h: float = text_sz.y + pad_y * 2.0
-	var box_x: float = clampf(
-		(anchor_px.x + bob) if align_left else (anchor_px.x - box_w - bob),
-		8.0,
-		maxf(size.x - box_w - 8.0, 8.0),
-	)
-	var box_y: float = clampf(anchor_px.y - box_h * 0.5, 8.0, maxf(size.y - box_h - 8.0, 8.0))
+	for entry: Dictionary in _pending_edge_markers:
+		var label_text: String = String(entry["label_text"])
+		var map_anchor: Vector2 = entry["map_anchor"] as Vector2
+		var align_left: bool = bool(entry["align_left"])
+		var bg_col: Color = entry["bg_col"] as Color
+		var border_col: Color = entry["border_col"] as Color
+		var text_col: Color = entry["text_col"] as Color
 
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	var rect := Rect2(roundf(box_x), roundf(box_y), roundf(box_w), roundf(box_h))
-	draw_rect(Rect2(rect.position + Vector2(0.0, 2.0), rect.size), Color(0.08, 0.05, 0.06, 0.45))
-	draw_rect(rect, Color(bg_col.r, bg_col.g, bg_col.b, 0.88))
-	draw_rect(rect, Color(border_col.r, border_col.g, border_col.b, 0.92), false, 2.0)
-	var text_pos := Vector2(rect.position.x + pad_x, rect.position.y + pad_y + font.get_ascent(font_sz) - 1.0)
-	draw_string_outline(font, text_pos, label_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_sz, 3, INK)
-	draw_string(font, text_pos, label_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_sz, text_col)
-	draw_set_transform(Vector2.ZERO, 0.0, scale_v)
+		var anchor_px: Vector2 = Vector2(map_anchor.x * scale_v.x, map_anchor.y * scale_v.y)
+		var font_sz: int = clampi(roundi(11.0 + scale_v.y * 0.75), 12, 16)
+		var text_sz: Vector2 = font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_sz)
+		var pad_x: float = 10.0
+		var pad_y: float = 5.0
+		var box_w: float = text_sz.x + pad_x * 2.0
+		var box_h: float = text_sz.y + pad_y * 2.0
+		var box_x: float = clampf(
+			(anchor_px.x + bob) if align_left else (anchor_px.x - box_w - bob),
+			8.0,
+			maxf(size.x - box_w - 8.0, 8.0),
+		)
+		var box_y: float = clampf(anchor_px.y - box_h * 0.5, 8.0, maxf(size.y - box_h - 8.0, 8.0))
+
+		var rect := Rect2(roundf(box_x), roundf(box_y), roundf(box_w), roundf(box_h))
+		_edge_overlay.draw_rect(Rect2(rect.position + Vector2(0.0, 2.0), rect.size), Color(0.08, 0.05, 0.06, 0.45))
+		_edge_overlay.draw_rect(rect, Color(bg_col.r, bg_col.g, bg_col.b, 0.88))
+		_edge_overlay.draw_rect(rect, Color(border_col.r, border_col.g, border_col.b, 0.92), false, 2.0)
+		var text_pos := Vector2(rect.position.x + pad_x, rect.position.y + pad_y + font.get_ascent(font_sz) - 1.0)
+		_edge_overlay.draw_string_outline(font, text_pos, label_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_sz, 3, INK)
+		_edge_overlay.draw_string(font, text_pos, label_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_sz, text_col)
 
 
 func _draw_background_meteor(danger: float) -> void:

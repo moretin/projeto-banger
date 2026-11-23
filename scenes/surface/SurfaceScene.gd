@@ -2,12 +2,14 @@ class_name SurfaceScene
 extends Control
 
 const LANDMARK: Script = preload("res://scenes/surface/FieldLandmark.gd")
+const WORKBENCH_ICONS: Script = preload("res://scenes/ui/WorkbenchIcons.gd")
 # Coordenadas dos pés de cada marco no atlas de 480 × 240 por bioma.
 const BIOME_SITES: Dictionary = {
 	&"amber_basin": {
 		&"rubble_forge": Vector2(58, 134),
 		&"rubble_nest": Vector2(158, 168),
 		&"egg": Vector2(238, 142),
+		&"ark": Vector2(308, 196),
 		&"rubble_silo": Vector2(318, 128),
 		&"rubble_bunker": Vector2(416, 148),
 	},
@@ -24,6 +26,7 @@ const SITES: Dictionary = {
 	&"rubble_forge": Vector2(58, 134),
 	&"rubble_nest": Vector2(158, 168),
 	&"egg": Vector2(238, 142),
+	&"ark": Vector2(308, 196),
 	&"rubble_silo": Vector2(318, 128),
 	&"rubble_bunker": Vector2(416, 148),
 	&"forest_grove": Vector2(142, 152),
@@ -36,6 +39,7 @@ const WORKBENCH_TOOLTIPS: Dictionary = {
 	&"rubble_nest": "Upgrades do Pesqueiro",
 	&"rubble_silo": "Upgrades da Torre dos Ventos",
 	&"rubble_bunker": "Universidade & Reviver",
+	&"ark": "Arca dos Vivos",
 	&"forest_grove": "Upgrades do Bosque",
 	&"forest_sanctuary": "Upgrades da Clareira",
 	&"snow_glacier": "Upgrades da Geleira",
@@ -53,13 +57,18 @@ const FALLBACK_MIN_Y: float = 132.0
 const FALLBACK_MAX_Y: float = 204.0
 const BIOME_FADE_DURATION: float = 0.18
 const MAX_FLOATING_LABELS: int = 24
+const ITEM_QUARRY_EXTRACT: StringName = &"__quarry_extract"
+const ITEM_AWAKEN_ANKYLO: StringName = &"__awaken_ankylo"
+const ITEM_ARK_MODULE_HULL: StringName = &"__ark_module_hull"
+const ITEM_ARK_COMPANIONS: StringName = &"__ark_companions"
+const ITEM_ARK_LAUNCH: StringName = &"__ark_launch"
 const ITEM_BUILD_STATION: StringName = &"__build_station"
 const ITEM_HIRE_WORKER: StringName = &"__hire_worker"
 const ITEM_EXPAND_STATION: StringName = &"__expand_station"
 const STATION_REVIVE_ITEM: StringName = &"__revive_station_dino"
 const REVIVE_ORIGIN_PREFIX: String = "__revive_origin:"
 const INFO_CARD_KEY: StringName = &"__info_notice"
-const DIMMED_MODULATE: Color = Color(0.58, 0.56, 0.54, 0.68)
+const DIMMED_MODULATE: Color = Color(0.84, 0.89, 0.86, 1.0)
 
 
 class HeroAvatar:
@@ -162,7 +171,9 @@ class CardRow:
 
 @onready var _map: Control = %Map
 @onready var _basin_name: Label = $Map/BasinName
+@onready var _camp_goal: Label = $Map/Camp
 @onready var _biome_fade: ColorRect = %BiomeFade
+@onready var _quarry_modal: QuarryExtractionModal = %QuarryExtractionModal
 @onready var _dock: PanelContainer = %Dock
 @onready var _site_name: Label = %SiteName
 @onready var _stock: Label = %Stock
@@ -188,16 +199,6 @@ var _active_fossil_bar: ProgressBar = null
 var _active_fossil_status: Label = null
 var _emitting_buy_item_id: StringName = &""
 
-var _style_card_active: StyleBoxFlat = null
-var _style_card_highlight: StyleBoxFlat = null
-var _style_card_dimmed: StyleBoxFlat = null
-var _style_icon_slot: StyleBoxFlat = null
-var _style_fossil_bar_bg: StyleBoxFlat = null
-var _style_fossil_bar_fill: StyleBoxFlat = null
-var _style_tab_normal: StyleBoxFlat = null
-var _style_tab_hover: StyleBoxFlat = null
-var _style_tab_pressed: StyleBoxFlat = null
-var _style_tab_focus: StyleBoxFlat = null
 
 var _hero_avatar: HeroAvatar = null
 var _hero_map_pos: Vector2 = Vector2(238.0, 158.0)
@@ -213,7 +214,6 @@ var _biome_fade_tween: Tween = null
 
 func _ready() -> void:
 	_ensure_input_actions()
-	_init_card_styles()
 	for id: Variant in SITES:
 		var spot: FieldLandmark = LANDMARK.new() as FieldLandmark
 		spot.station = StringName(id)
@@ -244,78 +244,32 @@ func _ready() -> void:
 	Events.orange_rock_broken.connect(_on_orange_rock_broken)
 	Events.loot_dropped.connect(_on_loot_dropped)
 	Events.fragment_dropped.connect(_on_fragment_dropped)
+	Events.quarry_vein_opened.connect(_on_quarry_vein_opened)
+	Events.ark_module_built.connect(_on_ark_module_built)
+	Events.fossil_found.connect(_queue_refresh.unbind(2))
+	Events.prestige_completed.connect(_queue_refresh.unbind(2))
+	Events.prestige_modal_visibility_changed.connect(_on_prestige_modal_visibility_changed)
 	Events.run_started.connect(_reset_visit.unbind(1))
 	Events.game_loaded.connect(_reset_visit)
+	if _quarry_modal != null:
+		_quarry_modal.visibility_changed.connect(_on_quarry_modal_visibility_changed)
 	_layout_landmarks()
 	_reset_visit()
 	_grab_current_biome_focus.call_deferred()
 
 
-func _init_card_styles() -> void:
-	_style_card_active = StyleBoxFlat.new()
-	_style_card_active.bg_color = Color(0.20, 0.185, 0.275, 0.94)
-	_style_card_active.border_color = Color(0.68, 0.50, 0.28, 0.85)
-	_style_card_active.set_border_width_all(1)
-	_style_card_active.set_corner_radius_all(6)
-
-	_style_card_highlight = StyleBoxFlat.new()
-	_style_card_highlight.bg_color = Color(0.24, 0.20, 0.26, 0.96)
-	_style_card_highlight.border_color = Color(0.96, 0.76, 0.32, 0.95)
-	_style_card_highlight.set_border_width_all(2)
-	_style_card_highlight.set_corner_radius_all(6)
-
-	_style_card_dimmed = StyleBoxFlat.new()
-	_style_card_dimmed.bg_color = Color(0.115, 0.110, 0.150, 0.80)
-	_style_card_dimmed.border_color = Color(0.32, 0.30, 0.34, 0.55)
-	_style_card_dimmed.set_border_width_all(1)
-	_style_card_dimmed.set_corner_radius_all(6)
-
-	_style_icon_slot = StyleBoxFlat.new()
-	_style_icon_slot.bg_color = Color(0.26, 0.18, 0.11, 0.95)
-	_style_icon_slot.border_color = Color(0.84, 0.62, 0.34, 0.90)
-	_style_icon_slot.set_border_width_all(1)
-	_style_icon_slot.set_corner_radius_all(5)
-
-	_style_fossil_bar_bg = StyleBoxFlat.new()
-	_style_fossil_bar_bg.bg_color = Color(0.10, 0.08, 0.12, 0.95)
-	_style_fossil_bar_bg.border_color = Color(0.60, 0.44, 0.22, 0.90)
-	_style_fossil_bar_bg.set_border_width_all(1)
-	_style_fossil_bar_bg.set_corner_radius_all(4)
-
-	_style_fossil_bar_fill = StyleBoxFlat.new()
-	_style_fossil_bar_fill.bg_color = Color(0.95, 0.72, 0.24, 0.98)
-	_style_fossil_bar_fill.set_corner_radius_all(3)
-
-	_style_tab_normal = StyleBoxFlat.new()
-	_style_tab_normal.bg_color = Color("#f3e6cc")
-	_style_tab_normal.border_color = Color("#261820")
-	_style_tab_normal.set_border_width_all(2)
-	_style_tab_normal.set_corner_radius_all(6)
-	_style_tab_normal.shadow_color = Color(0.0, 0.0, 0.0, 0.28)
-	_style_tab_normal.shadow_size = 2
-	_style_tab_normal.shadow_offset = Vector2(0.0, 2.0)
-
-	_style_tab_hover = StyleBoxFlat.new()
-	_style_tab_hover.bg_color = Color("#fff3d4")
-	_style_tab_hover.border_color = Color("#261820")
-	_style_tab_hover.set_border_width_all(2)
-	_style_tab_hover.set_corner_radius_all(6)
-
-	_style_tab_pressed = StyleBoxFlat.new()
-	_style_tab_pressed.bg_color = Color("#ffd67a")
-	_style_tab_pressed.border_color = Color("#261820")
-	_style_tab_pressed.set_border_width_all(2)
-	_style_tab_pressed.set_corner_radius_all(6)
-
-	_style_tab_focus = StyleBoxFlat.new()
-	_style_tab_focus.bg_color = Color(0.0, 0.0, 0.0, 0.0)
-	_style_tab_focus.border_color = Color("#1488ff")
-	_style_tab_focus.set_border_width_all(2)
-	_style_tab_focus.set_corner_radius_all(6)
+func _is_gameplay_input_blocked() -> bool:
+	return (
+		not is_visible_in_tree()
+		or GameState.is_impacting
+		or GameState.is_prestige_modal_open
+		or (_quarry_modal != null and _quarry_modal.is_extraction_open())
+	)
 
 
 func _process(delta: float) -> void:
-	if not is_visible_in_tree() or GameState.is_impacting or GameState.is_prestige_modal_open:
+	if _is_gameplay_input_blocked():
+		_hero_walking = false
 		return
 	var dir: Vector2 = Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
 	if dir.length_squared() > 0.001:
@@ -329,13 +283,28 @@ func _process(delta: float) -> void:
 		_update_university_live_ui()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if _is_gameplay_input_blocked():
+		return
+	var ek: InputEventKey = event as InputEventKey
+	if ek != null and ek.pressed and not ek.echo:
+		if ek.ctrl_pressed and ek.shift_pressed and (ek.physical_keycode == KEY_M or ek.keycode == KEY_M):
+			GameState.fast_forward_meteor_to(3.0)
+			Events.notification_requested.emit("☄️ Teste rápido: meteoro acelerado para 3s!", AmberTheme.get_icon(&"meteor"))
+			var vp: Viewport = get_viewport()
+			if vp != null:
+				vp.set_input_as_handled()
+
+
 func _unhandled_key_input(event: InputEvent) -> void:
-	if not is_visible_in_tree() or GameState.is_impacting or GameState.is_prestige_modal_open:
+	if _is_gameplay_input_blocked():
 		return
 	var ek: InputEventKey = event as InputEventKey
 	if ek != null and ek.pressed and not ek.echo and ek.physical_keycode == KEY_E:
 		_on_field_action_pressed()
-		get_viewport().set_input_as_handled()
+		var vp: Viewport = get_viewport()
+		if vp != null:
+			vp.set_input_as_handled()
 
 
 static func _ensure_input_actions() -> void:
@@ -447,8 +416,9 @@ func move_hero_to_station(station: StringName) -> void:
 	if station == &"egg":
 		_reset_visit()
 	else:
-		if GameState.hero_station != station:
-			GameState.set_hero_station(station)
+		var hero_st: StringName = station if GameState.RUBBLE_DEFS.has(station) else &""
+		if GameState.hero_station != hero_st:
+			GameState.set_hero_station(hero_st)
 		if _site != station:
 			_visit(station)
 
@@ -554,7 +524,7 @@ func _play_biome_fade(biome: StringName) -> void:
 
 
 func _restore_focus_if_cleared() -> void:
-	if not is_visible_in_tree() or GameState.is_prestige_modal_open:
+	if not is_visible_in_tree() or GameState.is_prestige_modal_open or (_quarry_modal != null and _quarry_modal.is_extraction_open()):
 		return
 	var vp: Viewport = get_viewport()
 	if vp != null and vp.gui_get_focus_owner() == null:
@@ -584,6 +554,12 @@ func _on_landmark_clicked(id: StringName) -> void:
 		_sync_hero_avatar()
 		_refresh()
 		return
+	if id == GameState.ARK_SITE_ID:
+		if not GameState.orange_rock_broken:
+			Events.notification_requested.emit("Choque o Ovo de Âmbar primeiro!", null)
+		elif _site != id:
+			Events.notification_requested.emit("Caminhe com WASD até Arca dos Vivos para abrir a bancada!", null)
+		return
 	if not GameState.RUBBLE_DEFS.has(id):
 		return
 	# Não teleporta o dinossauro nem abre upgrades à distância ao clicar na estrutura.
@@ -597,8 +573,9 @@ func _on_landmark_clicked(id: StringName) -> void:
 func _update_hero_proximity() -> void:
 	var nearest: StringName = _find_nearest_station(_hero_map_pos)
 	if nearest != &"":
-		if GameState.hero_station != nearest:
-			GameState.set_hero_station(nearest)
+		var hero_st: StringName = nearest if GameState.RUBBLE_DEFS.has(nearest) else &""
+		if GameState.hero_station != hero_st:
+			GameState.set_hero_station(hero_st)
 		if _site != nearest:
 			_visit(nearest)
 	else:
@@ -616,7 +593,10 @@ func _update_hero_proximity() -> void:
 func _find_nearest_station(map_pos: Vector2) -> StringName:
 	var best_id: StringName = &""
 	var best_dist: float = PROXIMITY_RADIUS
-	for id: StringName in GameState.get_stations_for_biome(GameState.current_biome):
+	var candidates: Array[StringName] = GameState.get_stations_for_biome(GameState.current_biome)
+	if GameState.current_biome == GameState.BIOME_AMBER:
+		candidates.append(GameState.ARK_SITE_ID)
+	for id: StringName in candidates:
 		if not SITES.has(id):
 			continue
 		var dist: float = map_pos.distance_to(SITES[id] as Vector2)
@@ -649,10 +629,16 @@ func _layout_landmarks() -> void:
 	for id: Variant in _landmarks:
 		var button: Control = _landmarks[id] as Control
 		var foot: Vector2 = (SITES[id] as Vector2) / Vector2(480.0, 240.0) * _map.size
-		var width: float = _map.size.x * (0.13 if id == &"egg" else 0.187)
-		var art_height: float = minf(width * 0.76, _map.size.y * 0.30)
-		button.size = Vector2(width, art_height + 35.0)
-		button.position = (foot - Vector2(width * 0.5, art_height * 0.92)).round()
+		if id == GameState.ARK_SITE_ID:
+			var width: float = _map.size.x * 0.145
+			var art_height: float = minf(width * 0.65, _map.size.y * 0.22)
+			button.size = Vector2(width, art_height + 35.0)
+			button.position = (foot - Vector2(width * 0.5, art_height * 0.88)).round()
+		else:
+			var width: float = _map.size.x * (0.13 if id == &"egg" else 0.187)
+			var art_height: float = minf(width * 0.76, _map.size.y * 0.30)
+			button.size = Vector2(width, art_height + 35.0)
+			button.position = (foot - Vector2(width * 0.5, art_height * 0.92)).round()
 	_sync_hero_avatar()
 	_position_floating_bench()
 
@@ -725,14 +711,17 @@ func _build_groups() -> void:
 	_add_group(&"site", _get_tab_tooltip(_site, &"site"))
 	if _site == &"rubble_bunker":
 		_add_group(&"fossils", _get_tab_tooltip(_site, &"fossils"))
-	_add_group(&"upgrades", _get_tab_tooltip(_site, &"upgrades"))
-	if _site == &"rubble_bunker":
+	if _site != GameState.ARK_SITE_ID:
+		_add_group(&"upgrades", _get_tab_tooltip(_site, &"upgrades"))
+	if _site == &"rubble_bunker" or _site == GameState.ARK_SITE_ID:
 		_add_group(&"amber", _get_tab_tooltip(_site, &"amber"))
 
 
 func _get_tab_icon_key(station: StringName, section: StringName) -> StringName:
 	match section:
 		&"site":
+			if station == GameState.ARK_SITE_ID:
+				return &"ark"
 			return &"site"
 		&"fossils":
 			return &"fossils"
@@ -758,6 +747,8 @@ func _get_tab_icon_key(station: StringName, section: StringName) -> StringName:
 func _get_tab_tooltip(station: StringName, section: StringName) -> String:
 	match section:
 		&"site":
+			if station == GameState.ARK_SITE_ID:
+				return "Arca dos Vivos"
 			return "Estrutura & Equipe"
 		&"fossils":
 			var raw_cnt: int = GameState.raw_fossil_queue.size()
@@ -776,13 +767,9 @@ func _add_group(id: StringName, tooltip: String) -> void:
 	button.tooltip_text = tooltip
 	button.accessibility_name = tooltip
 	button.toggle_mode = true
-	button.custom_minimum_size = Vector2(56.0, 38.0)
+	button.theme_type_variation = &"BenchTab"
+	button.custom_minimum_size = Vector2(56.0, 36.0)
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	button.add_theme_stylebox_override("normal", _style_tab_normal)
-	button.add_theme_stylebox_override("hover", _style_tab_hover)
-	button.add_theme_stylebox_override("pressed", _style_tab_pressed)
-	button.add_theme_stylebox_override("hover_pressed", _style_tab_pressed)
-	button.add_theme_stylebox_override("focus", _style_tab_focus)
 	button.pressed.connect(_select_section.bind(id))
 
 	var content: HBoxContainer = HBoxContainer.new()
@@ -835,11 +822,25 @@ func _update_group_labels() -> void:
 
 
 func _has_affordable_item_in_section(station: StringName, section: StringName) -> bool:
-	if station == &"" or not GameState.RUBBLE_DEFS.has(station):
+	if station == &"":
+		return false
+	if station == GameState.ARK_SITE_ID:
+		match section:
+			&"site":
+				return GameState.can_build_ark_module(GameState.ARK_MODULE_HULL) or GameState.can_activate_ark_victory()
+			&"amber":
+				for upg: UpgradeData in GameState.get_upgrades_by_category(UpgradeData.Category.AMBER):
+					var lvl: int = GameState.get_upgrade_level(upg.id)
+					if not upg.is_maxed(lvl) and GameState.is_upgrade_unlocked(upg.id) and GameState.can_purchase_upgrade(upg.id):
+						return true
+		return false
+	if not GameState.RUBBLE_DEFS.has(station):
 		return false
 	var def: Dictionary = GameState.RUBBLE_DEFS[station] as Dictionary
 	match section:
 		&"site":
+			if station == &"rubble_forge" and (GameState.is_quarry_extraction_available() or GameState.can_awaken_quarry_ankylosaurus()):
+				return true
 			if GameState.can_rebuild_rubble(station):
 				return true
 			if GameState.can_hire_station_worker(station):
@@ -909,8 +910,40 @@ func _clear_cards() -> void:
 	_active_fossil_status = null
 
 
+func _update_campaign_goal_banner() -> void:
+	if _camp_goal != null:
+		_camp_goal.text = GameState.get_campaign_next_goal_text()
+
+
+func _on_quarry_vein_opened() -> void:
+	if _landmarks.has(&"rubble_forge"):
+		(_landmarks[&"rubble_forge"] as FieldLandmark).pulse = 1.0
+	_queue_refresh()
+
+
+func _on_ark_module_built(_module_id: StringName, _total_modules: int) -> void:
+	if _landmarks.has(GameState.ARK_SITE_ID):
+		(_landmarks[GameState.ARK_SITE_ID] as FieldLandmark).pulse = 1.0
+	_queue_refresh()
+
+
+func _on_quarry_modal_visibility_changed() -> void:
+	if _quarry_modal != null and _quarry_modal.is_extraction_open():
+		_hero_walking = false
+		_sync_hero_avatar()
+	else:
+		_queue_refresh()
+		_restore_focus_if_cleared()
+
+
+func _on_prestige_modal_visibility_changed(is_open: bool) -> void:
+	if not is_open:
+		_restore_focus_if_cleared()
+
+
 func _refresh() -> void:
 	_refresh_pending = false
+	_update_campaign_goal_banner()
 	for key: Variant in _landmarks:
 		var spot: FieldLandmark = _landmarks[key] as FieldLandmark
 		spot.selected = (key == _site or key == GameState.hero_station)
@@ -924,7 +957,7 @@ func _refresh() -> void:
 
 	_update_header_text()
 	_update_group_labels()
-	_quantity.visible = (_section != &"fossils")
+	_quantity.visible = (_section != &"fossils" and not (_site == GameState.ARK_SITE_ID and _section == &"site"))
 	_quantity.text = "Lote ×%d" % GameState.buy_multiplier if GameState.buy_multiplier > 0 else "Lote máx."
 
 	_sync_section_cards()
@@ -933,6 +966,14 @@ func _refresh() -> void:
 
 
 func _update_header_text() -> void:
+	if _site == GameState.ARK_SITE_ID:
+		_site_name.text = "Arca dos Vivos"
+		_stock.text = "Bando: %d/8 · Módulos: %d · Impacto: +%s Âmbar" % [
+			GameState.get_rescued_companion_count(),
+			GameState.get_ark_built_module_count(),
+			GameState.format_number(GameState.calculate_amber_reward()),
+		]
+		return
 	var def: Dictionary = GameState.RUBBLE_DEFS[_site] as Dictionary
 	var product: StringName = StringName(def["product"])
 	var is_built: bool = GameState.is_station_built(_site)
@@ -973,9 +1014,25 @@ func _update_header_text() -> void:
 
 func _collect_section_items() -> Array[StringName]:
 	var out: Array[StringName] = []
+	if _site == GameState.ARK_SITE_ID:
+		if _section == &"site":
+			out.append(ITEM_ARK_MODULE_HULL)
+			out.append(ITEM_ARK_COMPANIONS)
+			out.append(ITEM_ARK_LAUNCH)
+		elif _section == &"amber":
+			for upgrade: UpgradeData in GameState.get_upgrades_by_category(UpgradeData.Category.AMBER):
+				var lvl: int = GameState.get_upgrade_level(upgrade.id)
+				if upgrade.is_maxed(lvl) or GameState.is_upgrade_unlocked(upgrade.id):
+					out.append(upgrade.id)
+		return out
 	var def: Dictionary = GameState.RUBBLE_DEFS[_site] as Dictionary
 	match _section:
 		&"site":
+			if _site == &"rubble_forge":
+				if GameState.is_quarry_extraction_available():
+					out.append(ITEM_QUARRY_EXTRACT)
+				elif GameState.can_awaken_quarry_ankylosaurus():
+					out.append(ITEM_AWAKEN_ANKYLO)
 			out.append(ITEM_BUILD_STATION)
 			if GameState.is_station_built(_site):
 				out.append(ITEM_HIRE_WORKER)
@@ -1101,7 +1158,7 @@ func _create_action_card(item_id: StringName) -> CardRow:
 	var safe_name: String = String(item_id).replace(":", "_")
 	panel.name = "Card_%s" % safe_name
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", _style_card_active)
+	panel.theme_type_variation = &"BenchCard"
 	panel.set_meta(&"item_id", item_id)
 	panel.set_meta(&"is_dimmed", false)
 
@@ -1120,14 +1177,14 @@ func _create_action_card(item_id: StringName) -> CardRow:
 
 	var icon_slot := PanelContainer.new()
 	icon_slot.name = "IconSlot"
-	icon_slot.custom_minimum_size = Vector2(34.0, 34.0)
+	icon_slot.custom_minimum_size = Vector2(48.0, 48.0)
 	icon_slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	icon_slot.add_theme_stylebox_override("panel", _style_icon_slot)
+	icon_slot.theme_type_variation = &"BenchIconTile"
 	hbox.add_child(icon_slot)
 
 	var icon_rect := TextureRect.new()
 	icon_rect.name = "Icon"
-	icon_rect.custom_minimum_size = Vector2(28.0, 28.0)
+	icon_rect.custom_minimum_size = Vector2(38.0, 38.0)
 	icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -1143,15 +1200,15 @@ func _create_action_card(item_id: StringName) -> CardRow:
 
 	var title_lbl := Label.new()
 	title_lbl.name = "Title"
-	title_lbl.add_theme_font_size_override("font_size", 14)
+	title_lbl.add_theme_font_size_override("font_size", 16)
 	title_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	info.add_child(title_lbl)
 
 	var desc_lbl := Label.new()
 	desc_lbl.name = "Description"
 	desc_lbl.custom_minimum_size = Vector2(310.0, 0.0)
-	desc_lbl.add_theme_font_size_override("font_size", 12)
-	desc_lbl.add_theme_color_override("font_color", Color(0.82, 0.80, 0.76, 1.0))
+	desc_lbl.add_theme_font_size_override("font_size", 13)
+	desc_lbl.add_theme_color_override("font_color", Color("#bed0c5"))
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc_lbl.max_lines_visible = 2
 	desc_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -1159,10 +1216,9 @@ func _create_action_card(item_id: StringName) -> CardRow:
 
 	var buy_btn := Button.new()
 	buy_btn.name = "BuyButton"
-	buy_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	buy_btn.custom_minimum_size = Vector2(162.0, 42.0)
 	buy_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	buy_btn.add_theme_font_size_override("font_size", 12)
+	buy_btn.add_theme_font_size_override("font_size", 13)
 	buy_btn.add_theme_constant_override("icon_max_width", 20)
 	buy_btn.pressed.connect(_on_item_buy_pressed.bind(item_id))
 	hbox.add_child(buy_btn)
@@ -1182,14 +1238,14 @@ func _apply_card_visual_state(row: CardRow, dimmed: bool, highlighted: bool = fa
 	row.panel.set_meta(&"is_dimmed", dimmed)
 	if dimmed:
 		row.panel.modulate = DIMMED_MODULATE
-		row.panel.add_theme_stylebox_override("panel", _style_card_dimmed)
+		row.panel.theme_type_variation = &"BenchCompletedCard"
 		row.margin.add_theme_constant_override("margin_top", 4)
 		row.margin.add_theme_constant_override("margin_bottom", 4)
 		row.desc_lbl.max_lines_visible = 1
 		row.buy_btn.custom_minimum_size = Vector2(162.0, 32.0)
 	else:
 		row.panel.modulate = Color.WHITE
-		row.panel.add_theme_stylebox_override("panel", _style_card_highlight if highlighted else _style_card_active)
+		row.panel.theme_type_variation = &"BenchHighlightedCard" if highlighted else &"BenchCard"
 		row.margin.add_theme_constant_override("margin_top", 5)
 		row.margin.add_theme_constant_override("margin_bottom", 5)
 		row.desc_lbl.max_lines_visible = 2
@@ -1234,6 +1290,99 @@ func _get_worker_icon(station: StringName) -> Texture2D:
 
 func _update_action_card(row: CardRow) -> void:
 	var item_id: StringName = row.item_id
+	row.buy_btn.visible = true
+
+	if item_id == ITEM_QUARRY_EXTRACT:
+		var brush_icon: Texture2D = AmberTheme.get_icon(&"brush")
+		_set_card_icon(row, brush_icon)
+		_apply_card_visual_state(row, false, true)
+		row.title_lbl.text = "Jazida Soterrada · Investigar Trinca"
+		row.desc_lbl.text = "Escove a placa (20–40s) + Golpe Preciso para achar o Anquilossauro."
+		row.buy_btn.icon = brush_icon
+		row.buy_btn.text = "Escavar"
+		row.buy_btn.disabled = false
+		row.buy_btn.tooltip_text = "Abrir extração na Jazida da Pedreira"
+		return
+
+	if item_id == ITEM_AWAKEN_ANKYLO:
+		var ankylo_tex: Texture2D = AmberTheme.get_dino_sprite(&"ankylosaurus")
+		var wake_icon: Texture2D = ankylo_tex if ankylo_tex != null else AmberTheme.get_icon(&"fragment")
+		_set_card_icon(row, wake_icon)
+		_apply_card_visual_state(row, false, true)
+		row.title_lbl.text = "Despertar Anquilossauro Blindado"
+		row.desc_lbl.text = "Usa a Placa Especial: derruba a laje e abre o veio de Metal (+×2.5)!"
+		row.buy_btn.icon = wake_icon
+		row.buy_btn.text = "Despertar"
+		row.buy_btn.disabled = false
+		row.buy_btn.tooltip_text = "Despertar o Anquilossauro e abrir o veio de Metal"
+		return
+
+	if item_id == ITEM_ARK_MODULE_HULL:
+		var hull_built: bool = GameState.is_ark_module_built(GameState.ARK_MODULE_HULL)
+		var can_build_hull: bool = GameState.can_build_ark_module(GameState.ARK_MODULE_HULL)
+		var hull_icon: Texture2D = AmberTheme.get_icon(&"shield")
+		_set_card_icon(row, hull_icon if hull_icon != null else AmberTheme.get_tab_icon(&"ark"))
+		row.desc_lbl.text = "+40% Âmbar no impacto e +10% escudo permanente"
+		if hull_built:
+			_apply_card_visual_state(row, true)
+			row.title_lbl.text = "✓ Reforço de Casco (Módulo 1)"
+			_set_btn_status(row.buy_btn, "Concluído", null)
+		else:
+			_apply_card_visual_state(row, false, can_build_hull)
+			row.title_lbl.text = "Reforço de Casco (Módulo 1)"
+			row.buy_btn.icon = AmberTheme.get_resource_icon(GameState.RES_METAL)
+			row.buy_btn.text = "80 Rochas · 6 Metal"
+			row.buy_btn.disabled = not can_build_hull
+			row.buy_btn.tooltip_text = "Rochas: %s/80 · Metal: %s/6" % [
+				GameState.format_number(GameState.get_resource(GameState.RES_ROCKS)),
+				GameState.format_number(GameState.get_resource(GameState.RES_METAL)),
+			]
+		return
+
+	if item_id == ITEM_ARK_COMPANIONS:
+		var names: Array[String] = GameState.get_rescued_companion_names()
+		var comp_icon: Texture2D = AmberTheme.get_dino_sprite(&"ankylosaurus") if GameState.quarry_ankylo_rescued else AmberTheme.get_dino_sprite(&"compsognathus")
+		if comp_icon == null:
+			comp_icon = AmberTheme.get_tab_icon(&"ark")
+		_set_card_icon(row, comp_icon)
+		_apply_card_visual_state(row, false, false)
+		row.title_lbl.text = "Bando Resgatado (%d/8)" % names.size()
+		var list_text: String = ", ".join(names) if not names.is_empty() else "Nenhum resgatado ainda"
+		row.desc_lbl.text = "%s · %s" % [list_text, GameState.get_campaign_next_goal_text()]
+		row.buy_btn.visible = false
+		return
+
+	if item_id == ITEM_ARK_LAUNCH:
+		var prog: Dictionary = GameState.get_ark_progress()
+		var ark_lvl: int = int(prog.get("ark_level", 0))
+		var ark_req: int = int(prog.get("ark_required", 5))
+		var shield_pct: int = roundi(float(prog.get("shield_ratio", 0.0)) * 100.0)
+		var shield_req_pct: int = roundi(float(prog.get("shield_required", 0.8)) * 100.0)
+		var can_launch: bool = GameState.can_activate_ark_victory()
+		var completed: bool = bool(prog.get("completed", false))
+		_set_card_icon(row, AmberTheme.get_icon(&"amber"))
+		_apply_card_visual_state(row, false, can_launch)
+		row.title_lbl.text = "Lançar Arca dos Vivos" if not completed else "✓ Lançar Arca dos Vivos"
+		row.desc_lbl.text = "Projeto Arca %d/%d · Escudo %d%%/%d%% · Bando %d/4" % [
+			ark_lvl,
+			ark_req,
+			shield_pct,
+			shield_req_pct,
+			GameState.get_total_revived_station_dinos(),
+		]
+		if can_launch:
+			row.buy_btn.icon = AmberTheme.get_icon(&"amber")
+			row.buy_btn.text = "Lançar"
+			row.buy_btn.disabled = false
+			row.buy_btn.tooltip_text = "Ativar proteção da Arca dos Vivos contra o meteoro"
+		else:
+			_set_btn_status(row.buy_btn, "Em obra", null)
+		return
+
+	if not GameState.RUBBLE_DEFS.has(_site):
+		_update_upgrade_card(row, item_id)
+		return
+
 	var def: Dictionary = GameState.RUBBLE_DEFS[_site] as Dictionary
 	var product: StringName = StringName(def["product"])
 	var prod_name: String = String(GameState.RESOURCE_NAMES.get(product, product))
@@ -1241,7 +1390,7 @@ func _update_action_card(row: CardRow) -> void:
 	if item_id == ITEM_BUILD_STATION:
 		var is_built: bool = GameState.is_station_built(_site)
 		var build_res: StringName = GameState.get_rubble_cost_resource(_site) if not is_built else StringName(def.get("build_resource", GameState.RES_ROCKS))
-		_set_card_icon(row, AmberTheme.get_resource_icon(build_res))
+		_set_card_icon(row, WORKBENCH_ICONS.get_icon(item_id))
 		if is_built:
 			_apply_card_visual_state(row, true)
 			row.title_lbl.text = "✓ %s construída" % String(def["title"])
@@ -1273,7 +1422,7 @@ func _update_action_card(row: CardRow) -> void:
 	if item_id == ITEM_EXPAND_STATION:
 		var level: int = GameState.get_rubble_level(_site)
 		var expand_res: StringName = GameState.get_rubble_cost_resource(_site)
-		_set_card_icon(row, AmberTheme.get_resource_icon(expand_res))
+		_set_card_icon(row, WORKBENCH_ICONS.get_icon(item_id))
 		_apply_card_visual_state(row, false)
 		row.title_lbl.text = "Ampliar posto · Nv. %d" % level
 		row.desc_lbl.text = "%s. Produção automática +%.1f %s/s por nível." % [String(def["desc"]), float(def["rate"]), prod_name]
@@ -1343,7 +1492,11 @@ func _update_upgrade_card(row: CardRow, id: StringName) -> void:
 		return
 	var level: int = GameState.get_upgrade_level(id)
 	var is_maxed: bool = data.is_maxed(level)
-	var icon_tex: Texture2D = data.icon if data.icon != null else AmberTheme.get_resource_icon(data.cost_resource)
+	var icon_tex: Texture2D = data.icon
+	if icon_tex == null:
+		icon_tex = WORKBENCH_ICONS.get_icon(id)
+	if icon_tex == null:
+		icon_tex = AmberTheme.get_resource_icon(data.cost_resource)
 	_set_card_icon(row, icon_tex)
 
 	var desc_text: String = data.description
@@ -1367,11 +1520,12 @@ func _update_upgrade_card(row: CardRow, id: StringName) -> void:
 			var req_name: String = req_upg.display_name if req_upg != null else String(data.required_upgrade)
 			_set_btn_status(row.buy_btn, "Requer %s" % req_name, null)
 	else:
-		_apply_card_visual_state(row, false)
+		var affordable: bool = GameState.can_purchase_upgrade(id)
+		_apply_card_visual_state(row, false, affordable)
 		row.title_lbl.text = data.display_name if data.max_level == 1 else "%s · Nv. %d" % [data.display_name, level]
 		var count: int = maxi(1, GameState.resolve_purchase_amount(id))
 		var action_lbl: String = "Comprar" if data.max_level == 1 else "Equipar +%d" % count
-		_set_btn_price(row.buy_btn, action_lbl, data.cost_resource, GameState.get_purchase_cost(id), GameState.can_purchase_upgrade(id))
+		_set_btn_price(row.buy_btn, action_lbl, data.cost_resource, GameState.get_purchase_cost(id), affordable)
 
 
 func _build_info_row() -> void:
@@ -1382,7 +1536,7 @@ func _build_info_row() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "InfoCard"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", _style_card_dimmed)
+	panel.theme_type_variation = &"BenchCompletedCard"
 
 	var margin := MarginContainer.new()
 	margin.name = "Margin"
@@ -1401,7 +1555,7 @@ func _build_info_row() -> void:
 	icon_slot.name = "IconSlot"
 	icon_slot.custom_minimum_size = Vector2(34.0, 34.0)
 	icon_slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	icon_slot.add_theme_stylebox_override("panel", _style_icon_slot)
+	icon_slot.theme_type_variation = &"BenchIconTile"
 	hbox.add_child(icon_slot)
 
 	var icon_rect := TextureRect.new()
@@ -1428,7 +1582,7 @@ func _build_info_row() -> void:
 	desc_lbl.name = "Description"
 	desc_lbl.custom_minimum_size = Vector2(310.0, 0.0)
 	desc_lbl.add_theme_font_size_override("font_size", 12)
-	desc_lbl.add_theme_color_override("font_color", Color(0.82, 0.80, 0.76, 1.0))
+	desc_lbl.add_theme_color_override("font_color", Color("#bed0c5"))
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(desc_lbl)
 
@@ -1445,6 +1599,11 @@ func _build_info_row() -> void:
 func _update_info_row() -> void:
 	var row: CardRow = _card_rows.get(INFO_CARD_KEY, null) as CardRow
 	if row == null:
+		return
+	if _site == GameState.ARK_SITE_ID:
+		_set_card_icon(row, AmberTheme.get_icon(&"amber"))
+		row.title_lbl.text = "Âmbar Permanente"
+		row.desc_lbl.text = "Nenhum upgrade de Âmbar disponível no momento."
 		return
 	var def: Dictionary = GameState.RUBBLE_DEFS[_site] as Dictionary
 	if _section == &"fossils":
@@ -1487,7 +1646,7 @@ func _create_fossil_row(row_key: StringName, dino_id: StringName, queue_idx: int
 	var panel := PanelContainer.new()
 	panel.name = "FossilRow_%d" % queue_idx
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", _style_card_highlight if queue_idx == 0 else _style_card_active)
+	panel.theme_type_variation = &"BenchHighlightedCard" if queue_idx == 0 else &"BenchCard"
 	panel.set_meta(&"dino_id", dino_id)
 	panel.set_meta(&"queue_index", queue_idx)
 
@@ -1508,7 +1667,7 @@ func _create_fossil_row(row_key: StringName, dino_id: StringName, queue_idx: int
 	icon_slot.name = "IconSlot"
 	icon_slot.custom_minimum_size = Vector2(36.0, 36.0)
 	icon_slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	icon_slot.add_theme_stylebox_override("panel", _style_icon_slot)
+	icon_slot.theme_type_variation = &"BenchIconTile"
 	hbox.add_child(icon_slot)
 
 	var icon_rect := TextureRect.new()
@@ -1563,8 +1722,6 @@ func _create_fossil_row(row_key: StringName, dino_id: StringName, queue_idx: int
 	bar.show_percentage = false
 	bar.custom_minimum_size = Vector2(220.0, 16.0)
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bar.add_theme_stylebox_override("background", _style_fossil_bar_bg)
-	bar.add_theme_stylebox_override("fill", _style_fossil_bar_fill)
 	info.add_child(bar)
 
 	row.panel = panel
@@ -1633,14 +1790,22 @@ func _update_field_action_button() -> void:
 	if not GameState.orange_rock_broken:
 		_field_action_btn.disabled = false
 		_field_action_btn.text = "Golpear Ovo [E]"
+		_field_action_btn.tooltip_text = "Golpeie o Ovo de Âmbar com [E] para iniciar a expedição"
 		return
 	var active_site: StringName = _site if _site != &"" else GameState.hero_station
+	if active_site == GameState.ARK_SITE_ID:
+		_field_action_btn.disabled = false
+		_field_action_btn.text = "Impacto & Âmbar"
+		_field_action_btn.tooltip_text = "Abrir modal de Impacto & Âmbar da Arca dos Vivos"
+		return
 	if active_site != &"" and GameState.RUBBLE_DEFS.has(active_site):
 		if not GameState.is_station_built(active_site):
 			_field_action_btn.disabled = true
 			_field_action_btn.text = "Construa a estrutura primeiro"
+			_field_action_btn.tooltip_text = "Construa a estrutura antes de farmar aqui"
 			return
 		_field_action_btn.disabled = false
+		_field_action_btn.tooltip_text = "Ajuda este posto com [E] para coletar recursos e procurar fósseis brutos"
 		if active_site == &"rubble_bunker":
 			_field_action_btn.text = "Limpar & Estudar [E]"
 		else:
@@ -1649,6 +1814,7 @@ func _update_field_action_button() -> void:
 	else:
 		_field_action_btn.disabled = false
 		_field_action_btn.text = "Ajudar [E]"
+		_field_action_btn.tooltip_text = "Ajuda este posto com [E] para coletar recursos e procurar fósseis brutos"
 
 
 func _on_field_action_pressed() -> void:
@@ -1656,6 +1822,9 @@ func _on_field_action_pressed() -> void:
 	if not GameState.orange_rock_broken:
 		(_landmarks[&"egg"] as FieldLandmark).pulse = 1.0
 		GameState.hero_farm_action(&"egg", action_pos)
+		return
+	if _site == GameState.ARK_SITE_ID:
+		Events.prestige_modal_requested.emit()
 		return
 	var target_station: StringName = _site if GameState.RUBBLE_DEFS.has(_site) else GameState.hero_station
 	if target_station == &"":
@@ -1680,7 +1849,15 @@ func _on_item_buy_pressed(item_id: StringName) -> void:
 	if btn == null or btn.disabled:
 		return
 	_emitting_buy_item_id = item_id
-	if item_id == ITEM_BUILD_STATION or item_id == ITEM_EXPAND_STATION:
+	if item_id == ITEM_QUARRY_EXTRACT:
+		Events.quarry_extraction_requested.emit()
+	elif item_id == ITEM_AWAKEN_ANKYLO:
+		GameState.awaken_quarry_ankylosaurus()
+	elif item_id == ITEM_ARK_MODULE_HULL:
+		GameState.build_ark_module(GameState.ARK_MODULE_HULL)
+	elif item_id == ITEM_ARK_LAUNCH:
+		GameState.activate_ark_victory()
+	elif item_id == ITEM_BUILD_STATION or item_id == ITEM_EXPAND_STATION:
 		Events.rubble_rebuild_requested.emit(_site)
 	elif item_id == ITEM_HIRE_WORKER:
 		GameState.hire_station_worker(_site)
@@ -1723,6 +1900,7 @@ func _spawn_floating_text(text: String, global_pos: Vector2, color: Color) -> vo
 	lbl.add_theme_color_override("font_outline_color", Color(0.14, 0.10, 0.08, 0.92))
 	lbl.add_theme_constant_override("outline_size", 4)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_map.add_child(lbl)
 
 	var local_pos: Vector2 = _map.get_global_transform_with_canvas().affine_inverse() * global_pos

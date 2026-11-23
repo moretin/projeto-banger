@@ -1,22 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scenes/surface/SurfaceScene.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/surface/BasinLandscape.gd" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/surface/QuarryExtractionModal.tscn" id="3"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dock"]
-bg_color = Color(0.145, 0.137, 0.212, 0.96)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.84, 0.62, 0.34, 0.95)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-shadow_color = Color(0, 0, 0, 0.45)
-shadow_size = 10
-shadow_offset = Vector2(0, 4)
+[ext_resource type="Theme" path="res://scenes/ui/workbench_theme.tres" id="theme_workbench"]
 
 [node name="SurfaceScene" type="Control"]
 clip_contents = true
@@ -31,6 +19,7 @@ anchor_bottom = 1.0
 script = ExtResource("2")
 
 [node name="BasinName" type="Label" parent="Map"]
+texture_filter = 2
 offset_left = 32.0
 offset_top = 18.0
 mouse_filter = 2
@@ -41,6 +30,7 @@ theme_override_font_sizes/font_size = 30
 text = "Bacia do Âmbar"
 
 [node name="Camp" type="Label" parent="Map"]
+texture_filter = 2
 offset_left = 34.0
 offset_top = 56.0
 mouse_filter = 2
@@ -60,7 +50,7 @@ offset_top = 420.0
 offset_right = 730.0
 offset_bottom = 674.0
 custom_minimum_size = Vector2(610, 0)
-theme_override_styles/panel = SubResource("StyleBoxFlat_dock")
+theme = ExtResource("theme_workbench")
 
 [node name="Margin" type="MarginContainer" parent="Dock"]
 layout_mode = 2
@@ -73,24 +63,28 @@ theme_override_constants/margin_bottom = 8
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="TopInfo" type="HBoxContainer" parent="Dock/Margin/Layout"]
+[node name="Header" type="PanelContainer" parent="Dock/Margin/Layout"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_type_variation = &"BenchHeader"
 
-[node name="SiteName" type="Label" parent="Dock/Margin/Layout/TopInfo"]
+[node name="TopInfo" type="HBoxContainer" parent="Dock/Margin/Layout/Header"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SiteName" type="Label" parent="Dock/Margin/Layout/Header/TopInfo"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 20
 text = "Estrutura"
 text_overrun_behavior = 3
 
-[node name="Stock" type="Label" parent="Dock/Margin/Layout/TopInfo"]
+[node name="Stock" type="Label" parent="Dock/Margin/Layout/Header/TopInfo"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.62, 0.84, 0.77, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.72, 0.88, 0.79, 1)
+theme_override_font_sizes/font_size = 13
 horizontal_alignment = 2
 
 [node name="Groups" type="HBoxContainer" parent="Dock/Margin/Layout"]
@@ -120,9 +114,10 @@ theme_override_constants/separation = 6
 
 [node name="Quantity" type="Button" parent="Dock/Margin/Layout/ActionRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(88, 28)
+custom_minimum_size = Vector2(94, 30)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"BenchAction"
+theme_override_font_sizes/font_size = 13
 tooltip_text = "Alterar quantidade por compra"
 text = "Lote ×1"
 
@@ -133,9 +128,10 @@ mouse_filter = 2
 
 [node name="ToDigSiteButton" type="Button" parent="Dock/Margin/Layout/ActionRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(180, 28)
+custom_minimum_size = Vector2(180, 30)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"BenchAction"
+theme_override_font_sizes/font_size = 13
 tooltip_text = "Ajuda este posto com [E] para coletar recursos e procurar fósseis brutos"
 text = "Ajudar [E]"
 
@@ -147,3 +143,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 color = Color(0.08, 0.06, 0.09, 0)
+
+[node name="QuarryExtractionModal" parent="." instance=ExtResource("3")]
+unique_name_in_owner = true
+visible = false
+z_index = 26
+layout_mode = 1

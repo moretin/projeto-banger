@@ -205,7 +205,6 @@ theme_override_constants/separation = 10
 
 [node name="SaveNowButton" type="Button" parent="SettingsBackdrop/SettingsPanel/Margin/VBox/SaveSection/ButtonsRow"]
 unique_name_in_owner = true
-texture_filter = 1
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -214,7 +213,6 @@ text = "Salvar Agora"
 
 [node name="ExportButton" type="Button" parent="SettingsBackdrop/SettingsPanel/Margin/VBox/SaveSection/ButtonsRow"]
 unique_name_in_owner = true
-texture_filter = 1
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -223,7 +221,6 @@ text = "Exportar Base64"
 
 [node name="ImportButton" type="Button" parent="SettingsBackdrop/SettingsPanel/Margin/VBox/SaveSection/ButtonsRow"]
 unique_name_in_owner = true
-texture_filter = 1
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3

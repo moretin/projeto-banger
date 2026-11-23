@@ -149,7 +149,6 @@ theme_override_constants/separation = 12
 
 [node name="OpenArcaLabButton" type="Button" parent="NewspaperBackdrop/NewsPaperSheet/Margin/VBox/NewsButtonsRow"]
 unique_name_in_owner = true
-texture_filter = 1
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -245,7 +244,6 @@ text = "Cota da expedição: -0m · Escudo da Arca: 0%"
 
 [node name="EarlyImpactButton" type="Button" parent="ModalBackdrop/CenterPanel/Margin/VBox"]
 unique_name_in_owner = true
-texture_filter = 1
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 focus_mode = 0

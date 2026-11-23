@@ -125,6 +125,8 @@ func _run() -> void:
 						if location.name != "egg":
 							biome_stations.append(StringName(location.name))
 					_check(not biome_stations.is_empty(), "Bioma %s sem estruturas visíveis em %s" % [biome_id, dimensions])
+					if biome_id == &"amber_basin":
+						_check(&"ark" in biome_stations, "Marco 'ark' deve estar visível na Bacia do Âmbar em %s" % dimensions)
 
 					for st_id: StringName in biome_stations:
 						surface.call("move_hero_to_station", st_id)
@@ -150,13 +152,19 @@ func _run() -> void:
 									_check(ficon != null and ficon.texture != null, "Ícone de fóssil ausente na aba Fósseis em %s" % dimensions)
 									_check(fbar != null and fbar.is_visible_in_tree(), "ProgressBar de fóssil ausente na aba Fósseis em %s" % dimensions)
 
-				# 3b) Validação das bancadas populadas (todas as 8 estações construídas + trabalhadores + fósseis limpos + 14 recursos).
+				# 3b) Validação das bancadas populadas (todas as 8 estações construídas + trabalhadores + fósseis limpos + Arca populada + 14 recursos).
 				if game_state != null:
 					_activate_all_surface_resources(game_state)
 					game_state.call("add_fragments", &"ankylosaurus", 10)
 					game_state.call("add_fragments", &"triceratops", 10)
+					game_state.call("claim_quarry_special_plate")
+					game_state.call("awaken_quarry_ankylosaurus")
+					game_state.call("add_resource", &"rocks", 80.0)
+					game_state.call("add_resource", &"metal", 6.0)
+					game_state.call("build_ark_module", &"hull_reinforcement")
 					await process_frame
-					var all_stations: Array = game_state.get("RUBBLE_ORDER") as Array
+					var all_stations: Array = (game_state.get("RUBBLE_ORDER") as Array).duplicate()
+					all_stations.append(&"ark")
 					for st_val: Variant in all_stations:
 						var st_id: StringName = st_val as StringName
 						surface.call("move_hero_to_station", st_id)
@@ -172,6 +180,36 @@ func _run() -> void:
 							_validate_dock(surface, dock, groups, items_scroll, items_list, action_btn, screen, dimensions, String(st_id) + "-cheia", group_btn.name)
 					if hud != null:
 						_validate_hud(hud, screen, dimensions, "14-recursos-com-dock")
+
+			# 4) Validação do QuarryExtractionModal dentro dos limites da tela nas 3 resoluções.
+			var qmodal: Control = surface.get_node_or_null("%QuarryExtractionModal") as Control
+			_check(qmodal != null, "QuarryExtractionModal ausente em SurfaceScene (%s)" % dimensions)
+			if qmodal != null:
+				_check(not bool(qmodal.call("is_extraction_open")), "QuarryExtractionModal deve iniciar fechado em %s" % dimensions)
+				if events != null:
+					var qsig: Signal = events.get("quarry_extraction_requested") as Signal
+					qsig.emit()
+				else:
+					qmodal.call("open_extraction")
+				await process_frame
+				await process_frame
+				_validate_quarry_modal(qmodal, screen, dimensions, "aberta")
+				qmodal.call("trigger_precise_strike_window")
+				qmodal.call("resolve_precise_strike_attempt", &"good")
+				qmodal.call("apply_brush_progress", 1.0)
+				await process_frame
+				await process_frame
+				_validate_quarry_modal(qmodal, screen, dimensions, "concluida")
+				var complete_btn: Button = qmodal.get_node_or_null("%CompleteReturnButton") as Button
+				_check(complete_btn != null and complete_btn.is_visible_in_tree(), "CompleteReturnButton deve aparecer após extração (%s)" % dimensions)
+				if complete_btn != null:
+					_check(screen.encloses(complete_btn.get_global_rect()), "CompleteReturnButton fora da tela em %s" % dimensions)
+					complete_btn.pressed.emit()
+				else:
+					qmodal.call("close_extraction")
+				await process_frame
+				await process_frame
+				_check(not bool(qmodal.call("is_extraction_open")), "QuarryExtractionModal deve fechar ao clicar em Voltar à Pedreira (%s)" % dimensions)
 
 		_check(viewport.gui_get_focus_owner() != null, "Sem foco inicial em %s" % dimensions)
 		viewport.free()
@@ -285,6 +323,25 @@ func _validate_dock(
 			if scroll_rect.intersects(buy_rect):
 				var visible_buy: Rect2 = scroll_rect.intersection(buy_rect)
 				_check(screen.encloses(visible_buy), "BuyButton visível de %s (%s/%s) fora da tela em %s" % [card.name, station_name, tab_name, dimensions])
+
+
+func _validate_quarry_modal(qmodal: Control, screen: Rect2, dimensions: Vector2i, stage: String) -> void:
+	_check(bool(qmodal.call("is_extraction_open")) and qmodal.is_visible_in_tree(), "QuarryExtractionModal (%s) não abriu em %s" % [stage, dimensions])
+	var workshop: Control = qmodal.get_node_or_null("%WorkshopPanel") as Control
+	var bed: Control = qmodal.get_node_or_null("%SedimentBed") as Control
+	var seismo: Control = qmodal.get_node_or_null("%SeismographBar") as Control
+	var close_btn: Button = qmodal.get_node_or_null("%CloseButton") as Button
+	var bar: ProgressBar = qmodal.get_node_or_null("%ExtractionProgressBar") as ProgressBar
+	var status_lbl: Label = qmodal.get_node_or_null("%StatusLabel") as Label
+	_check(workshop != null and bed != null and seismo != null and close_btn != null and bar != null and status_lbl != null, "Nós essenciais de QuarryExtractionModal (%s) ausentes em %s" % [stage, dimensions])
+	if workshop != null and workshop.is_visible_in_tree():
+		var w_rect: Rect2 = workshop.get_global_rect()
+		_check(screen.encloses(w_rect), "QuarryExtractionModal/WorkshopPanel (%s) fora da tela em %s (%s)" % [stage, dimensions, w_rect])
+		for ctrl: Control in [bed, seismo, close_btn, bar, status_lbl]:
+			if ctrl != null and ctrl.is_visible_in_tree():
+				var c_rect: Rect2 = ctrl.get_global_rect()
+				_check(screen.encloses(c_rect), "QuarryExtractionModal/%s (%s) fora da tela em %s" % [ctrl.name, stage, dimensions])
+				_check(w_rect.encloses(c_rect), "QuarryExtractionModal/%s (%s) ultrapassou WorkshopPanel em %s" % [ctrl.name, stage, dimensions])
 
 
 func _check(condition: bool, message: String) -> void:
