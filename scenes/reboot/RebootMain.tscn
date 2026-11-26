@@ -1,0 +1,630 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scenes/reboot/RebootMain.gd" id="1_main_gd"]
+[ext_resource type="Theme" path="res://scenes/ui/workbench_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://scenes/reboot/ValleyWorld.gd" id="3_valley_gd"]
+[ext_resource type="PackedScene" path="res://scenes/reboot/TalentModal.tscn" id="4_talent_tscn"]
+[ext_resource type="PackedScene" path="res://scenes/reboot/SettingsModal.tscn" id="5_settings_tscn"]
+[ext_resource type="Texture2D" path="res://assets/sprites/icons/icon_fragment.png" id="6_icon_frag"]
+[ext_resource type="Texture2D" path="res://assets/sprites/icons/icon_rocks.png" id="7_icon_rocks"]
+[ext_resource type="Texture2D" path="res://assets/sprites/icons/icon_amber.png" id="8_icon_amber"]
+[ext_resource type="Texture2D" path="res://assets/sprites/icons/icon_egg.png" id="9_icon_egg"]
+[ext_resource type="Texture2D" path="res://assets/sprites/icons/icon_meteor.png" id="10_icon_meteor"]
+[ext_resource type="Texture2D" path="res://assets/sprites/icons/icon_settings.png" id="11_icon_settings"]
+
+[sub_resource type="StyleBoxFlat" id="RoarPillStyle"]
+content_margin_left = 8.0
+content_margin_top = 3.0
+content_margin_right = 8.0
+content_margin_bottom = 3.0
+bg_color = Color(0.62, 0.28, 0.08, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.98, 0.78, 0.34, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_left = 4
+corner_radius_bottom_right = 4
+
+[node name="RebootMain" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_main_gd")
+
+[node name="ValleyWorld" type="Node2D" parent="."]
+script = ExtResource("3_valley_gd")
+
+[node name="HudLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="HudRoot" type="Control" parent="HudLayer"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="TopBar" type="PanelContainer" parent="HudLayer/HudRoot"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 10.0
+offset_right = -14.0
+offset_bottom = 72.0
+grow_horizontal = 2
+
+[node name="Margin" type="MarginContainer" parent="HudLayer/HudRoot/TopBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="Row" type="HBoxContainer" parent="HudLayer/HudRoot/TopBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="StatsRow" type="HBoxContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 6
+
+[node name="FragmentsChip" type="PanelContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow"]
+layout_mode = 2
+tooltip_text = "Fragmentos de Âmbar no Depósito (usados para construir, recrutar e comprar melhorias)"
+theme_type_variation = &"BenchCard"
+
+[node name="Margin" type="MarginContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/FragmentsChip"]
+layout_mode = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 4
+
+[node name="HBox" type="HBoxContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/FragmentsChip/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="FragIcon" type="TextureRect" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/FragmentsChip/Margin/HBox"]
+texture_filter = 1
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("6_icon_frag")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="FragmentsLabel" type="Label" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/FragmentsChip/Margin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="PileChip" type="PanelContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow"]
+layout_mode = 2
+tooltip_text = "Pilha de Estilhaços & Nível de Compressão Cristalina"
+theme_type_variation = &"BenchCard"
+
+[node name="Margin" type="MarginContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/PileChip"]
+layout_mode = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 4
+
+[node name="HBox" type="HBoxContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/PileChip/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="PileIcon" type="TextureRect" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/PileChip/Margin/HBox"]
+texture_filter = 1
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("7_icon_rocks")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PileLabel" type="Label" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/PileChip/Margin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "0/120"
+
+[node name="CompressionBadge" type="Label" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/PileChip/Margin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.54, 0.92, 0.96, 1)
+theme_override_font_sizes/font_size = 12
+text = "C0 x1.0"
+
+[node name="AmberChip" type="PanelContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow"]
+layout_mode = 2
+tooltip_text = "Âmbar Puro Permanente (desbloqueia Talentos entre runs)"
+theme_type_variation = &"BenchCard"
+
+[node name="Margin" type="MarginContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/AmberChip"]
+layout_mode = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 4
+
+[node name="HBox" type="HBoxContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/AmberChip/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="AmberIcon" type="TextureRect" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/AmberChip/Margin/HBox"]
+texture_filter = 1
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("8_icon_amber")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AmberLabel" type="Label" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/AmberChip/Margin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.80, 0.36, 1)
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="SwarmChip" type="PanelContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow"]
+layout_mode = 2
+tooltip_text = "Total de Dinossauros ativos no Enxame"
+theme_type_variation = &"BenchCard"
+
+[node name="Margin" type="MarginContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/SwarmChip"]
+layout_mode = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 4
+
+[node name="HBox" type="HBoxContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/SwarmChip/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="SwarmIcon" type="TextureRect" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/SwarmChip/Margin/HBox"]
+texture_filter = 1
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("9_icon_egg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SwarmCountLabel" type="Label" parent="HudLayer/HudRoot/TopBar/Margin/Row/StatsRow/SwarmChip/Margin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="LeftSpacer" type="Control" parent="HudLayer/HudRoot/TopBar/Margin/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="MeteorPanel" type="PanelContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BenchCard"
+
+[node name="Margin" type="MarginContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/MeteorPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 4
+
+[node name="HBox" type="HBoxContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/MeteorPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="MeteorIcon" type="TextureRect" parent="HudLayer/HudRoot/TopBar/Margin/Row/MeteorPanel/Margin/HBox"]
+texture_filter = 1
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("10_icon_meteor")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MeteorProgressBar" type="ProgressBar" parent="HudLayer/HudRoot/TopBar/Margin/Row/MeteorPanel/Margin/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(144, 20)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+max_value = 10000.0
+value = 10000.0
+show_percentage = false
+
+[node name="MeteorHpLabel" type="Label" parent="HudLayer/HudRoot/TopBar/Margin/Row/MeteorPanel/Margin/HBox/MeteorProgressBar"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.97, 0.88, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+text = "10.0K / 10.0K"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MeteorTimerLabel" type="Label" parent="HudLayer/HudRoot/TopBar/Margin/Row/MeteorPanel/Margin/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "04:00"
+horizontal_alignment = 1
+
+[node name="RoarBadge" type="PanelContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/MeteorPanel/Margin/HBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_styles/panel = SubResource("RoarPillStyle")
+
+[node name="RoarLabel" type="Label" parent="HudLayer/HudRoot/TopBar/Margin/Row/MeteorPanel/Margin/HBox/RoarBadge"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.94, 0.70, 1)
+theme_override_font_sizes/font_size = 11
+text = "RUGIDO x2.0"
+
+[node name="RightSpacer" type="Control" parent="HudLayer/HudRoot/TopBar/Margin/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="NavRow" type="HBoxContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 5
+
+[node name="CamMonolithButton" type="Button" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 34)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"BenchAction"
+theme_override_font_sizes/font_size = 12
+text = "Monólito"
+
+[node name="CamPileButton" type="Button" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(46, 34)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"BenchAction"
+theme_override_font_sizes/font_size = 12
+text = "Pilha"
+
+[node name="CamValleyButton" type="Button" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 34)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"BenchAction"
+theme_override_font_sizes/font_size = 12
+text = "Vale"
+
+[node name="CamCannonButton" type="Button" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(58, 34)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"BenchAction"
+theme_override_font_sizes/font_size = 12
+text = "Canhão"
+
+[node name="TalentsButton" type="Button" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 34)
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Árvore de Talentos de Âmbar Puro"
+
+[node name="Content" type="HBoxContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow/TalentsButton"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow/TalentsButton/Content"]
+texture_filter = 1
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("8_icon_amber")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Text" type="Label" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow/TalentsButton/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.12549, 0.1098, 0.07843, 1)
+theme_override_font_sizes/font_size = 12
+text = "Talentos"
+
+[node name="SettingsButton" type="Button" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(82, 34)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"BenchAction"
+tooltip_text = "Configurações de Áudio, Pan e Campanha"
+
+[node name="Content" type="HBoxContainer" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow/SettingsButton"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow/SettingsButton/Content"]
+texture_filter = 1
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("11_icon_settings")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Text" type="Label" parent="HudLayer/HudRoot/TopBar/Margin/Row/NavRow/SettingsButton/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.95686, 0.95294, 0.8549, 1)
+theme_override_font_sizes/font_size = 12
+text = "Config"
+
+[node name="HintBanner" type="PanelContainer" parent="HudLayer/HudRoot"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -380.0
+offset_top = -256.0
+offset_right = 380.0
+offset_bottom = -222.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"BenchCard"
+
+[node name="Margin" type="MarginContainer" parent="HudLayer/HudRoot/HintBanner"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 4
+
+[node name="HintLabel" type="Label" parent="HudLayer/HudRoot/HintBanner/Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.99, 0.88, 0.54, 1)
+theme_override_font_sizes/font_size = 12
+text = "Clique no Monólito à esquerda para soltar lascas e na Pilha para recolher! Mova o mouse para os lados para explorar o vale."
+horizontal_alignment = 1
+
+[node name="CommandTray" type="PanelContainer" parent="HudLayer/HudRoot"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -212.0
+offset_right = -14.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Margin" type="MarginContainer" parent="HudLayer/HudRoot/CommandTray"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="HudLayer/HudRoot/CommandTray/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="TrayHeader" type="HBoxContainer" parent="HudLayer/HudRoot/CommandTray/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TrayTitle" type="Label" parent="HudLayer/HudRoot/CommandTray/Margin/VBox/TrayHeader"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.84, 0.48, 1)
+theme_override_font_sizes/font_size = 13
+text = "Enxame & Estruturas"
+
+[node name="TrayStatusLabel" type="Label" parent="HudLayer/HudRoot/CommandTray/Margin/VBox/TrayHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.76, 0.84, 0.78, 1)
+theme_override_font_sizes/font_size = 12
+text = "Run #1"
+
+[node name="TrayToggleButton" type="Button" parent="HudLayer/HudRoot/CommandTray/Margin/VBox/TrayHeader"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 24)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"BenchAction"
+theme_override_font_sizes/font_size = 11
+text = "▼ Recolher"
+
+[node name="CardsScroll" type="ScrollContainer" parent="HudLayer/HudRoot/CommandTray/Margin/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 166)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 1
+vertical_scroll_mode = 0
+
+[node name="CardsRow" type="HBoxContainer" parent="HudLayer/HudRoot/CommandTray/Margin/VBox/CardsScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="RunEndModal" type="Control" parent="HudLayer/HudRoot"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Backdrop" type="ColorRect" parent="HudLayer/HudRoot/RunEndModal"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.03, 0.04, 0.05, 0.8)
+
+[node name="RunEndPanel" type="PanelContainer" parent="HudLayer/HudRoot/RunEndModal"]
+custom_minimum_size = Vector2(520, 340)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -170.0
+offset_right = 260.0
+offset_bottom = 170.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="HudLayer/HudRoot/RunEndModal/RunEndPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 20
+
+[node name="VBox" type="VBoxContainer" parent="HudLayer/HudRoot/RunEndModal/RunEndPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RunEndTitle" type="Label" parent="HudLayer/HudRoot/RunEndModal/RunEndPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "O METEORO ATINGIU O VALE!"
+horizontal_alignment = 1
+
+[node name="RunEndSubtitle" type="Label" parent="HudLayer/HudRoot/RunEndModal/RunEndPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.87, 0.78, 1)
+theme_override_font_sizes/font_size = 13
+text = "Resumo da expedição"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StatsBox" type="PanelContainer" parent="HudLayer/HudRoot/RunEndModal/RunEndPanel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_type_variation = &"BenchCard"
+
+[node name="Margin" type="MarginContainer" parent="HudLayer/HudRoot/RunEndModal/RunEndPanel/Margin/VBox/StatsBox"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="RunEndStatsLabel" type="Label" parent="HudLayer/HudRoot/RunEndModal/RunEndPanel/Margin/VBox/StatsBox/Margin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "..."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ButtonsRow" type="HBoxContainer" parent="HudLayer/HudRoot/RunEndModal/RunEndPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="RunEndEndlessButton" type="Button" parent="HudLayer/HudRoot/RunEndModal/RunEndPanel/Margin/VBox/ButtonsRow"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(170, 38)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"BenchAction"
+text = "Continuar no Modo Infinito"
+
+[node name="RunEndTalentsButton" type="Button" parent="HudLayer/HudRoot/RunEndModal/RunEndPanel/Margin/VBox/ButtonsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 38)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"BenchAction"
+text = "Árvore de Talentos"
+
+[node name="RunEndNextButton" type="Button" parent="HudLayer/HudRoot/RunEndModal/RunEndPanel/Margin/VBox/ButtonsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 38)
+layout_mode = 2
+focus_mode = 0
+text = "Iniciar Nova Run"
+
+[node name="TalentModal" parent="HudLayer/HudRoot" instance=ExtResource("4_talent_tscn")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="SettingsModal" parent="HudLayer/HudRoot" instance=ExtResource("5_settings_tscn")]
+unique_name_in_owner = true
+layout_mode = 1
